@@ -231,7 +231,7 @@ export default function JsonToCode() {
         </TabsList>
       </Tabs>
 
-      <div className="grid min-h-0 flex-1 gap-3 md:grid-cols-2">
+      <Section>
         <div className="flex min-h-0 flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <Button size="sm" variant="ghost" onClick={() => setInput(SAMPLE)}>
@@ -289,7 +289,7 @@ export default function JsonToCode() {
             </Hint>
           </div>
         </div>
-      </div>
+      </Section>
 
       <Section title="生成选项" description="按目标语言显示对应开关">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

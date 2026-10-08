@@ -244,78 +244,76 @@ export default function HttpStatusTool() {
         </TabsList>
       </Tabs>
 
-      <div className="grid min-h-0 flex-1 gap-3 md:grid-cols-2">
-        <Section
-          title={`状态码列表（${list.length}）`}
-          actions={
-            <div className="flex items-center gap-1.5">
-              <Select
-                ariaLabel="按语义筛选"
-                value={semantic}
-                onChange={(value) => setSemantic(value as StatusSemantic | '')}
-                selectClassName="h-7 w-32"
-                options={[
-                  { value: '', label: '全部语义' },
-                  ...STATUS_SEMANTICS.map((item) => ({ value: item.id, label: item.label })),
-                ]}
-              />
-              <Button
-                size="icon"
-                variant="ghost"
-                className="size-7"
-                aria-label="清空搜索与筛选"
-                onClick={() => {
-                  setQuery('');
-                  setCategory('全部');
-                  setSemantic('');
-                }}
-              >
-                <Eraser className="size-3.5" />
-              </Button>
-            </div>
-          }
-        >
-          {list.length === 0 ? (
-            <EmptyHint>没有匹配的状态码，换个关键字或清空筛选试试</EmptyHint>
-          ) : (
-            <ul className="-mx-1 max-h-[26rem] space-y-1 overflow-auto pr-1 scrollbar-thin">
-              {list.map((entry) => (
-                <li key={entry.code}>
-                  <button
-                    type="button"
-                    onClick={() => setSelected(entry.code)}
-                    aria-pressed={selected === entry.code}
-                    className={`flex w-full flex-col gap-1 rounded-md border px-2.5 py-1.5 text-left transition-colors hover:border-primary/60 hover:bg-accent/50 ${
-                      selected === entry.code ? 'border-primary/70 bg-accent/60' : ''
-                    }`}
-                  >
-                    <span className="flex flex-wrap items-center gap-1.5">
-                      <span className="font-mono text-sm font-semibold">{entry.code}</span>
-                      <span className="text-xs">{entry.name}</span>
-                      <CategoryBadge category={entry.category} />
-                    </span>
-                    <span className="text-[11px] leading-relaxed text-muted-foreground">{entry.summary}</span>
-                    <span className="flex flex-wrap items-center gap-1.5">
-                      <span className="text-[11px] text-muted-foreground">建议：{entry.advice}</span>
-                      <SemanticBadges code={entry.code} />
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Section>
+      <Section
+        title={`状态码列表（${list.length}）`}
+        actions={
+          <div className="flex items-center gap-1.5">
+            <Select
+              ariaLabel="按语义筛选"
+              value={semantic}
+              onChange={(value) => setSemantic(value as StatusSemantic | '')}
+              selectClassName="h-7 w-32"
+              options={[
+                { value: '', label: '全部语义' },
+                ...STATUS_SEMANTICS.map((item) => ({ value: item.id, label: item.label })),
+              ]}
+            />
+            <Button
+              size="icon"
+              variant="ghost"
+              className="size-7"
+              aria-label="清空搜索与筛选"
+              onClick={() => {
+                setQuery('');
+                setCategory('全部');
+                setSemantic('');
+              }}
+            >
+              <Eraser className="size-3.5" />
+            </Button>
+          </div>
+        }
+      >
+        {list.length === 0 ? (
+          <EmptyHint>没有匹配的状态码，换个关键字或清空筛选试试</EmptyHint>
+        ) : (
+          <ul className="-mx-1 max-h-[26rem] space-y-1 overflow-auto pr-1 scrollbar-thin">
+            {list.map((entry) => (
+              <li key={entry.code}>
+                <button
+                  type="button"
+                  onClick={() => setSelected(entry.code)}
+                  aria-pressed={selected === entry.code}
+                  className={`flex w-full flex-col gap-1 rounded-md border px-2.5 py-1.5 text-left transition-colors hover:border-primary/60 hover:bg-accent/50 ${
+                    selected === entry.code ? 'border-primary/70 bg-accent/60' : ''
+                  }`}
+                >
+                  <span className="flex flex-wrap items-center gap-1.5">
+                    <span className="font-mono text-sm font-semibold">{entry.code}</span>
+                    <span className="text-xs">{entry.name}</span>
+                    <CategoryBadge category={entry.category} />
+                  </span>
+                  <span className="text-[11px] leading-relaxed text-muted-foreground">{entry.summary}</span>
+                  <span className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-[11px] text-muted-foreground">建议：{entry.advice}</span>
+                    <SemanticBadges code={entry.code} />
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Section>
 
-        <Section title="状态码详情" description="含典型场景、触发原因、处理建议、关联码与示例报文">
-          {selectedEntry ? (
-            <div className="max-h-[26rem] overflow-auto pr-1 scrollbar-thin">
-              <DetailBody entry={selectedEntry} />
-            </div>
-          ) : (
-            <EmptyHint>点击左侧任意状态码查看详情</EmptyHint>
-          )}
-        </Section>
-      </div>
+      <Section title="状态码详情" description="含典型场景、触发原因、处理建议、关联码与示例报文">
+        {selectedEntry ? (
+          <div className="max-h-[26rem] overflow-auto pr-1 scrollbar-thin">
+            <DetailBody entry={selectedEntry} />
+          </div>
+        ) : (
+          <EmptyHint>点击左侧任意状态码查看详情</EmptyHint>
+        )}
+      </Section>
 
       <div className="grid gap-3 md:grid-cols-2">
         <Section title="快速对照" description="输入状态码，查看大字号含义与处理建议">

@@ -547,7 +547,7 @@ export default function GitCheatsheet() {
       </Tabs>
 
       {tab === 'commands' && (
-        <div className="flex min-h-0 flex-1 flex-col gap-3">
+        <Section>
           <div className="flex flex-wrap gap-1.5">
             <Button
               size="sm"
@@ -587,11 +587,11 @@ export default function GitCheatsheet() {
               ))}
             </ul>
           )}
-        </div>
+        </Section>
       )}
 
       {tab === 'scenarios' && (
-        <div className="flex min-h-0 flex-1 flex-col gap-3">
+        <Section>
           <div className="flex flex-wrap items-center gap-2">
             <div className="relative min-w-56 flex-1">
               <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -636,11 +636,11 @@ export default function GitCheatsheet() {
           ) : (
             matches.map((match) => <ScenarioCard key={match.scenario.id} scenario={match.scenario} />)
           )}
-        </div>
+        </Section>
       )}
 
       {tab === 'graph' && (
-        <div className="grid min-h-0 flex-1 gap-3 md:grid-cols-2">
+        <Section>
           <div className="flex min-h-0 flex-col gap-2">
             <Textarea
               value={graphText}
@@ -726,7 +726,7 @@ export default function GitCheatsheet() {
               </div>
             </div>
           </Section>
-        </div>
+        </Section>
       )}
 
       <Note tone="info" title="关于本工具">

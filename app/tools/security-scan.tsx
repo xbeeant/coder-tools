@@ -110,194 +110,183 @@ export default function SecurityScanTool() {
         真正的渗透测试必须在获得授权的目标上进行。
       </Note>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 md:grid-cols-2">
-        <Section
-          title="待检文件"
-          description={`支持 ${SUPPORTED_MANIFESTS.length} 种清单与任意源码文本，单文件上限 2MB`}
-        >
-          <div className="flex flex-wrap gap-1.5">
+      <Section title="待检文件" description={`支持 ${SUPPORTED_MANIFESTS.length} 种清单与任意源码文本，单文件上限 2MB`}>
+        <div className="flex flex-wrap gap-1.5">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => void pickAndRead().then((items) => setFiles((prev) => dedupe([...prev, ...items])))}
+          >
+            <FolderOpen className="size-3.5" />
+            选择文件
+          </Button>
+          {files.length > 0 && (
+            <Button size="sm" variant="ghost" onClick={() => setFiles([])}>
+              清空列表
+            </Button>
+          )}
+        </div>
+        {files.length === 0 ? (
+          <EmptyHint>选择依赖清单或源码文件，或在下方直接粘贴内容</EmptyHint>
+        ) : (
+          <ul className="flex max-h-40 flex-col gap-1 overflow-y-auto">
+            {files.map((file) => (
+              <li key={file.name} className="flex items-center gap-1.5 rounded-md border px-2 py-1">
+                <span className="min-w-0 flex-1 truncate font-mono text-[11px]" title={file.name}>
+                  {file.name}
+                </span>
+                <span className="shrink-0 text-[10px] text-muted-foreground">{file.content.split('\n').length} 行</span>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="size-6 shrink-0"
+                  aria-label={`移除 ${file.name}`}
+                  onClick={() => setFiles((prev) => prev.filter((item) => item.name !== file.name))}
+                >
+                  <X className="size-3" />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <Field label="或直接粘贴内容" hint="按文件名自动识别清单类型，例如 package.json、requirements.txt、main.py">
+          <div className="flex flex-col gap-1.5">
+            <TextField
+              label="文件名"
+              value={pasteName}
+              placeholder="package.json"
+              onChange={setPasteName}
+              inputClassName="h-7"
+            />
+            <Textarea
+              value={pasteBody}
+              onChange={(event) => setPasteBody(event.target.value)}
+              placeholder='{"dependencies":{"lodash":"4.17.15"}}'
+              spellCheck={false}
+              className="min-h-24 resize-none font-mono text-xs"
+            />
             <Button
               size="sm"
               variant="outline"
-              onClick={() => void pickAndRead().then((items) => setFiles((prev) => dedupe([...prev, ...items])))}
+              className="self-start"
+              disabled={pasteBody.trim() === ''}
+              onClick={addPasted}
             >
-              <FolderOpen className="size-3.5" />
-              选择文件
+              <Plus className="size-3.5" />
+              加入列表
             </Button>
-            {files.length > 0 && (
-              <Button size="sm" variant="ghost" onClick={() => setFiles([])}>
-                清空列表
-              </Button>
-            )}
           </div>
-          {files.length === 0 ? (
-            <EmptyHint>选择依赖清单或源码文件，或在下方直接粘贴内容</EmptyHint>
-          ) : (
-            <ul className="flex max-h-40 flex-col gap-1 overflow-y-auto">
-              {files.map((file) => (
-                <li key={file.name} className="flex items-center gap-1.5 rounded-md border px-2 py-1">
-                  <span className="min-w-0 flex-1 truncate font-mono text-[11px]" title={file.name}>
-                    {file.name}
-                  </span>
-                  <span className="shrink-0 text-[10px] text-muted-foreground">
-                    {file.content.split('\n').length} 行
-                  </span>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="size-6 shrink-0"
-                    aria-label={`移除 ${file.name}`}
-                    onClick={() => setFiles((prev) => prev.filter((item) => item.name !== file.name))}
-                  >
-                    <X className="size-3" />
-                  </Button>
-                </li>
+        </Field>
+      </Section>
+
+      <Section title="扫描结果" description="按严重度排序，展开可查看证据与修复建议">
+        {report ? (
+          <>
+            <StatGrid>
+              {SEVERITY_ORDER.map((severity) => (
+                <button
+                  key={severity}
+                  type="button"
+                  aria-pressed={severityFilter === severity}
+                  className="text-left"
+                  onClick={() => setSeverityFilter(severityFilter === severity ? 'all' : severity)}
+                >
+                  <Stat
+                    label={SEVERITY_LABEL[severity]}
+                    value={report.stats[severity]}
+                    tone={
+                      severity === 'critical' || severity === 'high'
+                        ? 'danger'
+                        : severity === 'medium'
+                          ? 'warn'
+                          : 'info'
+                    }
+                    hint={severityFilter === severity ? '已筛选' : '点击筛选'}
+                    className={severityFilter === severity ? 'border-primary' : undefined}
+                  />
+                </button>
               ))}
-            </ul>
-          )}
-          <Field label="或直接粘贴内容" hint="按文件名自动识别清单类型，例如 package.json、requirements.txt、main.py">
-            <div className="flex flex-col gap-1.5">
-              <TextField
-                label="文件名"
-                value={pasteName}
-                placeholder="package.json"
-                onChange={setPasteName}
-                inputClassName="h-7"
+            </StatGrid>
+            <div
+              className={`rounded-md border px-2.5 py-2 text-[11px] ${
+                report.gate.passed
+                  ? 'border-emerald-500/40 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400'
+                  : 'border-destructive/40 bg-destructive/5 text-destructive'
+              }`}
+            >
+              质量门禁（{SEVERITY_LABEL[threshold]}及以上）：{report.gate.message}
+            </div>
+            <div className="grid grid-cols-2 gap-1.5">
+              <Select
+                ariaLabel="按分类筛选"
+                value={categoryFilter}
+                options={[
+                  { value: 'all', label: `全部分类（${report.totals.findings}）` },
+                  ...(Object.keys(CATEGORY_LABEL) as Category[]).map((key) => ({
+                    value: key,
+                    label: `${CATEGORY_LABEL[key]}（${report.categories[key]}）`,
+                  })),
+                ]}
+                onChange={(value) => setCategoryFilter(value as Category | 'all')}
               />
-              <Textarea
-                value={pasteBody}
-                onChange={(event) => setPasteBody(event.target.value)}
-                placeholder='{"dependencies":{"lodash":"4.17.15"}}'
-                spellCheck={false}
-                className="min-h-24 resize-none font-mono text-xs"
+              <Select
+                ariaLabel="按严重度筛选"
+                value={severityFilter}
+                options={[
+                  { value: 'all', label: '全部严重度' },
+                  ...SEVERITY_ORDER.map((severity) => ({ value: severity, label: SEVERITY_LABEL[severity] })),
+                ]}
+                onChange={(value) => setSeverityFilter(value as Severity | 'all')}
               />
+            </div>
+            <div className="flex max-h-72 flex-col gap-1 overflow-y-auto pr-0.5">
+              {visible.length === 0 ? (
+                <EmptyHint className="py-4">当前筛选条件下没有问题</EmptyHint>
+              ) : (
+                visible.map((item) => (
+                  <FindingRow
+                    key={`${item.rule}-${item.file}-${item.line}`}
+                    finding={item}
+                    open={expanded === `${item.rule}-${item.file}-${item.line}`}
+                    onToggle={() =>
+                      setExpanded((prev) =>
+                        prev === `${item.rule}-${item.file}-${item.line}`
+                          ? ''
+                          : `${item.rule}-${item.file}-${item.line}`,
+                      )
+                    }
+                  />
+                ))
+              )}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
               <Button
                 size="sm"
                 variant="outline"
-                className="self-start"
-                disabled={pasteBody.trim() === ''}
-                onClick={addPasted}
+                onClick={() => downloadText('security-scan-report.txt', reportToText(report))}
+                aria-label="下载 txt 报告"
               >
-                <Plus className="size-3.5" />
-                加入列表
+                下载报告 txt
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() =>
+                  downloadText('security-scan-report.json', `${JSON.stringify(report, null, 2)}\n`, 'application/json')
+                }
+                aria-label="下载 json 报告"
+              >
+                下载 json
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => copyText(reportToText(report))} aria-label="复制报告">
+                复制报告
               </Button>
             </div>
-          </Field>
-        </Section>
-
-        <Section title="扫描结果" description="按严重度排序，展开可查看证据与修复建议">
-          {report ? (
-            <>
-              <StatGrid>
-                {SEVERITY_ORDER.map((severity) => (
-                  <button
-                    key={severity}
-                    type="button"
-                    aria-pressed={severityFilter === severity}
-                    className="text-left"
-                    onClick={() => setSeverityFilter(severityFilter === severity ? 'all' : severity)}
-                  >
-                    <Stat
-                      label={SEVERITY_LABEL[severity]}
-                      value={report.stats[severity]}
-                      tone={
-                        severity === 'critical' || severity === 'high'
-                          ? 'danger'
-                          : severity === 'medium'
-                            ? 'warn'
-                            : 'info'
-                      }
-                      hint={severityFilter === severity ? '已筛选' : '点击筛选'}
-                      className={severityFilter === severity ? 'border-primary' : undefined}
-                    />
-                  </button>
-                ))}
-              </StatGrid>
-              <div
-                className={`rounded-md border px-2.5 py-2 text-[11px] ${
-                  report.gate.passed
-                    ? 'border-emerald-500/40 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400'
-                    : 'border-destructive/40 bg-destructive/5 text-destructive'
-                }`}
-              >
-                质量门禁（{SEVERITY_LABEL[threshold]}及以上）：{report.gate.message}
-              </div>
-              <div className="grid grid-cols-2 gap-1.5">
-                <Select
-                  ariaLabel="按分类筛选"
-                  value={categoryFilter}
-                  options={[
-                    { value: 'all', label: `全部分类（${report.totals.findings}）` },
-                    ...(Object.keys(CATEGORY_LABEL) as Category[]).map((key) => ({
-                      value: key,
-                      label: `${CATEGORY_LABEL[key]}（${report.categories[key]}）`,
-                    })),
-                  ]}
-                  onChange={(value) => setCategoryFilter(value as Category | 'all')}
-                />
-                <Select
-                  ariaLabel="按严重度筛选"
-                  value={severityFilter}
-                  options={[
-                    { value: 'all', label: '全部严重度' },
-                    ...SEVERITY_ORDER.map((severity) => ({ value: severity, label: SEVERITY_LABEL[severity] })),
-                  ]}
-                  onChange={(value) => setSeverityFilter(value as Severity | 'all')}
-                />
-              </div>
-              <div className="flex max-h-72 flex-col gap-1 overflow-y-auto pr-0.5">
-                {visible.length === 0 ? (
-                  <EmptyHint className="py-4">当前筛选条件下没有问题</EmptyHint>
-                ) : (
-                  visible.map((item) => (
-                    <FindingRow
-                      key={`${item.rule}-${item.file}-${item.line}`}
-                      finding={item}
-                      open={expanded === `${item.rule}-${item.file}-${item.line}`}
-                      onToggle={() =>
-                        setExpanded((prev) =>
-                          prev === `${item.rule}-${item.file}-${item.line}`
-                            ? ''
-                            : `${item.rule}-${item.file}-${item.line}`,
-                        )
-                      }
-                    />
-                  ))
-                )}
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => downloadText('security-scan-report.txt', reportToText(report))}
-                  aria-label="下载 txt 报告"
-                >
-                  下载报告 txt
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() =>
-                    downloadText(
-                      'security-scan-report.json',
-                      `${JSON.stringify(report, null, 2)}\n`,
-                      'application/json',
-                    )
-                  }
-                  aria-label="下载 json 报告"
-                >
-                  下载 json
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => copyText(reportToText(report))} aria-label="复制报告">
-                  复制报告
-                </Button>
-              </div>
-            </>
-          ) : (
-            <EmptyHint>选择文件后点击「开始扫描」，结果会显示在这里</EmptyHint>
-          )}
-        </Section>
-      </div>
+          </>
+        ) : (
+          <EmptyHint>选择文件后点击「开始扫描」，结果会显示在这里</EmptyHint>
+        )}
+      </Section>
 
       <Section title="门禁阈值" description="发布前的自检标准：达到该严重度即视为不通过">
         <div className="grid grid-cols-1 gap-2 md:grid-cols-2">

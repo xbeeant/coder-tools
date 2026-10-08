@@ -258,7 +258,7 @@ export default function YamlXml() {
         </Tabs>
       </div>
 
-      <div className="grid min-h-0 flex-1 gap-3 md:grid-cols-2">
+      <Section>
         <div className="flex min-h-0 flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <Button size="sm" variant="ghost" onClick={() => setInput(SAMPLES[kind])}>
@@ -287,28 +287,26 @@ export default function YamlXml() {
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-col gap-2">
-          <ResultBox
-            label={`输出（${{ format: '格式化', minify: '压缩', structure: '结构 JSON', docs: '多文档', cross: 'YAML' }[activeTab]}）`}
-            value={currentOutput}
-            error={currentError}
-            onCopy={() => copyText(currentOutput)}
-            rows="min-h-48"
-            fill
-          />
-          <div className="flex flex-wrap items-center gap-2">
-            <Button size="sm" variant="outline" onClick={handleDownload} disabled={currentOutput === ''}>
-              <Download className="size-3.5" />
-              下载
-            </Button>
-            <Hint>
-              {currentOutput === ''
-                ? '没有可下载的内容。'
-                : `输出 ${formatBytes(new TextEncoder().encode(currentOutput).length)}`}
-            </Hint>
-          </div>
+        <ResultBox
+          label={`输出（${{ format: '格式化', minify: '压缩', structure: '结构 JSON', docs: '多文档', cross: 'YAML' }[activeTab]}）`}
+          value={currentOutput}
+          error={currentError}
+          onCopy={() => copyText(currentOutput)}
+          rows="min-h-48"
+          fill
+        />
+        <div className="flex flex-wrap items-center gap-2">
+          <Button size="sm" variant="outline" onClick={handleDownload} disabled={currentOutput === ''}>
+            <Download className="size-3.5" />
+            下载
+          </Button>
+          <Hint>
+            {currentOutput === ''
+              ? '没有可下载的内容。'
+              : `输出 ${formatBytes(new TextEncoder().encode(currentOutput).length)}`}
+          </Hint>
         </div>
-      </div>
+      </Section>
 
       <Section title="格式化选项" description="只影响当前 Tab 的输出，不修改输入">
         {kind === 'yaml' && (
@@ -466,34 +464,32 @@ export default function YamlXml() {
         </Section>
       )}
 
-      <div className="grid gap-3 lg:grid-cols-2">
-        <Section
-          title={
-            <span className="inline-flex items-center gap-1">
-              <ShieldCheck className="size-3.5" />
-              校验说明
-            </span>
-          }
-        >
-          <Hint>
-            YAML 通过 <code>yaml</code> 的 document 级错误列表校验，可定位到行列；XML 额外做一次标签配平检查，
-            能捕获「开始标签没有对应结束标签」这类被部分解析器静默吞掉的问题。
-          </Hint>
-        </Section>
-        <Section
-          title={
-            <span className="inline-flex items-center gap-1">
-              <Waypoints className="size-3.5" />
-              互转约定
-            </span>
-          }
-        >
-          <Hint>
-            XML 转 YAML 时属性写成 <code>@attr</code>，这样再转回 XML 能还原成属性；纯文本元素会按内容推断成数字或布尔，
-            关闭「推断标量类型」可全部保留为字符串。
-          </Hint>
-        </Section>
-      </div>
+      <Section
+        title={
+          <span className="inline-flex items-center gap-1">
+            <ShieldCheck className="size-3.5" />
+            校验说明
+          </span>
+        }
+      >
+        <Hint>
+          YAML 通过 <code>yaml</code> 的 document 级错误列表校验，可定位到行列；XML 额外做一次标签配平检查，
+          能捕获「开始标签没有对应结束标签」这类被部分解析器静默吞掉的问题。
+        </Hint>
+      </Section>
+      <Section
+        title={
+          <span className="inline-flex items-center gap-1">
+            <Waypoints className="size-3.5" />
+            互转约定
+          </span>
+        }
+      >
+        <Hint>
+          XML 转 YAML 时属性写成 <code>@attr</code>，这样再转回 XML 能还原成属性；纯文本元素会按内容推断成数字或布尔，
+          关闭「推断标量类型」可全部保留为字符串。
+        </Hint>
+      </Section>
 
       {input.trim() !== '' && sourceLine(input, 1) !== undefined && (
         <Section title="首行预览" description="用于确认是否存在不可见字符或 BOM">

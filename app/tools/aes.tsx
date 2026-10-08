@@ -435,20 +435,20 @@ export default function AesTool() {
         <Section title="密钥与 IV" description="直接密钥模式按算法要求校验长度，口令模式自动派生固定长度">
           <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
             <Select
-                label="密钥模式"
-                value={activeKeyMode}
-                options={[
-                  { value: 'password', label: '口令派生（PBKDF2）' },
-                  { value: 'raw', label: '直接输入密钥（十六进制）' },
-                ]}
-                onChange={(value) => setKeyMode(value === 'raw' ? 'raw' : 'password')}
-                disabled={lockedByHeader}
-                hint={lockedByHeader ? '由密文的参数头决定，不可切换' : undefined}
+              label="密钥模式"
+              value={activeKeyMode}
+              options={[
+                { value: 'password', label: '口令派生（PBKDF2）' },
+                { value: 'raw', label: '直接输入密钥（十六进制）' },
+              ]}
+              onChange={(value) => setKeyMode(value === 'raw' ? 'raw' : 'password')}
+              disabled={lockedByHeader}
+              hint={lockedByHeader ? '由密文的参数头决定，不可切换' : undefined}
             />
             {activeKeyMode === 'password' ? (
-                <Field label="口令" hint={keyHint(activeCipher, activeKeyMode)}>
-              <span className="flex items-center gap-1.5">
-                <Input
+              <Field label="口令" hint={keyHint(activeCipher, activeKeyMode)}>
+                <span className="flex items-center gap-1.5">
+                  <Input
                     type={visible ? 'text' : 'password'}
                     value={password}
                     autoComplete="off"
@@ -456,96 +456,99 @@ export default function AesTool() {
                     placeholder="输入加解密口令"
                     onChange={(event) => setPassword(event.target.value)}
                     className="h-8 font-mono text-xs"
-                />
-                <Button
+                  />
+                  <Button
                     size="icon"
                     variant="ghost"
                     className="size-8 shrink-0"
                     aria-label={visible ? '隐藏口令' : '显示口令'}
                     onClick={() => setVisible((prev) => !prev)}
-                >
-                  {visible ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
-                </Button>
-              </span>
-                </Field>
+                  >
+                    {visible ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+                  </Button>
+                </span>
+              </Field>
             ) : (
-                <Field label="密钥（十六进制）" hint={keyHint(activeCipher, activeKeyMode)}>
-                  <Input
-                      value={hexKey}
-                      spellCheck={false}
-                      placeholder={activeCipher.keyBytes.map((n) => String(n * 2)).join(' 或 ')}
-                      onChange={(event) => setHexKey(event.target.value)}
-                      className="h-8 font-mono text-xs"
-                  />
-                </Field>
+              <Field label="密钥（十六进制）" hint={keyHint(activeCipher, activeKeyMode)}>
+                <Input
+                  value={hexKey}
+                  spellCheck={false}
+                  placeholder={activeCipher.keyBytes.map((n) => String(n * 2)).join(' 或 ')}
+                  onChange={(event) => setHexKey(event.target.value)}
+                  className="h-8 font-mono text-xs"
+                />
+              </Field>
             )}
             <Field
-                label="IV（十六进制，可选）"
-                hint={
-                  lockedByHeader
-                      ? `解密使用密文头里的 IV（${activeCipher.ivBytes} 字节），此处不可修改`
-                      : `留空则随机生成 ${activeCipher.ivBytes} 字节 IV`
-                }
+              label="IV（十六进制，可选）"
+              hint={
+                lockedByHeader
+                  ? `解密使用密文头里的 IV（${activeCipher.ivBytes} 字节），此处不可修改`
+                  : `留空则随机生成 ${activeCipher.ivBytes} 字节 IV`
+              }
             >
               <Input
-                  value={hexIv}
-                  spellCheck={false}
-                  disabled={lockedByHeader}
-                  placeholder={lockedByHeader ? '来自密文' : '留空随机生成'}
-                  onChange={(event) => setHexIv(event.target.value)}
-                  className="h-8 font-mono text-xs"
+                value={hexIv}
+                spellCheck={false}
+                disabled={lockedByHeader}
+                placeholder={lockedByHeader ? '来自密文' : '留空随机生成'}
+                onChange={(event) => setHexIv(event.target.value)}
+                className="h-8 font-mono text-xs"
               />
             </Field>
             {activeKeyMode === 'password' && (
-                <NumberField
-                    label="PBKDF2 迭代次数"
-                    value={iterations}
-                    min={MIN_ITERATIONS}
-                    max={MAX_ITERATIONS}
-                    step={10_000}
-                    onChange={(value) =>
-                        setIterations(
-                            Math.min(MAX_ITERATIONS, Math.max(MIN_ITERATIONS, Math.round(value) || PBKDF2_ITERATIONS)),
-                        )
-                    }
-                    hint="解密时需与加密时一致；OWASP 建议 SHA-256 不低于 600,000 次"
-                />
+              <NumberField
+                label="PBKDF2 迭代次数"
+                value={iterations}
+                min={MIN_ITERATIONS}
+                max={MAX_ITERATIONS}
+                step={10_000}
+                onChange={(value) =>
+                  setIterations(
+                    Math.min(MAX_ITERATIONS, Math.max(MIN_ITERATIONS, Math.round(value) || PBKDF2_ITERATIONS)),
+                  )
+                }
+                hint="解密时需与加密时一致；OWASP 建议 SHA-256 不低于 600,000 次"
+              />
             )}
           </div>
           {activeKeyMode === 'raw' && isHex(hexKey) && (
-              <Hint>
-                {keyState.ok
-                    ? `密钥长度 ${keyState.length} 字节，符合 ${activeCipher.label} 要求。`
-                    : `密钥长度 ${keyState.length} 字节不符：${activeCipher.label} 需要 ${activeCipher.keyBytes.join(' 或 ')} 字节。`}
-              </Hint>
+            <Hint>
+              {keyState.ok
+                ? `密钥长度 ${keyState.length} 字节，符合 ${activeCipher.label} 要求。`
+                : `密钥长度 ${keyState.length} 字节不符：${activeCipher.label} 需要 ${activeCipher.keyBytes.join(' 或 ')} 字节。`}
+            </Hint>
           )}
           {activeCipher.local &&
-              activeKeyMode === 'raw' &&
-              keyState.ok &&
-              keyState.length === 8 &&
-              isWeakDesKey(hexToBytes(hexKey)) && (
-                  <Note tone="danger" title="弱密钥">
-                    这是 DES 的公开已知弱密钥，安全性显著下降，请勿用于真实数据。
-                  </Note>
-              )}
+            activeKeyMode === 'raw' &&
+            keyState.ok &&
+            keyState.length === 8 &&
+            isWeakDesKey(hexToBytes(hexKey)) && (
+              <Note tone="danger" title="弱密钥">
+                这是 DES 的公开已知弱密钥，安全性显著下降，请勿用于真实数据。
+              </Note>
+            )}
           {activeCipher.local && activeKeyMode === 'raw' && keyState.ok && keyState.length === 24 && (
-              <Hint>
-                按 {tripleDesKind(hexToBytes(hexKey))} 处理：K1 / K2 / K3 为密钥的前、中、后 8 字节，16 字节密钥时 K3 = K1。
-              </Hint>
+            <Hint>
+              按 {tripleDesKind(hexToBytes(hexKey))} 处理：K1 / K2 / K3 为密钥的前、中、后 8 字节，16 字节密钥时 K3 =
+              K1。
+            </Hint>
           )}
         </Section>
 
-        <Note tone="warn" title="CBC 模式必须自己补认证">
-          CBC 只保证机密性，不保证完整性：攻击者可以翻转密文位，解密会得到被篡改的明文（padding oracle 攻击即源于此）。
-          正确做法是 Encrypt-then-MAC —— 先 AES-CBC 加密，再对 [IV || 密文] 计算 HMAC-SHA256 并把标签一并保存； 或直接改用
-          GCM，GCM 自带认证标签，校验失败会直接报错。
-        </Note>
+        <Section>
+          <Note tone="warn" title="CBC 模式必须自己补认证">
+            CBC 只保证机密性，不保证完整性：攻击者可以翻转密文位，解密会得到被篡改的明文（padding oracle
+            攻击即源于此）。 正确做法是 Encrypt-then-MAC —— 先 AES-CBC 加密，再对 [IV || 密文] 计算 HMAC-SHA256
+            并把标签一并保存； 或直接改用 GCM，GCM 自带认证标签，校验失败会直接报错。
+          </Note>
 
-        <Note tone="info" title="DES 降级与自测">
-          WebCrypto 不提供 DES/3DES，本扩展内置了纯 TS 实现，并用 NIST 向量自测：密钥 0x{DES_TEST_VECTOR.key}、 明文 “
-          {DES_TEST_VECTOR.plain}” → 密文 0x{DES_TEST_VECTOR.cipher}。DES 分组仅 56
-          位有效密钥且已被公开破解，仅用于遗留系统互通。
-        </Note>
+          <Note tone="info" title="DES 降级与自测">
+            WebCrypto 不提供 DES/3DES，本扩展内置了纯 TS 实现，并用 NIST 向量自测：密钥 0x{DES_TEST_VECTOR.key}、 明文 “
+            {DES_TEST_VECTOR.plain}” → 密文 0x{DES_TEST_VECTOR.cipher}。DES 分组仅 56
+            位有效密钥且已被公开破解，仅用于遗留系统互通。
+          </Note>
+        </Section>
       </div>
     </ToolPanel>
   );

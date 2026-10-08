@@ -137,6 +137,19 @@ export default function TestFrameworkTool() {
         </>
       }
     >
+      <Note tone="info" title="使用提示">
+        <ul className="flex list-disc flex-col gap-1 pl-4">
+          <li>
+            <ListChecks className="size-3" /> 建议顺序：正常流程 → 等价类 → 边界值 → 异常 → 安全 → 性能，P0 优先补齐。
+          </li>
+          <li>
+            <FlaskConical className="size-3" /> 断言写法先用沙盒验证，再抄进 vitest / jest / pytest 里。
+          </li>
+          <li>
+            <ShieldAlert className="size-3" /> 导出文件里只有用例描述，不含任何被测代码或真实数据。
+          </li>
+        </ul>
+      </Note>
       <Tabs value={tab} onValueChange={(value) => setTab(value as ViewTab)}>
         <TabsList>
           <TabsTrigger value="cases" active={tab === 'cases'}>
@@ -541,20 +554,6 @@ export default function TestFrameworkTool() {
           </ul>
         </Note>
       )}
-
-      <Note tone="info" title="使用提示">
-        <ul className="flex list-disc flex-col gap-1 pl-4">
-          <li>
-            <ListChecks className="size-3" /> 建议顺序：正常流程 → 等价类 → 边界值 → 异常 → 安全 → 性能，P0 优先补齐。
-          </li>
-          <li>
-            <FlaskConical className="size-3" /> 断言写法先用沙盒验证，再抄进 vitest / jest / pytest 里。
-          </li>
-          <li>
-            <ShieldAlert className="size-3" /> 导出文件里只有用例描述，不含任何被测代码或真实数据。
-          </li>
-        </ul>
-      </Note>
     </ToolPanel>
   );
 }

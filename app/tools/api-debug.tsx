@@ -280,7 +280,7 @@ export default function ApiDebugTool() {
         </TabsList>
       </Tabs>
 
-      <div className="grid min-h-0 flex-1 gap-3 md:grid-cols-2">
+      <Section>
         <div className="flex min-h-0 flex-col gap-3 overflow-auto pr-0.5">
           <Section title="从 curl 命令导入" description="浏览器 DevTools → Network → 右键 → Copy as cURL">
             <div className="flex flex-col gap-2">
@@ -760,7 +760,7 @@ export default function ApiDebugTool() {
             </Note>
           )}
         </div>
-      </div>
+      </Section>
 
       <Note tone="info" title="权限与限制">
         <ul className="flex list-disc flex-col gap-1 pl-4">

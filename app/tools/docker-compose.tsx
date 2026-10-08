@@ -134,7 +134,7 @@ export default function DockerComposeTool() {
         </TabsList>
       </Tabs>
 
-      <div className="grid min-h-0 flex-1 gap-3 md:grid-cols-2">
+      <Section>
         <div className="flex min-h-0 flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[11px] text-muted-foreground">示例：</span>
@@ -360,7 +360,7 @@ export default function DockerComposeTool() {
             </div>
           )}
         </div>
-      </div>
+      </Section>
 
       {isMulti && serviceCount > 1 && (
         <Section title="服务依赖确认" description="推断依据不总是可靠，请勾选真实存在的依赖；勾选后会写入 depends_on">

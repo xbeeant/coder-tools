@@ -356,7 +356,7 @@ export default function JsonConvert() {
         </Tabs>
       </div>
 
-      <div className="grid min-h-0 flex-1 gap-3 md:grid-cols-2">
+      <Section>
         <div className="flex min-h-0 flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <Button size="sm" variant="ghost" onClick={() => setInput(SAMPLES[tab])}>
@@ -416,7 +416,7 @@ export default function JsonConvert() {
             </Hint>
           </div>
         </div>
-      </div>
+      </Section>
 
       <Section title="转换选项" description="选项只作用于当前格式，切换标签后各自保留">
         {direction === 'fromJson' && tab === 'json' && (

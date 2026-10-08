@@ -108,140 +108,129 @@ export default function BcryptTool() {
         </>
       }
     >
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 md:grid-cols-2">
-        <Section
-          title={mode === 'generate' ? '明文口令' : '待校验数据'}
-          description={mode === 'generate' ? '哈希后无法还原，请自行妥善保存' : '粘贴数据库或用户表中的 bcrypt 哈希'}
-        >
-          {mode === 'generate' ? (
-            <>
-              <Field label="口令" hint="明文只在内存中参与计算，不会被发送或持久化">
-                <span className="flex items-center gap-1.5">
-                  <Input
-                    type={visible ? 'text' : 'password'}
-                    value={password}
-                    autoComplete="off"
-                    spellCheck={false}
-                    placeholder="输入要哈希的口令"
-                    onChange={(event) => setPassword(event.target.value)}
-                    className="h-8 font-mono text-xs"
-                  />
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    aria-label={visible ? '隐藏口令' : '显示口令'}
-                    className="size-8 shrink-0"
-                    onClick={() => setVisible((prev) => !prev)}
-                  >
-                    {visible ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
-                  </Button>
-                </span>
-              </Field>
-              <Select
-                label="cost 代价因子"
-                value={String(cost)}
-                options={COST_OPTIONS}
-                onChange={(value) => setCost(Number(value))}
-                hint="cost 每加 1 计算量翻倍；10 约 50~150ms，12 更安全但登录更慢"
-              />
-              {truncation && (
-                <Note tone="warn" title="口令超长">
-                  {truncation}
-                </Note>
-              )}
-              <Button
-                size="sm"
-                className="self-start"
-                disabled={password === '' || busy}
-                onClick={() => void generate()}
-              >
-                <KeyRound className="size-3.5" />
-                {busy ? '计算中…' : '生成哈希'}
-              </Button>
-            </>
-          ) : (
-            <>
-              <Field label="bcrypt 哈希" hint="形如 $2b$10$[22 字符盐][31 字符哈希]，共 60 字符">
-                <Textarea
-                  value={verifyHash}
-                  onChange={(event) => setVerifyHash(event.target.value)}
-                  placeholder="$2b$10$..."
-                  spellCheck={false}
-                  className="min-h-20 resize-none font-mono text-xs"
-                />
-              </Field>
-              <Field label="明文口令" hint="只与哈希比对，不会被保存">
+      <Section
+        title={mode === 'generate' ? '明文口令' : '待校验数据'}
+        description={mode === 'generate' ? '哈希后无法还原，请自行妥善保存' : '粘贴数据库或用户表中的 bcrypt 哈希'}
+      >
+        {mode === 'generate' ? (
+          <>
+            <Field label="口令" hint="明文只在内存中参与计算，不会被发送或持久化">
+              <span className="flex items-center gap-1.5">
                 <Input
                   type={visible ? 'text' : 'password'}
-                  value={verifyInput}
+                  value={password}
                   autoComplete="off"
                   spellCheck={false}
-                  placeholder="输入要校验的口令"
-                  onChange={(event) => setVerifyInput(event.target.value)}
+                  placeholder="输入要哈希的口令"
+                  onChange={(event) => setPassword(event.target.value)}
                   className="h-8 font-mono text-xs"
                 />
-              </Field>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  aria-label={visible ? '隐藏口令' : '显示口令'}
+                  className="size-8 shrink-0"
+                  onClick={() => setVisible((prev) => !prev)}
+                >
+                  {visible ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+                </Button>
+              </span>
+            </Field>
+            <Select
+              label="cost 代价因子"
+              value={String(cost)}
+              options={COST_OPTIONS}
+              onChange={(value) => setCost(Number(value))}
+              hint="cost 每加 1 计算量翻倍；10 约 50~150ms，12 更安全但登录更慢"
+            />
+            {truncation && (
+              <Note tone="warn" title="口令超长">
+                {truncation}
+              </Note>
+            )}
+            <Button size="sm" className="self-start" disabled={password === '' || busy} onClick={() => void generate()}>
+              <KeyRound className="size-3.5" />
+              {busy ? '计算中…' : '生成哈希'}
+            </Button>
+          </>
+        ) : (
+          <>
+            <Field label="bcrypt 哈希" hint="形如 $2b$10$[22 字符盐][31 字符哈希]，共 60 字符">
+              <Textarea
+                value={verifyHash}
+                onChange={(event) => setVerifyHash(event.target.value)}
+                placeholder="$2b$10$..."
+                spellCheck={false}
+                className="min-h-20 resize-none font-mono text-xs"
+              />
+            </Field>
+            <Field label="明文口令" hint="只与哈希比对，不会被保存">
+              <Input
+                type={visible ? 'text' : 'password'}
+                value={verifyInput}
+                autoComplete="off"
+                spellCheck={false}
+                placeholder="输入要校验的口令"
+                onChange={(event) => setVerifyInput(event.target.value)}
+                className="h-8 font-mono text-xs"
+              />
+            </Field>
+            <Button
+              size="sm"
+              className="self-start"
+              disabled={(verifyInput === '' && verifyHash.trim() === '') || busy}
+              onClick={() => void verify()}
+            >
+              {busy ? '校验中…' : '校验比对'}
+            </Button>
+          </>
+        )}
+      </Section>
+
+      <Section title="结果" description="复制后直接存入数据库即可，无需再拼接盐">
+        {mode === 'generate' ? (
+          <>
+            <ResultBox
+              label="bcrypt 哈希"
+              value={hash}
+              onCopy={hash ? () => copyText(hash) : undefined}
+              rows="min-h-16"
+            />
+            <div className="flex flex-wrap gap-1.5">
+              <Button size="sm" variant="outline" disabled={!hash} onClick={() => copyText(hash)} aria-label="复制哈希">
+                <Copy className="size-3.5" />
+                复制
+              </Button>
               <Button
                 size="sm"
-                className="self-start"
-                disabled={(verifyInput === '' && verifyHash.trim() === '') || busy}
-                onClick={() => void verify()}
+                variant="outline"
+                disabled={!hash}
+                onClick={() => downloadText('bcrypt-hash.txt', `${hash}\n`)}
+                aria-label="下载哈希为 txt 文件"
               >
-                {busy ? '校验中…' : '校验比对'}
+                <Download className="size-3.5" />
+                下载 txt
               </Button>
-            </>
-          )}
-        </Section>
+            </div>
+            {parts ? <HashStructure parts={parts} /> : <EmptyHint>生成哈希后这里会展示结构拆解</EmptyHint>}
+          </>
+        ) : (
+          <VerifyPanel result={result} />
+        )}
+      </Section>
 
-        <Section title="结果" description="复制后直接存入数据库即可，无需再拼接盐">
-          {mode === 'generate' ? (
-            <>
-              <ResultBox
-                label="bcrypt 哈希"
-                value={hash}
-                onCopy={hash ? () => copyText(hash) : undefined}
-                rows="min-h-16"
-              />
-              <div className="flex flex-wrap gap-1.5">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={!hash}
-                  onClick={() => copyText(hash)}
-                  aria-label="复制哈希"
-                >
-                  <Copy className="size-3.5" />
-                  复制
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={!hash}
-                  onClick={() => downloadText('bcrypt-hash.txt', `${hash}\n`)}
-                  aria-label="下载哈希为 txt 文件"
-                >
-                  <Download className="size-3.5" />
-                  下载 txt
-                </Button>
-              </div>
-              {parts ? <HashStructure parts={parts} /> : <EmptyHint>生成哈希后这里会展示结构拆解</EmptyHint>}
-            </>
-          ) : (
-            <VerifyPanel result={result} />
-          )}
-        </Section>
-      </div>
+      <Section>
+        <Note tone="info" title="为什么不需要自己拼盐">
+          bcrypt 的哈希串里已经包含随机盐（22 字符）与 cost。保存时只需存整串，校验时把盐从串里拆出来复用即可。
+          如果自己再拼一层盐或用 <code>MD5(password + salt)</code> 这类快速哈希，攻击者可以用显卡高速穷举，bcrypt
+          的慢速特性正是抗暴力破解的关键。
+        </Note>
 
-      <Note tone="info" title="为什么不需要自己拼盐">
-        bcrypt 的哈希串里已经包含随机盐（22 字符）与 cost。保存时只需存整串，校验时把盐从串里拆出来复用即可。
-        如果自己再拼一层盐或用 <code>MD5(password + salt)</code> 这类快速哈希，攻击者可以用显卡高速穷举，bcrypt
-        的慢速特性正是抗暴力破解的关键。
-      </Note>
-
-      <Note tone="warn" title="使用边界">
-        bcrypt 只能做口令校验，不能解密、不能签发令牌，也不能用于文件完整性校验（那是 SHA-256 的场景）。 口令超过 72
-        字节会被静默截断，务必配合服务端的长度限制。
-      </Note>
+        <Note tone="warn" title="使用边界">
+          bcrypt 只能做口令校验，不能解密、不能签发令牌，也不能用于文件完整性校验（那是 SHA-256 的场景）。 口令超过 72
+          字节会被静默截断，务必配合服务端的长度限制。
+        </Note>
+      </Section>
 
       <Section
         title={

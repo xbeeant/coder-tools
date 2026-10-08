@@ -392,18 +392,20 @@ export default function Ipv4Subnet() {
                 </dl>
               </Section>
 
-              {specialNotices(detailInfo.network, detail.prefix, detail.address).map((notice) => (
-                <Note key={notice.title} tone={notice.tone} title={notice.title}>
-                  {notice.text}
-                </Note>
-              ))}
+              <Section>
+                {specialNotices(detailInfo.network, detail.prefix, detail.address).map((notice) => (
+                  <Note key={notice.title} tone={notice.tone} title={notice.title}>
+                    {notice.text}
+                  </Note>
+                ))}
 
-              <ResultBox
-                label="复制内容（多行文本）"
-                value={buildSummary(detail.address, detail.prefix)}
-                rows="min-h-56"
-                onCopy={() => copyText(buildSummary(detail.address, detail.prefix))}
-              />
+                <ResultBox
+                  label="复制内容（多行文本）"
+                  value={buildSummary(detail.address, detail.prefix)}
+                  rows="min-h-56"
+                  onCopy={() => copyText(buildSummary(detail.address, detail.prefix))}
+                />
+              </Section>
             </>
           )}
           {!detail.ok && <ResultBox label="输出" error={detail.error} rows="min-h-16" />}

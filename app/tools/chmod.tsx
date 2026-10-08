@@ -219,7 +219,7 @@ export default function ChmodTool() {
       </Tabs>
 
       {tab === 'calc' && (
-        <div className="grid min-h-0 flex-1 gap-3 md:grid-cols-2">
+        <Section>
           <div className="flex min-h-0 flex-col gap-3">
             <Section title="三元组勾选" description="r=4、w=2、x=1，逐位勾选即得权限">
               <div className="flex flex-col gap-1.5">
@@ -375,11 +375,11 @@ export default function ChmodTool() {
               <code>775</code> 并配合属组，<code>777</code> 意味着任何本地用户都能改你的页面。
             </Note>
           </div>
-        </div>
+        </Section>
       )}
 
       {tab === 'batch' && (
-        <div className="grid min-h-0 flex-1 gap-3 md:grid-cols-2">
+        <Section>
           <div className="flex min-h-0 flex-col gap-2">
             <Textarea
               value={batchInput}
@@ -422,11 +422,11 @@ export default function ChmodTool() {
               </Note>
             )}
           </div>
-        </div>
+        </Section>
       )}
 
       {tab === 'reverse' && (
-        <div className="grid min-h-0 flex-1 gap-3 md:grid-cols-2">
+        <Section>
           <div className="flex min-h-0 flex-col gap-2">
             <Textarea
               value={reverseInput}
@@ -492,11 +492,11 @@ export default function ChmodTool() {
               </>
             )}
           </div>
-        </div>
+        </Section>
       )}
 
       {tab === 'umask' && (
-        <div className="grid min-h-0 flex-1 gap-3 md:grid-cols-2">
+        <Section>
           <div className="flex flex-col gap-3">
             <Section title="umask 计算" description="新建文件按 666 取反，新建目录按 777 取反">
               <TextField label="umask" value={umaskInput} onChange={setUmaskInput} placeholder="022" />
@@ -549,7 +549,7 @@ export default function ChmodTool() {
               </>
             )}
           </div>
-        </div>
+        </Section>
       )}
 
       <Note tone="info" title="局限与提示">
