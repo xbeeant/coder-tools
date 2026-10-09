@@ -1,7 +1,8 @@
 import { Copy, Download, Eye, EyeOff, Lock, LockOpen } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Field, NumberField, Select } from '../components/ui/field';
+import { Select } from '../components/ui/select';
+import { Field, NumberField } from '../components/ui/field';
 import { Input } from '../components/ui/input';
 import { EmptyHint, Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
@@ -381,7 +382,7 @@ export default function AesTool() {
           : `${activeCipher.note} · 口令模式使用 PBKDF2-SHA256 ${iterations.toLocaleString('zh-CN')} 次迭代。`}
       </Note>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 md:grid-cols-2">
+      <div className="grid flex-1 grid-cols-1 gap-3 md:grid-cols-2">
         <Section title={mode === 'encrypt' ? '明文' : '密文（Base64）'}>
           <Textarea
             value={input}
@@ -536,19 +537,17 @@ export default function AesTool() {
           )}
         </Section>
 
-        <Section>
-          <Note tone="warn" title="CBC 模式必须自己补认证">
-            CBC 只保证机密性，不保证完整性：攻击者可以翻转密文位，解密会得到被篡改的明文（padding oracle
-            攻击即源于此）。 正确做法是 Encrypt-then-MAC —— 先 AES-CBC 加密，再对 [IV || 密文] 计算 HMAC-SHA256
-            并把标签一并保存； 或直接改用 GCM，GCM 自带认证标签，校验失败会直接报错。
-          </Note>
+        <Note tone="warn" title="CBC 模式必须自己补认证">
+          CBC 只保证机密性，不保证完整性：攻击者可以翻转密文位，解密会得到被篡改的明文（padding oracle 攻击即源于此）。
+          正确做法是 Encrypt-then-MAC —— 先 AES-CBC 加密，再对 [IV || 密文] 计算 HMAC-SHA256 并把标签一并保存；
+          或直接改用 GCM，GCM 自带认证标签，校验失败会直接报错。
+        </Note>
 
-          <Note tone="info" title="DES 降级与自测">
-            WebCrypto 不提供 DES/3DES，本扩展内置了纯 TS 实现，并用 NIST 向量自测：密钥 0x{DES_TEST_VECTOR.key}、 明文 “
-            {DES_TEST_VECTOR.plain}” → 密文 0x{DES_TEST_VECTOR.cipher}。DES 分组仅 56
-            位有效密钥且已被公开破解，仅用于遗留系统互通。
-          </Note>
-        </Section>
+        <Note tone="info" title="DES 降级与自测">
+          WebCrypto 不提供 DES/3DES，本扩展内置了纯 TS 实现，并用 NIST 向量自测：密钥 0x{DES_TEST_VECTOR.key}、 明文 “
+          {DES_TEST_VECTOR.plain}” → 密文 0x{DES_TEST_VECTOR.cipher}。DES 分组仅 56
+          位有效密钥且已被公开破解，仅用于遗留系统互通。
+        </Note>
       </div>
     </ToolPanel>
   );

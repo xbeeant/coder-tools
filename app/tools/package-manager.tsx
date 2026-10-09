@@ -2,10 +2,11 @@ import { Boxes, FileCog, PackageCheck, Search, ServerCog, TriangleAlert, Workflo
 import { useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { CodeBlock } from '../components/ui/code-block';
-import { Checkbox, Select, TextField } from '../components/ui/field';
+import { Checkbox, TextField } from '../components/ui/field';
 import { Input } from '../components/ui/input';
 import { EmptyHint, Hint, type LinkItem, LinkList, Note, Section, ToolPanel } from '../components/ui/panel';
 import { copyText } from '../components/ui/result';
+import { Select } from '../components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { downloadText, exportName } from '../lib/file';
 

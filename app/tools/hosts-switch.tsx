@@ -22,7 +22,8 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Field, Select } from '../components/ui/field';
+import { Select } from '../components/ui/select';
+import { Field } from '../components/ui/field';
 import { Input } from '../components/ui/input';
 import { EmptyHint, Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { copyText, ResultBox } from '../components/ui/result';
@@ -401,8 +402,8 @@ export default function HostsSwitch() {
       </Tabs>
 
       {tab === 'edit' && (
-        <div className="grid min-h-0 flex-1 gap-3 md:grid-cols-2">
-          <div className="flex min-h-0 flex-col gap-2">
+        <div className="grid flex-1 gap-3 md:grid-cols-2">
+          <div className="flex flex-col gap-2">
             <span className="text-xs text-muted-foreground">方案列表：拖动手柄或整行拖动排序，也可用箭头微调</span>
             <ul className="flex min-h-24 flex-col gap-1 overflow-auto rounded-md border p-1.5">
               {profiles.length === 0 && <EmptyHint>还没有方案，点右上角「新建方案」</EmptyHint>}
@@ -548,7 +549,7 @@ export default function HostsSwitch() {
             )}
           </div>
 
-          <div className="flex min-h-0 flex-col gap-2">
+          <div className="flex flex-col gap-2">
             <Textarea
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
@@ -566,8 +567,8 @@ export default function HostsSwitch() {
       )}
 
       {tab === 'diff' && (
-        <div className="grid min-h-0 flex-1 gap-3 md:grid-cols-2">
-          <div className="flex min-h-0 flex-col gap-2">
+        <div className="grid flex-1 gap-3 md:grid-cols-2">
+          <div className="flex flex-col gap-2">
             <Select
               label="与哪个方案对比"
               value={compareId}
@@ -613,7 +614,7 @@ export default function HostsSwitch() {
             )}
           </div>
 
-          <div className="flex min-h-0 flex-col gap-2">
+          <div className="flex flex-col gap-2">
             <span className="text-xs text-muted-foreground">差异列表（仅显示有变化的部分）</span>
             {diffChanged.length === 0 ? (
               <EmptyHint>两个方案逐行一致</EmptyHint>
@@ -638,7 +639,7 @@ export default function HostsSwitch() {
       )}
 
       {tab === 'deploy' && (
-        <div className="flex min-h-0 flex-1 flex-col gap-3">
+        <div className="flex flex-1 flex-col gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <Select
               label="目标平台"
@@ -679,7 +680,7 @@ export default function HostsSwitch() {
             </ol>
           </Section>
 
-          <div className="grid min-h-0 flex-1 gap-3 md:grid-cols-2">
+          <div className="grid flex-1 gap-3 md:grid-cols-2">
             <ResultBox
               label="hosts 文件内容（可直接粘贴）"
               value={hostsFile}
@@ -705,8 +706,8 @@ export default function HostsSwitch() {
       )}
 
       {tab === 'reference' && (
-        <div className="grid min-h-0 flex-1 gap-3 md:grid-cols-2">
-          <div className="flex min-h-0 flex-col gap-2 overflow-auto">
+        <div className="grid flex-1 gap-3 md:grid-cols-2">
+          <div className="flex flex-col gap-2 overflow-auto">
             <span className="text-xs text-muted-foreground">常用公网 / 内网地址速查（点击加入当前方案）</span>
             {COMMON_ADDRESSES.map((item) => (
               <div key={`${item.ip}-${item.label}-${item.domains.join(',')}`} className="rounded-md border px-2.5 py-2">
@@ -751,7 +752,7 @@ export default function HostsSwitch() {
             </Note>
           </div>
 
-          <div className="flex min-h-0 flex-col gap-3 overflow-auto">
+          <div className="flex flex-col gap-3 overflow-auto">
             <Section title="域名清单" description="汇总所有方案里的域名，点击跳到对应方案的对应行">
               <div className="relative">
                 <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />

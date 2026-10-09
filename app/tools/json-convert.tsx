@@ -14,7 +14,8 @@ import {
 } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Checkbox, NumberField, Select, TextField } from '../components/ui/field';
+import { Select } from '../components/ui/select';
+import { Checkbox, NumberField, TextField } from '../components/ui/field';
 import { EmptyHint, Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -356,8 +357,8 @@ export default function JsonConvert() {
         </Tabs>
       </div>
 
-      <Section>
-        <div className="flex min-h-0 flex-col gap-2">
+      <div className="grid flex-1 gap-3 md:grid-cols-2">
+        <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <Button size="sm" variant="ghost" onClick={() => setInput(SAMPLES[tab])}>
               <ClipboardPaste className="size-3.5" />
@@ -390,7 +391,7 @@ export default function JsonConvert() {
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-col gap-2">
+        <div className="flex flex-col gap-2">
           <ResultBox
             label={outputLabel}
             value={outcome.output}
@@ -416,7 +417,7 @@ export default function JsonConvert() {
             </Hint>
           </div>
         </div>
-      </Section>
+      </div>
 
       <Section title="转换选项" description="选项只作用于当前格式，切换标签后各自保留">
         {direction === 'fromJson' && tab === 'json' && (

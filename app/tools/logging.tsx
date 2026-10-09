@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { CodeBlock } from '../components/ui/code-block';
-import { Select, TextField } from '../components/ui/field';
+import { Select } from '../components/ui/select';
+import { TextField } from '../components/ui/field';
 import { EmptyHint, type LinkItem, LinkList, Note, Section, ToolPanel } from '../components/ui/panel';
 import { copyText } from '../components/ui/result';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -426,7 +427,7 @@ LIMIT 100;`;
       )}
 
       {tab === 'builder' && (
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-2">
+        <div className="grid flex-1 grid-cols-1 gap-3 lg:grid-cols-2">
           <div className="flex min-w-0 flex-col gap-3">
             <TextField label="服务名" value={service} onChange={setService} />
             <Select

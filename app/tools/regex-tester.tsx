@@ -1,5 +1,5 @@
 import { ArrowRight, Code2, Copy, Eraser, Flag, Gauge, Replace } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { TextField } from '../components/ui/field';
 import { Input } from '../components/ui/input';
@@ -56,21 +56,27 @@ export default function RegexTester() {
     return { ms: performance.now() - started, total };
   }, [compiled, pattern, text]);
 
-  const toggleFlag = (flag: string) => {
+  const toggleFlag = useCallback((flag: string) => {
     setFlags((prev) => {
       const next = new Set(prev);
       if (next.has(flag)) next.delete(flag);
       else next.add(flag);
       return next;
     });
-  };
+  }, []);
 
-  const loadPreset = (presetPattern: string, presetFlags: string, sample: string) => {
+  const handleClear = useCallback(() => {
+    setPattern('');
+    setText('');
+    setReplacement('');
+  }, []);
+
+  const loadPreset = useCallback((presetPattern: string, presetFlags: string, sample: string) => {
     setPattern(presetPattern);
     setFlags(new Set(presetFlags.split('')));
     setText(sample);
     setTab('test');
-  };
+  }, []);
 
   return (
     <ToolPanel
@@ -82,15 +88,7 @@ export default function RegexTester() {
       }
       description={`支持分组高亮、替换预览与常用模式速查`}
       actions={
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={() => {
-            setPattern('');
-            setText('');
-            setReplacement('');
-          }}
-        >
+        <Button size="sm" variant="ghost" onClick={handleClear}>
           <Eraser className="size-3.5" />
           清空
         </Button>
@@ -119,6 +117,7 @@ export default function RegexTester() {
               onChange={(event) => setPattern(event.target.value)}
               placeholder="正则表达式"
               spellCheck={false}
+              aria-label="正则表达式"
               className="h-8 flex-1 border-0 font-mono text-xs shadow-none focus-visible:ring-0"
             />
             <span className="font-mono text-xs text-muted-foreground">/</span>
@@ -155,18 +154,19 @@ export default function RegexTester() {
             )}
           </div>
 
-          <div className="grid min-h-0 flex-1 gap-3 md:grid-cols-2">
-            <div className="flex min-h-0 flex-col gap-1.5">
+          <div className="grid flex-1 gap-3 md:grid-cols-2">
+            <div className="flex flex-col gap-1.5">
               <span className="text-xs text-muted-foreground">测试文本</span>
               <Textarea
                 value={text}
                 onChange={(event) => setText(event.target.value)}
                 placeholder="在此粘贴待匹配文本…"
                 spellCheck={false}
+                aria-label="测试文本"
                 className="min-h-40 flex-1 resize-none font-mono text-xs"
               />
             </div>
-            <div className="flex min-h-0 flex-col gap-1.5">
+            <div className="flex flex-col gap-1.5">
               <span className="text-xs text-muted-foreground">匹配预览</span>
               <div className="min-h-40 flex-1 overflow-auto whitespace-pre-wrap rounded-md border bg-muted/30 p-3 font-mono text-xs leading-relaxed scrollbar-thin">
                 {text ? (

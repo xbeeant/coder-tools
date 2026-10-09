@@ -1,9 +1,10 @@
 import { AlertTriangle, Copy, Network, Shuffle, Wifi } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Checkbox, NumberField, Select, TextField } from '../components/ui/field';
+import { Checkbox, NumberField, TextField } from '../components/ui/field';
 import { Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
+import { Select } from '../components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Textarea } from '../components/ui/textarea';
 import { bytesFromEui64, formatIpv6, parseIpv6 } from '../lib/ipv6';

@@ -1,8 +1,9 @@
 import { Download, ShieldAlert, Wifi } from 'lucide-react';
 import { QRCodeCanvas, QRCodeSVG } from 'qrcode.react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Checkbox, NumberField, Select, TextField } from '../components/ui/field';
+import { Select } from '../components/ui/select';
+import { Checkbox, NumberField, TextField } from '../components/ui/field';
 import { Input } from '../components/ui/input';
 import { Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { copyText, ResultBox } from '../components/ui/result';
@@ -113,7 +114,7 @@ export default function WifiQr() {
 
   const ready = ssid.trim().length > 0 && !ssidTooLong;
 
-  const downloadPng = async () => {
+  const downloadPng = useCallback(async () => {
     setError(null);
     const canvas = document.querySelector<HTMLCanvasElement>('canvas[data-wifi-qr]');
     try {
@@ -134,9 +135,9 @@ export default function WifiQr() {
     } catch (err) {
       setError(`PNG 导出失败：${err instanceof Error ? err.message : '未知错误'}，请改用 SVG 下载`);
     }
-  };
+  }, [size]);
 
-  const downloadSvg = () => {
+  const downloadSvg = useCallback(() => {
     setError(null);
     const svg = document.querySelector<SVGSVGElement>('svg[data-wifi-qr]');
     if (!svg) {
@@ -145,7 +146,7 @@ export default function WifiQr() {
     }
     const blob = new Blob([new XMLSerializer().serializeToString(svg)], { type: 'image/svg+xml;charset=utf-8' });
     downloadBlobUrl('wifi-qr.svg', blob);
-  };
+  }, []);
 
   return (
     <ToolPanel
@@ -153,7 +154,7 @@ export default function WifiQr() {
       description="生成扫码即可连网的 WiFi 配置码，全部在本地渲染，不做任何网络请求"
       actions={
         <>
-          <Button size="sm" variant="outline" disabled={!ready} onClick={() => void downloadPng()}>
+          <Button size="sm" variant="outline" disabled={!ready} onClick={downloadPng}>
             <Download className="size-3.5" />
             PNG
           </Button>

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import type * as React from 'react';
 import { Input } from './input';
 import { cn } from './utils';
 
@@ -107,67 +107,8 @@ export function NumberField({
   );
 }
 
-export interface SelectOption {
-  value: string;
-  label: string;
-  disabled?: boolean;
-}
-
-export interface SelectProps {
-  label?: React.ReactNode;
-  /** 无 label 时必须提供 ariaLabel。 */
-  ariaLabel?: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: SelectOption[];
-  hint?: React.ReactNode;
-  className?: string;
-  disabled?: boolean;
-  selectClassName?: string;
-}
-
-export function Select({
-  label,
-  ariaLabel,
-  value,
-  onChange,
-  options,
-  hint,
-  className,
-  disabled,
-  selectClassName,
-}: SelectProps) {
-  const id = React.useId();
-  const select = (
-    <select
-      id={label ? id : undefined}
-      aria-label={label ? undefined : ariaLabel}
-      value={value}
-      disabled={disabled}
-      onChange={(event) => onChange(event.target.value)}
-      className={cn('h-8 w-full rounded-md border bg-background px-2 text-xs', selectClassName)}
-    >
-      {options.map((option) => (
-        <option key={option.value} value={option.value} disabled={option.disabled}>
-          {option.label}
-        </option>
-      ))}
-    </select>
-  );
-  if (!label) {
-    return (
-      <div className={cn('min-w-0', className)}>
-        {select}
-        {hint && <span className="mt-1 block text-[11px] text-muted-foreground/80">{hint}</span>}
-      </div>
-    );
-  }
-  return (
-    <Field label={label} hint={hint} className={className}>
-      {select}
-    </Field>
-  );
-}
+/** @deprecated Use `import { Select, SelectOption } from './select'` instead. */
+export { Select, type SelectOption } from './select';
 
 export interface CheckboxProps {
   label: React.ReactNode;
@@ -191,7 +132,7 @@ export function Checkbox({ label, checked, onChange, hint, className, disabled }
         />
         {label}
       </span>
-      {hint && <span className="pl-5 text-[11px] leading-relaxed text-muted-foreground/80">{hint}</span>}
+      <span className="pl-5 text-[11px] leading-relaxed text-muted-foreground/80">{hint}</span>
     </label>
   );
 }

@@ -5,7 +5,7 @@
  * 明确不要用它来隐藏密码、绕过自己的输入校验或规避审计。
  */
 import { Copy, Download, Minus, Plus, RefreshCw, TriangleAlert, Undo2 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { Checkbox, NumberField } from '../components/ui/field';
 import { EmptyHint, Hint, Note, Section, ToolPanel } from '../components/ui/panel';
@@ -656,7 +656,7 @@ export default function TextObfuscate() {
     [enabled, invert, input, params],
   );
 
-  const move = (id: string, delta: number) =>
+  const move = useCallback((id: string, delta: number) => {
     setEnabled((prev) => {
       const index = prev.indexOf(id);
       const target = index + delta;
@@ -665,12 +665,15 @@ export default function TextObfuscate() {
       [next[index], next[target]] = [next[target], next[index]];
       return next;
     });
+  }, []);
 
-  const toggle = (id: string) =>
+  const toggle = useCallback((id: string) => {
     setEnabled((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
+  }, []);
 
-  const setParam = <K extends keyof Params>(key: K, value: Params[K]) =>
+  const setParam = useCallback(<K extends keyof Params>(key: K, value: Params[K]) => {
     setParams((prev) => ({ ...prev, [key]: value }));
+  }, []);
 
   const usedParams = useMemo(() => {
     const set = new Set<string>();

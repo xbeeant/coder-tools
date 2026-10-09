@@ -14,7 +14,8 @@ import {
 } from 'lucide-react';
 import { Fragment, useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Checkbox, NumberField, Select, TextField } from '../components/ui/field';
+import { Select } from '../components/ui/select';
+import { Checkbox, NumberField, TextField } from '../components/ui/field';
 import { EmptyHint, Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -240,7 +241,7 @@ export default function JsonDiff() {
         </>
       }
     >
-      <div className="flex min-h-0 flex-1 flex-col gap-2">
+      <div className="flex flex-1 flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <Button
             size="sm"
@@ -286,7 +287,7 @@ export default function JsonDiff() {
           />
         </div>
 
-        <div className="grid min-h-0 flex-1 gap-3 md:grid-cols-2">
+        <div className="grid flex-1 gap-3 md:grid-cols-2">
           <SideBox
             label="左侧 JSON"
             value={leftInput}
@@ -355,8 +356,8 @@ export default function JsonDiff() {
             {result.truncated ? '嵌套超出深度上限，未发现可见差异。' : '两份 JSON 在当前比较选项下完全一致。'}
           </EmptyHint>
         ) : (
-          <div className="flex min-h-0 flex-1 flex-col gap-2">
-            <div className="min-h-0 flex-1 overflow-auto rounded-md border bg-muted/20 p-1.5 scrollbar-thin">
+          <div className="flex flex-1 flex-col gap-2">
+            <div className="flex-1 overflow-auto rounded-md border bg-muted/20 p-1.5 scrollbar-thin">
               {result.changes.map((item) => (
                 <div key={item.id} className="rounded px-1.5 py-1 font-mono text-xs leading-relaxed hover:bg-muted/40">
                   <div className="flex items-baseline gap-1.5">
@@ -386,7 +387,7 @@ export default function JsonDiff() {
         ))}
 
       {resultTab === 'text' && (
-        <div className="flex min-h-0 flex-1 flex-col gap-2">
+        <div className="flex flex-1 flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <Select
               ariaLabel="比对粒度"
@@ -459,7 +460,7 @@ function SideBox({
   note?: string | null;
 }) {
   return (
-    <div className="flex min-h-0 flex-col gap-2">
+    <div className="flex flex-col gap-2">
       <Textarea
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -580,7 +581,7 @@ function SplitRow({ row }: { row: DiffRow }) {
 function RowList({ blocks, view }: { blocks: DiffBlock[]; view: DiffView }) {
   if (blocks.length === 0) return <EmptyHint>两侧内容完全一致</EmptyHint>;
   return (
-    <div className="min-h-0 flex-1 overflow-auto rounded-md border bg-muted/20 p-1.5 scrollbar-thin">
+    <div className="flex-1 overflow-auto rounded-md border bg-muted/20 p-1.5 scrollbar-thin">
       {blocks.map((block) =>
         block.type === 'rows' ? (
           <Fragment key={block.key}>

@@ -1,5 +1,5 @@
 import { Copy, RefreshCw, Timer } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { ToolPanel } from '../components/ui/panel';
@@ -8,7 +8,7 @@ import { cn } from '../components/ui/utils';
 
 const MS_THRESHOLD = 10_000_000_000;
 
-function fromTimestamp(value: string): { date: Date; assumedMs: boolean } | null {
+export function fromTimestamp(value: string): { date: Date; assumedMs: boolean } | null {
   const numeric = Number(value.trim());
   if (!value.trim() || Number.isNaN(numeric)) return null;
   const assumedMs = Math.abs(numeric) >= MS_THRESHOLD;
@@ -20,7 +20,17 @@ function toLocalInput(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }
 
-function Row({ label, value, hint, onCopy }: { label: string; value: string; hint?: string; onCopy?: () => void }) {
+export function TimestampRow({
+  label,
+  value,
+  hint,
+  onCopy,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  onCopy?: () => void;
+}) {
   return (
     <div className="flex items-center gap-2">
       <span className="w-16 shrink-0 text-xs text-muted-foreground">{label}</span>
@@ -69,13 +79,13 @@ export default function TimestampTool() {
     return Number.isNaN(ms) ? '' : String(Math.floor(ms / 1000));
   }, [iso]);
 
-  const useNow = () => {
+  const useNow = useCallback(() => {
     const date = new Date();
     setNow(date.getTime());
     setTimestamp(String(Math.floor(date.getTime() / 1000)));
     setLocal(toLocalInput(date));
     setIso(date.toISOString());
-  };
+  }, []);
 
   return (
     <ToolPanel
@@ -95,7 +105,7 @@ export default function TimestampTool() {
         </span>
       }
     >
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto scrollbar-thin">
+      <div className="flex flex-1 flex-col gap-4 overflow-auto scrollbar-thin">
         <div className="space-y-2">
           <label className="text-xs font-medium" htmlFor="ts-input">
             Unix 时间戳
@@ -109,12 +119,17 @@ export default function TimestampTool() {
             spellCheck={false}
             className="h-8 font-mono text-xs"
           />
-          <div className={cn('text-[11px]', parsed ? 'text-muted-foreground' : 'text-destructive')}>
+          <div className={cn('text-[11px]', parsed ? 'text-muted-foreground' : 'text-destructive')} role="alert">
             {parsed ? `已按${parsed.assumedMs ? '毫秒' : '秒'}解析` : timestamp.trim() && '请输入有效数字'}
           </div>
           <div className="grid grid-cols-1 gap-1.5">
             {formats.map((item) => (
-              <Row key={item.label} label={item.label} value={item.value} onCopy={() => copyText(item.value)} />
+              <TimestampRow
+                key={item.label}
+                label={item.label}
+                value={item.value}
+                onCopy={() => copyText(item.value)}
+              />
             ))}
           </div>
         </div>

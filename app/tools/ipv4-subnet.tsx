@@ -1,7 +1,8 @@
 import { AlertTriangle, Layers, Network, Ruler, Wand2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { NumberField, Select, TextField } from '../components/ui/field';
+import { Select } from '../components/ui/select';
+import { NumberField, TextField } from '../components/ui/field';
 import { Note, type NoteTone, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -392,20 +393,18 @@ export default function Ipv4Subnet() {
                 </dl>
               </Section>
 
-              <Section>
-                {specialNotices(detailInfo.network, detail.prefix, detail.address).map((notice) => (
-                  <Note key={notice.title} tone={notice.tone} title={notice.title}>
-                    {notice.text}
-                  </Note>
-                ))}
+              {specialNotices(detailInfo.network, detail.prefix, detail.address).map((notice) => (
+                <Note key={notice.title} tone={notice.tone} title={notice.title}>
+                  {notice.text}
+                </Note>
+              ))}
 
-                <ResultBox
-                  label="复制内容（多行文本）"
-                  value={buildSummary(detail.address, detail.prefix)}
-                  rows="min-h-56"
-                  onCopy={() => copyText(buildSummary(detail.address, detail.prefix))}
-                />
-              </Section>
+              <ResultBox
+                label="复制内容（多行文本）"
+                value={buildSummary(detail.address, detail.prefix)}
+                rows="min-h-56"
+                onCopy={() => copyText(buildSummary(detail.address, detail.prefix))}
+              />
             </>
           )}
           {!detail.ok && <ResultBox label="输出" error={detail.error} rows="min-h-16" />}

@@ -1,5 +1,5 @@
 import { ArrowLeftRight, Code2 } from 'lucide-react';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { Note, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
@@ -22,11 +22,15 @@ export default function HtmlEntityTool() {
 
   const output = mode === 'encode' ? encodeHtmlEntitiesAs(input, style) : decodeHtmlEntities(input);
 
-  const swap = () => {
+  const handleSwap = useCallback(() => {
     if (!output) return;
     setInput(output);
     setMode(mode === 'encode' ? 'decode' : 'encode');
-  };
+  }, [mode, output]);
+
+  const handleClear = useCallback(() => {
+    setInput('');
+  }, []);
 
   return (
     <ToolPanel
@@ -56,15 +60,15 @@ export default function HtmlEntityTool() {
               <TabsTrigger value="decode">解码</TabsTrigger>
             </TabsList>
           </Tabs>
-          <Button size="sm" variant="outline" onClick={swap} disabled={!output}>
+          <Button size="sm" variant="outline" onClick={handleSwap} disabled={!output}>
             <ArrowLeftRight className="size-3.5" />
             互换
           </Button>
-          <ClearButton onClick={() => setInput('')} disabled={!input} />
+          <ClearButton onClick={handleClear} disabled={!input} />
         </>
       }
     >
-      <div className="flex min-h-0 flex-1 flex-col gap-2">
+      <div className="flex flex-1 flex-col gap-2">
         <Textarea
           value={input}
           onChange={(event) => setInput(event.target.value)}
@@ -72,6 +76,7 @@ export default function HtmlEntityTool() {
             mode === 'encode' ? '输入要转义的文本，例如 <div> & "引号"' : '输入实体文本，例如 &lt;div&gt;&#160;'
           }
           spellCheck={false}
+          aria-label={mode === 'encode' ? '待编码文本' : '待解码实体文本'}
           className="min-h-32 flex-1 resize-none font-mono text-xs"
         />
         <ResultBox label="输出" value={output} onCopy={() => copyText(output)} rows="min-h-32" fill />

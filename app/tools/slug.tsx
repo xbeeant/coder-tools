@@ -2,7 +2,8 @@
 import { ArrowLeftRight, Copy, Download, Link2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Checkbox, NumberField, Select, TextField } from '../components/ui/field';
+import { Select } from '../components/ui/select';
+import { Checkbox, NumberField, TextField } from '../components/ui/field';
 import { EmptyHint, Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText } from '../components/ui/result';
 import { Textarea } from '../components/ui/textarea';
@@ -213,7 +214,7 @@ export default function SlugTool() {
       title="Slugify 转换"
       description="把标题批量转成 URL 友好的短标识"
       actions={
-        <div className="flex flex-wrap items-center gap-1.5">
+        <>
           <Button size="sm" variant="outline" disabled={!finalValues.length} onClick={() => copyText(lineText)}>
             <Copy className="size-3.5" />
             复制全部
@@ -234,7 +235,7 @@ export default function SlugTool() {
             下载 .txt
           </Button>
           <ClearButton onClick={() => setInput('')} disabled={!input} />
-        </div>
+        </>
       }
     >
       <div className="grid gap-3 md:grid-cols-2">

@@ -1,7 +1,8 @@
 import { Clock, Copy, Globe2, RefreshCw, Search, Sun, Users, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Checkbox, Select } from '../components/ui/field';
+import { Select } from '../components/ui/select';
+import { Checkbox } from '../components/ui/field';
 import { Input } from '../components/ui/input';
 import { EmptyHint, Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { copyText, ResultBox } from '../components/ui/result';
@@ -55,7 +56,7 @@ function useZoneFilter(query: string, extra: string[] = []): string[] {
 }
 
 /** 可搜索的 IANA 时区单选：搜索框 + 原生下拉。 */
-function ZoneSearchSelect({
+export function ZoneSearchSelect({
   label,
   value,
   onChange,
@@ -95,7 +96,7 @@ function ZoneSearchSelect({
 }
 
 /** 可搜索的时区多选（上限 8 个）。 */
-function ZoneMultiSelect({ value, onChange }: { value: string[]; onChange: (next: string[]) => void }) {
+export function ZoneMultiSelect({ value, onChange }: { value: string[]; onChange: (next: string[]) => void }) {
   const [query, setQuery] = useState('');
   const filtered = useZoneFilter(query, value);
 
@@ -122,17 +123,17 @@ function ZoneMultiSelect({ value, onChange }: { value: string[]; onChange: (next
           <span className="py-2 text-xs text-muted-foreground">没有匹配的时区</span>
         ) : (
           filtered.map((zone) => (
-            <label key={zone} className="flex items-center gap-1.5 py-0.5 text-xs">
-              <input
-                type="checkbox"
-                className="size-3.5 accent-primary"
-                checked={value.includes(zone)}
-                onChange={() => toggle(zone)}
-              />
-              <span className="truncate font-mono" title={zone}>
-                {zone}
-              </span>
-            </label>
+            <Checkbox
+              key={zone}
+              label={
+                <span className="truncate font-mono" title={zone}>
+                  {zone}
+                </span>
+              }
+              checked={value.includes(zone)}
+              onChange={() => toggle(zone)}
+              className="py-0.5"
+            />
           ))
         )}
       </div>
@@ -184,10 +185,10 @@ export default function TimezoneTool() {
   const manual = useMemo(() => fromDatetimeLocalInput(sourceInput, sourceZone), [sourceInput, sourceZone]);
   const source = follow ? now : manual;
 
-  const setToNow = () => {
+  const setToNow = useCallback(() => {
     setFollow(true);
     setSourceInput(toDatetimeLocalInput(new Date(), sourceZone));
-  };
+  }, [sourceZone]);
 
   const rows = useMemo(() => {
     const date = source ?? new Date();

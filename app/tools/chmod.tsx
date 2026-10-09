@@ -1,7 +1,8 @@
 import { FolderLock, Info, KeyRound, Lock, ShieldAlert, SlidersHorizontal, Wand2 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Checkbox, Select, TextField } from '../components/ui/field';
+import { Select } from '../components/ui/select';
+import { Checkbox, TextField } from '../components/ui/field';
 import { Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { copyText, ResultBox } from '../components/ui/result';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -120,9 +121,9 @@ export default function ChmodTool() {
   const [reverseInput, setReverseInput] = useState(REVERSE_SAMPLE);
   const [umaskInput, setUmaskInput] = useState('022');
 
-  const toggle = (who: Who, bit: 'r' | 'w' | 'x', value: boolean) => {
+  const toggle = useCallback((who: Who, bit: 'r' | 'w' | 'x', value: boolean) => {
     setMode((prev) => ({ ...prev, [who]: { ...prev[who], [bit]: value } }));
-  };
+  }, []);
 
   const octal = toOctal(mode);
   const short = toShortOctal(mode);
@@ -219,8 +220,8 @@ export default function ChmodTool() {
       </Tabs>
 
       {tab === 'calc' && (
-        <Section>
-          <div className="flex min-h-0 flex-col gap-3">
+        <div className="grid flex-1 gap-3 md:grid-cols-2">
+          <div className="flex flex-col gap-3">
             <Section title="三元组勾选" description="r=4、w=2、x=1，逐位勾选即得权限">
               <div className="flex flex-col gap-1.5">
                 {WHO_LIST.map((who) => (
@@ -271,7 +272,7 @@ export default function ChmodTool() {
             </Section>
           </div>
 
-          <div className="flex min-h-0 flex-col gap-3">
+          <div className="flex flex-col gap-3">
             <StatGrid>
               <Stat label="八进制（完整）" value={octal} hint={`三位简写 ${short}`} />
               <Stat label="符号表示" value={symbolic} />
@@ -375,12 +376,12 @@ export default function ChmodTool() {
               <code>775</code> 并配合属组，<code>777</code> 意味着任何本地用户都能改你的页面。
             </Note>
           </div>
-        </Section>
+        </div>
       )}
 
       {tab === 'batch' && (
-        <Section>
-          <div className="flex min-h-0 flex-col gap-2">
+        <div className="grid flex-1 gap-3 md:grid-cols-2">
+          <div className="flex flex-col gap-2">
             <Textarea
               value={batchInput}
               onChange={(event) => setBatchInput(event.target.value)}
@@ -398,7 +399,7 @@ export default function ChmodTool() {
               </span>
             </div>
           </div>
-          <div className="flex min-h-0 flex-col gap-2">
+          <div className="flex flex-col gap-2">
             <ResultBox
               label="生成的 shell 脚本"
               value={batch.script}
@@ -422,12 +423,12 @@ export default function ChmodTool() {
               </Note>
             )}
           </div>
-        </Section>
+        </div>
       )}
 
       {tab === 'reverse' && (
-        <Section>
-          <div className="flex min-h-0 flex-col gap-2">
+        <div className="grid flex-1 gap-3 md:grid-cols-2">
+          <div className="flex flex-col gap-2">
             <Textarea
               value={reverseInput}
               onChange={(event) => setReverseInput(event.target.value)}
@@ -456,7 +457,7 @@ export default function ChmodTool() {
               <code>--reference=</code> 之类的长选项（只记录不下结论）、八进制与符号子句两种权限写法。
             </Note>
           </div>
-          <div className="flex min-h-0 flex-col gap-2">
+          <div className="flex flex-col gap-2">
             {reverse.mode === null ? (
               <ResultBox label="解析结果" value="" error={reverse.error ?? '未识别到有效权限'} />
             ) : (
@@ -492,11 +493,11 @@ export default function ChmodTool() {
               </>
             )}
           </div>
-        </Section>
+        </div>
       )}
 
       {tab === 'umask' && (
-        <Section>
+        <div className="grid flex-1 gap-3 md:grid-cols-2">
           <div className="flex flex-col gap-3">
             <Section title="umask 计算" description="新建文件按 666 取反，新建目录按 777 取反">
               <TextField label="umask" value={umaskInput} onChange={setUmaskInput} placeholder="022" />
@@ -549,7 +550,7 @@ export default function ChmodTool() {
               </>
             )}
           </div>
-        </Section>
+        </div>
       )}
 
       <Note tone="info" title="局限与提示">

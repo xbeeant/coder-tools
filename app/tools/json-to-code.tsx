@@ -231,8 +231,8 @@ export default function JsonToCode() {
         </TabsList>
       </Tabs>
 
-      <Section>
-        <div className="flex min-h-0 flex-col gap-2">
+      <div className="grid flex-1 gap-3 md:grid-cols-2">
+        <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <Button size="sm" variant="ghost" onClick={() => setInput(SAMPLE)}>
               <ClipboardPaste className="size-3.5" />
@@ -268,7 +268,7 @@ export default function JsonToCode() {
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-col gap-2">
+        <div className="flex flex-col gap-2">
           <ResultBox
             label={`${CODE_TARGETS.find((item) => item.value === target)?.label ?? ''} 输出`}
             value={generated.output}
@@ -289,7 +289,7 @@ export default function JsonToCode() {
             </Hint>
           </div>
         </div>
-      </Section>
+      </div>
 
       <Section title="生成选项" description="按目标语言显示对应开关">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

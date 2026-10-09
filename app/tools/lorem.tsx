@@ -2,9 +2,10 @@
 import { Copy, Download, RefreshCw } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Checkbox, NumberField, Select } from '../components/ui/field';
+import { Checkbox, NumberField } from '../components/ui/field';
 import { Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { copyText, ResultBox } from '../components/ui/result';
+import { Select } from '../components/ui/select';
 import { downloadText, exportName } from '../lib/file';
 
 // ── 语料 ─────────────────────────────────────────────────
@@ -541,7 +542,7 @@ export default function LoremGenerator() {
       <Section title="HTML 片段模板预览" description="手写模板字符串，不经过任何渲染库">
         <div className="grid gap-2 sm:grid-cols-2">
           {TEMPLATES.slice(0, 4).map((item) => (
-            <div key={item.value} className="min-w-0 rounded-md border bg-muted/20 p-2">
+            <div key={item.value} className="rounded-md border bg-muted/20 p-2">
               <p className="mb-1 font-mono text-[11px] font-medium">{item.label}</p>
               <pre className="max-h-32 overflow-auto whitespace-pre-wrap break-all font-mono text-[11px] leading-relaxed text-muted-foreground scrollbar-thin">
                 {item.build(result.items)}

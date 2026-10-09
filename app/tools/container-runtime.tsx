@@ -2,7 +2,8 @@ import { Container, FileCode, Search, ShieldCheck, TriangleAlert, Wrench } from 
 import { useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { CodeBlock } from '../components/ui/code-block';
-import { Checkbox, Select, TextField } from '../components/ui/field';
+import { Select } from '../components/ui/select';
+import { Checkbox, TextField } from '../components/ui/field';
 import { Input } from '../components/ui/input';
 import {
   EmptyHint,

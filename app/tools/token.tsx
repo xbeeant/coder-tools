@@ -1,6 +1,7 @@
 import { Dices, ShieldCheck, Type } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
+import { Checkbox } from '../components/ui/field';
 import { Input } from '../components/ui/input';
 import { Note, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText } from '../components/ui/result';
@@ -116,7 +117,7 @@ export default function TokenGenerator() {
         </>
       }
     >
-      <div className="flex min-h-0 flex-1 flex-col gap-3">
+      <div className="flex flex-1 flex-col gap-3">
         <div className="flex flex-wrap items-center gap-3 text-xs">
           <label className="flex items-center gap-1.5">
             长度
@@ -140,10 +141,12 @@ export default function TokenGenerator() {
               className="h-7 w-16 text-xs"
             />
           </label>
-          <label className="flex items-center gap-1.5" title="保证每个已勾选字符集至少出现一次">
-            <input type="checkbox" checked={requireEach} onChange={(event) => setRequireEach(event.target.checked)} />
-            覆盖所有字符集
-          </label>
+          <Checkbox
+            label="覆盖所有字符集"
+            checked={requireEach}
+            onChange={setRequireEach}
+            title="保证每个已勾选字符集至少出现一次"
+          />
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5">
@@ -186,7 +189,7 @@ export default function TokenGenerator() {
           字符集大小 {pool.length} · 每个 Token 约 {bitsText} bits 熵
         </div>
 
-        <div className="min-h-0 flex-1 overflow-auto rounded-md border bg-muted/30 p-3 font-mono text-xs leading-relaxed break-all scrollbar-thin">
+        <div className="flex-1 overflow-auto rounded-md border bg-muted/30 p-3 font-mono text-xs leading-relaxed break-all scrollbar-thin">
           {pool.length === 0 ? <span className="text-muted-foreground">请至少启用一个字符集</span> : output}
         </div>
       </div>

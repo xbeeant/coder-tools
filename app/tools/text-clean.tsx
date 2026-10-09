@@ -1,8 +1,9 @@
 /** 文本清洗：按可排序的规则链执行去重、排序、清洗与合并，规则链可存为预设。 */
 import { ArrowDown, ArrowUp, Copy, Download, Eraser, FolderOpen, Save, Trash2, X } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Checkbox, NumberField, Select, TextField } from '../components/ui/field';
+import { Select } from '../components/ui/select';
+import { Checkbox, NumberField, TextField } from '../components/ui/field';
 import { EmptyHint, Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
 import { Textarea } from '../components/ui/textarea';
@@ -424,41 +425,48 @@ export default function TextClean() {
 
   const whitespaceCount = useMemo(() => (input.match(/[ \t]/gu) ?? []).length, [input]);
 
-  const move = (id: string, delta: number) =>
-    setEnabled((prev) => {
-      const index = prev.indexOf(id);
-      const target = index + delta;
-      if (index < 0 || target < 0 || target >= prev.length) return prev;
-      const next = [...prev];
-      [next[index], next[target]] = [next[target], next[index]];
-      return next;
-    });
+  const move = useCallback(
+    (id: string, delta: number) =>
+      setEnabled((prev) => {
+        const index = prev.indexOf(id);
+        const target = index + delta;
+        if (index < 0 || target < 0 || target >= prev.length) return prev;
+        const next = [...prev];
+        [next[index], next[target]] = [next[target], next[index]];
+        return next;
+      }),
+    [],
+  );
 
-  const toggle = (id: string) =>
-    setEnabled((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
+  const toggle = useCallback(
+    (id: string) => setEnabled((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id])),
+    [],
+  );
 
-  const setParam = <K extends keyof RuleParams>(key: K, value: RuleParams[K]) =>
-    setParams((prev) => ({ ...prev, [key]: value }));
+  const setParam = useCallback(
+    <K extends keyof RuleParams>(key: K, value: RuleParams[K]) => setParams((prev) => ({ ...prev, [key]: value })),
+    [],
+  );
 
-  const persist = (next: Preset[]) => {
+  const persist = useCallback((next: Preset[]) => {
     setPresets(next);
     try {
       localStorage.setItem(PRESET_KEY, JSON.stringify(next));
     } catch {
       // localStorage 不可用时静默降级为仅本次会话有效
     }
-  };
+  }, []);
 
-  const savePreset = () => {
+  const savePreset = useCallback(() => {
     const name = presetName.trim() || `预设 ${presets.length + 1}`;
     persist([...presets.filter((preset) => preset.name !== name), { name, enabled: [...enabled], params }]);
     setPresetName('');
-  };
+  }, [persist, presets, enabled, params, presetName]);
 
-  const loadPreset = (preset: Preset) => {
+  const loadPreset = useCallback((preset: Preset) => {
     setEnabled([...preset.enabled]);
     setParams({ ...DEFAULT_PARAMS, ...preset.params });
-  };
+  }, []);
 
   const needsDedupe = enabled.includes('dedupe');
   const needsSort = enabled.includes('sort');
@@ -516,13 +524,7 @@ export default function TextClean() {
                   active ? 'border-primary/60 bg-primary/5' : 'bg-muted/20'
                 }`}
               >
-                <input
-                  type="checkbox"
-                  className="mt-0.5 size-3.5 shrink-0 accent-primary"
-                  checked={active}
-                  aria-label={`启用规则：${rule.label}`}
-                  onChange={() => toggle(rule.id)}
-                />
+                <Checkbox label="" checked={active} onChange={() => toggle(rule.id)} className="mt-0.5" />
                 <div className="min-w-0 flex-1">
                   <p className="flex items-center gap-1.5 text-xs font-medium">
                     {active && (

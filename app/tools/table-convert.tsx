@@ -12,11 +12,12 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Checkbox, NumberField, Select, TextField } from '../components/ui/field';
+import { Checkbox, NumberField, TextField } from '../components/ui/field';
 import { EmptyHint, Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
+import { Select } from '../components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Textarea } from '../components/ui/textarea';
 import { baseName, downloadBlob, downloadText, exportName, pickFile, readAsText } from '../lib/file';
@@ -163,16 +164,19 @@ export default function TableConvert() {
     return exportName('table', format === 'tsv' ? 'tsv' : 'csv');
   }, [format, sheetName]);
 
-  const applyText = (text: string, label: string) => {
-    setSourceText(text);
-    const parsed = parseAnyTable(text, delimiter);
-    setSheets([]);
-    setActiveSheet(0);
-    setTable(inferTypes(parsed, { numbers: inferNumbers, booleans: inferBooleans }));
-    setStatus(`${label} → ${parsed.columns.length} 列 / ${parsed.rows.length} 行`);
-  };
+  const applyText = useCallback(
+    (text: string, label: string) => {
+      setSourceText(text);
+      const parsed = parseAnyTable(text, delimiter);
+      setSheets([]);
+      setActiveSheet(0);
+      setTable(inferTypes(parsed, { numbers: inferNumbers, booleans: inferBooleans }));
+      setStatus(`${label} → ${parsed.columns.length} 列 / ${parsed.rows.length} 行`);
+    },
+    [delimiter, inferNumbers, inferBooleans],
+  );
 
-  const importFile = async () => {
+  const importFile = useCallback(async () => {
     const file = await pickFile({ accept: '.csv,.tsv,.txt,.md,.markdown,.html,.htm,.xlsx' });
     if (file === null) return;
     const lower = file.name.toLowerCase();
@@ -196,28 +200,31 @@ export default function TableConvert() {
     setSheets([]);
     setTable(inferTypes(parsed, { numbers: inferNumbers, booleans: inferBooleans }));
     setStatus(`${baseName(file.name)} → ${parsed.columns.length} 列 / ${parsed.rows.length} 行`);
-  };
+  }, [delimiter, inferNumbers, inferBooleans]);
 
-  const update = (next: Table | null, label: string) => {
+  const update = useCallback((next: Table | null, label: string) => {
     setTable(next);
     setStatus(label);
-  };
+  }, []);
 
-  const selectSheet = (index: number) => {
-    const sheet = sheets[index];
-    if (sheet === undefined) return;
-    setActiveSheet(index);
-    setSheetName(sheet.name);
-    setTable(inferTypes(sheet.table, { numbers: inferNumbers, booleans: inferBooleans }));
-    setStatus(`已切换到工作表「${sheet.name}」`);
-  };
+  const selectSheet = useCallback(
+    (index: number) => {
+      const sheet = sheets[index];
+      if (sheet === undefined) return;
+      setActiveSheet(index);
+      setSheetName(sheet.name);
+      setTable(inferTypes(sheet.table, { numbers: inferNumbers, booleans: inferBooleans }));
+      setStatus(`已切换到工作表「${sheet.name}」`);
+    },
+    [sheets, inferNumbers, inferBooleans],
+  );
 
-  const downloadXlsx = async () => {
+  const downloadXlsx = useCallback(async () => {
     if (table === null) return;
     const blob = await writeXlsx(table, sheetName);
     downloadBlob(outputName, blob);
     setStatus(`已导出 ${outputName}`);
-  };
+  }, [table, sheetName, outputName]);
 
   const visibleRows = table?.rows.slice(0, PREVIEW_LIMIT) ?? [];
 

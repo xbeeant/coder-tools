@@ -1,5 +1,5 @@
 import { ArrowLeftRight, Network, Sparkles, Wand2 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useCallback, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { Checkbox } from '../components/ui/field';
 import { EmptyHint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
@@ -171,7 +171,7 @@ export default function Punycode() {
     [batchRows],
   );
 
-  const swap = () => {
+  const swap = useCallback(() => {
     if (mode === 'domain') {
       if (!domainOutput) return;
       setInput(domainOutput);
@@ -187,7 +187,7 @@ export default function Punycode() {
     if (!batchOutput) return;
     setInput(batchOutput);
     setDirection(direction === 'encode' ? 'decode' : 'encode');
-  };
+  }, [mode, domainOutput, stringResult, batchOutput, direction]);
 
   const output =
     mode === 'domain' ? domainOutput : mode === 'string' ? (stringResult.ok ? stringResult.output : '') : batchOutput;
@@ -355,7 +355,7 @@ export default function Punycode() {
           {domainRows.length === 0 ? (
             <EmptyHint>输入域名后，这里会逐行展示转换结果与校验状态</EmptyHint>
           ) : (
-            <div className="min-h-0 overflow-auto rounded-md border scrollbar-thin">
+            <div className="overflow-auto rounded-md border scrollbar-thin">
               <table className="w-full text-xs">
                 <thead className="sticky top-0 bg-muted/60">
                   <tr className="text-left">
@@ -416,7 +416,7 @@ export default function Punycode() {
           {batchRows.filter((row) => !row.blank).length === 0 ? (
             <EmptyHint>每行输入一条字符串后，这里会逐行展示结果</EmptyHint>
           ) : (
-            <div className="min-h-0 overflow-auto rounded-md border scrollbar-thin">
+            <div className="overflow-auto rounded-md border scrollbar-thin">
               <table className="w-full text-xs">
                 <thead className="sticky top-0 bg-muted/60">
                   <tr className="text-left">

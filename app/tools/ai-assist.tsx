@@ -193,10 +193,10 @@ export default function AiAssist() {
         </TabsList>
       </Tabs>
 
-      <div className="grid min-h-0 flex-1 gap-3 md:grid-cols-2">
+      <div className="grid flex-1 gap-3 md:grid-cols-2">
         {tab === 'prompt' && (
           <>
-            <div className="flex min-h-0 flex-col gap-2 overflow-auto scrollbar-thin">
+            <div className="flex flex-col gap-2 overflow-auto scrollbar-thin">
               <div className="flex flex-wrap items-center gap-1">
                 {['全部', ...PROMPT_CATEGORIES].map((item) => (
                   <Button
@@ -227,7 +227,7 @@ export default function AiAssist() {
               </ul>
             </div>
 
-            <div className="flex min-h-0 flex-col gap-2">
+            <div className="flex flex-col gap-2">
               <ResultBox
                 label={`五段式模板：${template.title}`}
                 value={rendered}
@@ -301,7 +301,7 @@ export default function AiAssist() {
 
         {tab === 'tools' && (
           <>
-            <div className="flex min-h-0 flex-col gap-2 overflow-auto scrollbar-thin">
+            <div className="flex flex-col gap-2 overflow-auto scrollbar-thin">
               <Section title="选型速查" description="按分类与部署形态看，官网链接可点">
                 <div className="overflow-auto rounded-md border scrollbar-thin">
                   <table className="w-full text-[11px]">
@@ -349,7 +349,7 @@ export default function AiAssist() {
                 </div>
               </Section>
             </div>
-            <div className="flex min-h-0 flex-col gap-2 overflow-auto scrollbar-thin">
+            <div className="flex flex-col gap-2 overflow-auto scrollbar-thin">
               <Section title="官网入口" description="全部为各产品官方地址">
                 <LinkList
                   items={AI_TOOLS.map((tool) => ({
@@ -380,7 +380,7 @@ export default function AiAssist() {
 
         {tab === 'local' && (
           <>
-            <div className="flex min-h-0 flex-col gap-2 overflow-auto scrollbar-thin">
+            <div className="flex flex-col gap-2 overflow-auto scrollbar-thin">
               <Section
                 title={
                   <span className="inline-flex items-center gap-1">
@@ -452,7 +452,7 @@ export default function AiAssist() {
                 </div>
               </Section>
             </div>
-            <div className="flex min-h-0 flex-col gap-2 overflow-auto scrollbar-thin">
+            <div className="flex flex-col gap-2 overflow-auto scrollbar-thin">
               <Section title="本地部署要点">
                 <ul className="flex list-none flex-col gap-1 text-[11px] text-muted-foreground">
                   <li>
@@ -488,7 +488,7 @@ export default function AiAssist() {
 
         {tab === 'library' && (
           <>
-            <div className="flex min-h-0 flex-col gap-2">
+            <div className="flex flex-col gap-2">
               <Section title="保存自定义提示词" description="存在 localStorage，可导出备份">
                 <div className="flex flex-col gap-2">
                   <TextField
@@ -579,7 +579,7 @@ export default function AiAssist() {
                 </div>
               </Section>
             </div>
-            <div className="flex min-h-0 flex-col gap-2 overflow-auto scrollbar-thin">
+            <div className="flex flex-col gap-2 overflow-auto scrollbar-thin">
               {filteredLibrary.length === 0 ? (
                 <p className="py-8 text-center text-xs text-muted-foreground">提示词库为空</p>
               ) : (

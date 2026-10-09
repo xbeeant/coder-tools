@@ -12,11 +12,12 @@ import {
   Trash2,
   Upload,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Checkbox, Field, NumberField, Select, TextField } from '../components/ui/field';
+import { Checkbox, Field, NumberField, TextField } from '../components/ui/field';
 import { Hint, LinkList, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
+import { Select } from '../components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Textarea } from '../components/ui/textarea';
 import { downloadText, exportName, pickFile, readAsText } from '../lib/file';
@@ -52,7 +53,7 @@ import {
   timingSegments,
 } from '../lib/har';
 
-type Tab = 'har' | 'curl' | 'request' | 'assert' | 'mock' | 'guide';
+export type Tab = 'har' | 'curl' | 'request' | 'assert' | 'mock' | 'guide';
 
 const HAR_PRESET = JSON.stringify(
   {
@@ -217,7 +218,7 @@ let idSeed = 0;
 const nextId = (prefix: string) => `${prefix}-${Date.now().toString(36)}-${(idSeed += 1)}`;
 
 export default function PacketDebug() {
-  const [tab, setTab] = useState<Tab>('har');
+  const [tab, setTab] = useState<string>('har');
 
   /* HAR 分析 */
   const [harText, setHarText] = useState(HAR_PRESET);
@@ -306,29 +307,31 @@ export default function PacketDebug() {
       ].join('\n')
     : '';
 
+  const handleTabChange = useCallback((value: string) => setTab(value), []);
+
   return (
     <ToolPanel
       title="HTTP 抓包调试"
       description="解析 HAR、把请求转成 cURL 或代码、用断言核对响应，并生成 Mock 规则"
       actions={
-        <Tabs>
+        <Tabs value={tab} onValueChange={handleTabChange}>
           <TabsList>
-            <TabsTrigger active={tab === 'har'} onClick={() => setTab('har')}>
+            <TabsTrigger active={tab === 'har'} value="har">
               HAR 分析
             </TabsTrigger>
-            <TabsTrigger active={tab === 'curl'} onClick={() => setTab('curl')}>
+            <TabsTrigger active={tab === 'curl'} value="curl">
               cURL 解析
             </TabsTrigger>
-            <TabsTrigger active={tab === 'request'} onClick={() => setTab('request')}>
+            <TabsTrigger active={tab === 'request'} value="request">
               请求构造
             </TabsTrigger>
-            <TabsTrigger active={tab === 'assert'} onClick={() => setTab('assert')}>
+            <TabsTrigger active={tab === 'assert'} value="assert">
               断言核对
             </TabsTrigger>
-            <TabsTrigger active={tab === 'mock'} onClick={() => setTab('mock')}>
+            <TabsTrigger active={tab === 'mock'} value="mock">
               Mock
             </TabsTrigger>
-            <TabsTrigger active={tab === 'guide'} onClick={() => setTab('guide')}>
+            <TabsTrigger active={tab === 'guide'} value="guide">
               调试指引
             </TabsTrigger>
           </TabsList>

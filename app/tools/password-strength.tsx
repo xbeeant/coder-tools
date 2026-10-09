@@ -28,7 +28,7 @@ export default function PasswordStrength() {
       }
       description="本地分析密码熵、字符集、词典命中与暴力破解耗时"
     >
-      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto scrollbar-thin">
+      <div className="flex flex-1 flex-col gap-3 overflow-auto scrollbar-thin">
         <Textarea
           value={password}
           onChange={(event) => setPassword(event.target.value)}

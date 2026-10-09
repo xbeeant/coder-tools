@@ -1,12 +1,14 @@
 /** 文本差异对比：逐行/逐词/逐字符对比，输出 unified diff 与 sed 替换脚本。 */
 import { ArrowDown, ArrowUp, Download, FileDiff } from 'lucide-react';
-import { Fragment, useMemo, useState } from 'react';
+import { useCallback, Fragment, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Checkbox, NumberField, Select } from '../components/ui/field';
+import { Select } from '../components/ui/select';
+import { Checkbox, NumberField } from '../components/ui/field';
 import { EmptyHint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Textarea } from '../components/ui/textarea';
+import { cn } from '../components/ui/utils';
 import {
   AUTO_COLLAPSE_LINES,
   buildSedScript,
@@ -80,7 +82,7 @@ const SPLIT_ROW: Record<DiffRow['kind'], string> = {
 
 const KIND_SIGN: Record<DiffRow['kind'], string> = { equal: ' ', add: '+', del: '-', modify: '~' };
 
-function Sign({ kind }: { kind: DiffRow['kind'] }) {
+export function Sign({ kind }: { kind: DiffRow['kind'] }) {
   return (
     <span className={cnSign(kind)} aria-hidden="true">
       {KIND_SIGN[kind]}
@@ -88,12 +90,12 @@ function Sign({ kind }: { kind: DiffRow['kind'] }) {
   );
 }
 
-function cnSign(kind: DiffRow['kind']): string {
-  return `w-3 shrink-0 select-none text-center ${SPLIT_GUTTER[kind]}`;
+export function cnSign(kind: DiffRow['kind']): string {
+  return cn('w-3 shrink-0 select-none text-center', SPLIT_GUTTER[kind]);
 }
 
 /** 用累计偏移量生成稳定 key，避免依赖数组下标。 */
-function keyedSegments(parts: DiffSegment[]): { part: DiffSegment; key: string }[] {
+export function keyedSegments(parts: DiffSegment[]): { part: DiffSegment; key: string }[] {
   let offset = 0;
   return parts.map((part) => {
     const key = `${part.changed ? 'd' : 'e'}-${String(offset)}`;
@@ -102,7 +104,7 @@ function keyedSegments(parts: DiffSegment[]): { part: DiffSegment; key: string }
   });
 }
 
-function Parts({
+export function Parts({
   parts,
   fallback,
   changedClass,
@@ -122,7 +124,7 @@ function Parts({
   );
 }
 
-function Gutter({ no }: { no: number | null }) {
+export function Gutter({ no }: { no: number | null }) {
   return (
     <span className="w-10 shrink-0 select-none pr-1.5 text-right text-[10px] text-muted-foreground/70 tabular-nums">
       {no ?? ''}
@@ -130,7 +132,7 @@ function Gutter({ no }: { no: number | null }) {
   );
 }
 
-function InlineRow({ row }: { row: DiffRow }) {
+export function InlineRow({ row }: { row: DiffRow }) {
   const primary = row.kind === 'del' ? row.leftParts : row.rightParts;
   const primaryText = row.kind === 'del' ? row.left : row.right;
   const tone = INLINE_TONE[row.kind];
@@ -143,7 +145,7 @@ function InlineRow({ row }: { row: DiffRow }) {
   );
 }
 
-function SplitRow({ row }: { row: DiffRow }) {
+export function SplitRow({ row }: { row: DiffRow }) {
   const leftHighlight =
     row.kind === 'modify' || row.kind === 'del' ? 'rounded bg-amber-500/25 dark:bg-amber-400/20' : '';
   const rightHighlight =
@@ -180,7 +182,7 @@ function SplitRow({ row }: { row: DiffRow }) {
   );
 }
 
-function FoldToggle({ count, expanded, onToggle }: { count: number; expanded: boolean; onToggle: () => void }) {
+export function FoldToggle({ count, expanded, onToggle }: { count: number; expanded: boolean; onToggle: () => void }) {
   return (
     <button
       type="button"
@@ -193,7 +195,7 @@ function FoldToggle({ count, expanded, onToggle }: { count: number; expanded: bo
   );
 }
 
-function RowList({
+export function RowList({
   blocks,
   view,
   expanded,
@@ -206,7 +208,7 @@ function RowList({
 }) {
   if (blocks.length === 0) return <EmptyHint>两侧内容完全一致</EmptyHint>;
   return (
-    <div className="min-h-0 flex-1 overflow-auto rounded-md border bg-muted/20 p-1.5 scrollbar-thin">
+    <div className="flex-1 overflow-auto rounded-md border bg-muted/20 p-1.5 scrollbar-thin">
       {blocks.map((block) => {
         if (block.type === 'rows') {
           return (
@@ -244,13 +246,16 @@ export default function TextDiff() {
   const result = useMemo(() => computeDiff(left, right, options, parsed.rules), [left, right, options, parsed.rules]);
   const blocks = useMemo(() => collapseRows(result.rows, options.context), [result.rows, options.context]);
 
-  const toggleFold = (key: string) =>
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
+  const toggleFold = useCallback(
+    (key: string) =>
+      setExpanded((prev) => {
+        const next = new Set(prev);
+        if (next.has(key)) next.delete(key);
+        else next.add(key);
+        return next;
+      }),
+    [],
+  );
 
   const patch = useMemo(
     () => unifiedPatch(result.leftText, result.rightText, 'file.txt', options.context),
@@ -259,9 +264,15 @@ export default function TextDiff() {
   const sedScript = useMemo(() => buildSedScript(result.rows, 'file.txt'), [result.rows]);
 
   const isLarge = result.stats.leftLines > AUTO_COLLAPSE_LINES || result.stats.rightLines > AUTO_COLLAPSE_LINES;
-  const toggleOption = (key: keyof DiffOptions) => setOptions((prev) => ({ ...prev, [key]: !prev[key] }));
-  const setContext = (context: number) =>
-    setOptions((prev) => ({ ...prev, context: Number.isFinite(context) ? Math.max(0, Math.min(50, context)) : 3 }));
+  const toggleOption = useCallback(
+    (key: keyof DiffOptions) => setOptions((prev) => ({ ...prev, [key]: !prev[key] })),
+    [],
+  );
+  const setContext = useCallback(
+    (context: number) =>
+      setOptions((prev) => ({ ...prev, context: Number.isFinite(context) ? Math.max(0, Math.min(50, context)) : 3 })),
+    [],
+  );
 
   const { added, deleted, modified, unchanged, similarity, changeRatio, leftLines, rightLines } = result.stats;
 

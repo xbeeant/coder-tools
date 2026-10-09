@@ -1,7 +1,7 @@
 import { Copy, KeyRound, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Select } from '../components/ui/field';
+import { Select } from '../components/ui/select';
 import { ToolPanel } from '../components/ui/panel';
 import { copyText } from '../components/ui/result';
 
@@ -106,7 +106,7 @@ export default function RsaTool() {
         </>
       }
     >
-      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto scrollbar-thin">
+      <div className="flex flex-1 flex-col gap-3 overflow-auto scrollbar-thin">
         {error && <p className="text-xs text-destructive">{error}</p>}
 
         {busy && !keys && <p className="text-xs text-muted-foreground">正在生成密钥，4096 位可能需要几秒…</p>}

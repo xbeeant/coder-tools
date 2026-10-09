@@ -1,7 +1,7 @@
 import { Signature } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useCallback, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Select } from '../components/ui/field';
+import { Select } from '../components/ui/select';
 import { Input } from '../components/ui/input';
 import { Note, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
@@ -45,7 +45,7 @@ export default function HmacTool() {
     { ok: true; value: string; encoding: Encoding } | { ok: false; error: string } | null
   >(null);
 
-  const sign = async () => {
+  const sign = useCallback(async () => {
     setResult(null);
     try {
       const key = await crypto.subtle.importKey(
@@ -60,9 +60,9 @@ export default function HmacTool() {
     } catch (error) {
       setResult({ ok: false, error: error instanceof Error ? error.message : String(error) });
     }
-  };
+  }, [alg, message, secret, encoding]);
 
-  const verify = async () => {
+  const verify = useCallback(async () => {
     if (!result?.ok) return;
     setResult(null);
     try {
@@ -94,7 +94,7 @@ export default function HmacTool() {
     } catch (error) {
       setResult({ ok: false, error: error instanceof Error ? error.message : String(error) });
     }
-  };
+  }, [alg, message, secret, result]);
 
   const disabled = !message || !secret;
 
@@ -111,7 +111,7 @@ export default function HmacTool() {
       description="使用密钥对消息计算消息认证码，用于 Webhook 签名与接口验签"
       actions={<ClearButton onClick={() => setMessage('')} disabled={message === ''} />}
     >
-      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-auto scrollbar-thin">
+      <div className="flex flex-1 flex-col gap-2 overflow-auto scrollbar-thin">
         <div className="flex flex-wrap items-center gap-3 text-xs">
           <Select
             ariaLabel="算法"

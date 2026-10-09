@@ -1,6 +1,5 @@
 import JSON5 from 'json5';
 import {
-  ArrowLeftRight,
   Braces,
   CheckCircle2,
   ClipboardPaste,
@@ -9,21 +8,19 @@ import {
   FolderOpen,
   Info,
   Rows3,
-  Sparkles,
-  TreePine,
   XCircle,
 } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Checkbox, NumberField, Select } from '../components/ui/field';
-import { EmptyHint, Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
+import { Checkbox } from '../components/ui/field';
+import { EmptyHint, Hint, Note, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
+import { Select } from '../components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Textarea } from '../components/ui/textarea';
 import { formatBytes } from '../lib/bytes';
 import { downloadText, exportName, pickFiles, readAsText } from '../lib/file';
 import { inferArrayItemType, type JsonType, summarizeJson } from '../lib/json-convert';
-import { emptySchema, type ValidateResult, validateJsonSchema } from '../lib/json-schema';
 
 /** 去转义功能：将被转义的 JSON 字符串还原为原始文本。 */
 function unescapeJsonString(text: string): string {
@@ -36,13 +33,25 @@ function unescapeJsonString(text: string): string {
   }
 }
 
-interface SchemaState {
-  result: ValidateResult | null;
-  parseError: string | null;
+/** 转义功能：将原始文本编码为 JSON 字符串字面量。 */
+function escapeJsonString(text: string): string {
+  return JSON.stringify(text);
 }
 
-type MainTab = 'format' | 'tree' | 'schema';
-type TreeTab = 'text' | 'stats' | 'schema';
+/** 尝试将当前输入作为 JSON 字符串解析并还原；成功则返回新文本。 */
+function tryUnescape(text: string): string {
+  const trimmed = text.trim();
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (typeof parsed === 'string') return parsed;
+  } catch {
+    // not a JSON string literal
+  }
+  return text;
+}
+
+type MainTab = 'format' | 'tree';
+type TreeTab = 'text' | 'stats';
 
 interface Parsed {
   value: unknown;
@@ -176,7 +185,6 @@ export default function JsonFormatter() {
   const [unescapeJson, setUnescapeJson] = useState(false);
   const [mainTab, setMainTab] = useState<MainTab>('format');
   const [treeTab, setTreeTab] = useState<TreeTab>('text');
-  const [schemaText, setSchemaText] = useState('');
   const [busy, setBusy] = useState(false);
   const [fileNote, setFileNote] = useState<string | null>(null);
 
@@ -244,17 +252,6 @@ export default function JsonFormatter() {
     return inferArrayItemType(value);
   }, [analysis.parsed]);
 
-  const schema = useMemo<SchemaState>(() => {
-    if (analysis.parsed === null) return { result: null, parseError: null };
-    const text = schemaText.trim();
-    if (text === '') return { result: null, parseError: null };
-    try {
-      return { result: validateJsonSchema(analysis.parsed.value, JSON.parse(text) as unknown), parseError: null };
-    } catch (error) {
-      return { result: null, parseError: error instanceof Error ? error.message : String(error) };
-    }
-  }, [analysis.parsed, schemaText]);
-
   const handlePick = useCallback(async () => {
     setBusy(true);
     try {
@@ -277,12 +274,21 @@ export default function JsonFormatter() {
   }, [formatted]);
 
   const handleCopy = useCallback(() => {
-    if (mainTab === 'tree' && treeTab === 'schema') {
-      copyText(JSON.stringify(schema.result, null, 2));
-      return;
-    }
-    copyText(mainTab === 'format' ? formatted : treeTab === 'text' ? formatted : JSON.stringify(summary, null, 2));
-  }, [formatted, mainTab, schema, summary, treeTab]);
+    copyText(mainTab === 'format' || treeTab === 'text' ? formatted : JSON.stringify(summary, null, 2));
+  }, [formatted, mainTab, summary, treeTab]);
+
+  /** 转义：将输入内容编码为 JSON 字符串字面量。 */
+  const handleEscape = useCallback(() => {
+    if (input === '') return;
+    setInput(escapeJsonString(input));
+  }, [input]);
+
+  /** 去转义：尝试将输入内容从 JSON 字符串字面量解码。 */
+  const handleUnescape = useCallback(() => {
+    if (input === '') return;
+    const unescaped = tryUnescape(input);
+    if (unescaped !== input) setInput(unescaped);
+  }, [input]);
 
   const inputBytes = useMemo(() => new TextEncoder().encode(input).length, [input]);
 
@@ -294,14 +300,24 @@ export default function JsonFormatter() {
           JSON 格式化
         </span>
       }
-      description="支持 JSON5 宽松语法，附带结构树、类型统计与 JSON Schema 校验"
+      description="支持 JSON5 宽松语法，附带结构树与类型统计"
       actions={
         <>
           <Button size="sm" variant="outline" onClick={() => void handlePick()} disabled={busy}>
             <FolderOpen className="size-3.5" />
             打开文件
           </Button>
+          <Button size="sm" variant="outline" onClick={handleEscape} disabled={input === ''}>
+            转义
+          </Button>
+          <Button size="sm" variant="outline" onClick={handleUnescape} disabled={input === ''}>
+            去转义
+          </Button>
           <ClearButton onClick={() => setInput('')} disabled={input === ''} />
+          <Button size="sm" variant="ghost" onClick={() => setInput(SAMPLE)}>
+            <ClipboardPaste className="size-3.5" />
+            示例
+          </Button>
         </>
       }
     >
@@ -313,19 +329,14 @@ export default function JsonFormatter() {
           <TabsTrigger value="tree" active={mainTab === 'tree'}>
             结构分析
           </TabsTrigger>
-          <TabsTrigger value="schema" active={mainTab === 'schema'}>
-            Schema 校验
-          </TabsTrigger>
         </TabsList>
       </Tabs>
-
-      <div className="grid min-h-0 flex-1 gap-3 md:grid-cols-2">
-        <div className="flex min-h-0 flex-col gap-2">
+      <Note tone="info" title="解析规则">
+        默认按 JSON5 解析以兼容注释、单引号和尾逗号，但输出始终是标准 JSON。
+      </Note>
+      <div className="grid flex-1 gap-3 md:grid-cols-2">
+        <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
-            <Button size="sm" variant="ghost" onClick={() => setInput(SAMPLE)}>
-              <ClipboardPaste className="size-3.5" />
-              示例
-            </Button>
             <Select
               ariaLabel="缩进"
               value={indent}
@@ -333,7 +344,7 @@ export default function JsonFormatter() {
               options={indentOptions}
               selectClassName="w-24"
             />
-            <Checkbox label="键排序" checked={sortKeys} onChange={setSortKeys} />
+            <Checkbox label="键排序" checked={sortKeys} onChange={setSortKeys} hint="勾选启动" />
             <Checkbox
               label="去转义"
               checked={unescapeJson}
@@ -371,7 +382,7 @@ export default function JsonFormatter() {
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-col gap-2">
+        <div className="flex flex-col gap-2">
           {mainTab === 'format' && (
             <>
               <ResultBox
@@ -417,12 +428,6 @@ export default function JsonFormatter() {
                     <span className="inline-flex items-center gap-1">
                       <Rows3 className="size-3.5" />
                       类型统计
-                    </span>
-                  </TabsTrigger>
-                  <TabsTrigger value="schema" active={treeTab === 'schema'}>
-                    <span className="inline-flex items-center gap-1">
-                      <TreePine className="size-3.5" />
-                      校验结果
                     </span>
                   </TabsTrigger>
                 </TabsList>
@@ -473,134 +478,10 @@ export default function JsonFormatter() {
                     ))}
                   </div>
                 ))}
-
-              {treeTab === 'schema' &&
-                (schema.parseError !== null ? (
-                  <Note tone="danger" title="Schema 本身不是合法 JSON">
-                    {schema.parseError}
-                  </Note>
-                ) : schema.result === null ? (
-                  <EmptyHint>在「Schema 校验」页填写 Schema 后，这里显示逐条错误。</EmptyHint>
-                ) : (
-                  <div className="flex flex-col gap-3">
-                    <StatGrid>
-                      <Stat
-                        label="校验结果"
-                        value={schema.result.valid ? '通过' : '不通过'}
-                        tone={schema.result.valid ? 'success' : 'danger'}
-                      />
-                      <Stat label="问题数量" value={schema.result.issues.length} />
-                      <Stat label="已检查节点" value={schema.result.checked} />
-                      <Stat label="是否截断" value={schema.result.truncated ? '已截断' : '否'} />
-                    </StatGrid>
-                    {schema.result.issues.length === 0 ? (
-                      <Note tone="success" title="全部通过">
-                        数据满足 Schema 的全部约束。
-                      </Note>
-                    ) : (
-                      <ResultBox
-                        label="问题列表"
-                        value={schema.result.issues
-                          .map((issue) => `${issue.path} [${issue.keyword}] ${issue.message}`)
-                          .join('\n')}
-                      />
-                    )}
-                  </div>
-                ))}
-            </>
-          )}
-
-          {mainTab === 'schema' && (
-            <>
-              <Textarea
-                value={schemaText}
-                onChange={(event) => setSchemaText(event.target.value)}
-                placeholder="粘贴 JSON Schema（draft-07 子集）"
-                spellCheck={false}
-                aria-label="JSON Schema 输入"
-                className="min-h-32 resize-none font-mono text-xs"
-              />
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setSchemaText(JSON.stringify(emptySchema(), null, 2))}
-                  disabled={schemaText.trim() === JSON.stringify(emptySchema(), null, 2)}
-                >
-                  <Sparkles className="size-3.5" />
-                  填入空 Schema
-                </Button>
-                {schemaText.trim() !== '' && (
-                  <Button size="sm" variant="outline" onClick={() => setSchemaText('')}>
-                    清空 Schema
-                  </Button>
-                )}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setSchemaText(formatted)}
-                  disabled={formatted.trim() === ''}
-                >
-                  <ArrowLeftRight className="size-3.5" />
-                  用当前结果校验
-                </Button>
-              </div>
-              {schema.parseError !== null && (
-                <Note tone="danger" title="Schema 本身不是合法 JSON">
-                  {schema.parseError}
-                </Note>
-              )}
-              {schema.result && (
-                <div className="flex flex-col gap-3">
-                  <StatGrid>
-                    <Stat
-                      label="校验结果"
-                      value={schema.result.valid ? '通过' : '不通过'}
-                      tone={schema.result.valid ? 'success' : 'danger'}
-                    />
-                    <Stat label="问题数量" value={schema.result.issues.length} />
-                    <Stat label="已检查节点" value={schema.result.checked} />
-                    <Stat label="是否截断" value={schema.result.truncated ? '已截断' : '否'} />
-                  </StatGrid>
-                  {schema.result.issues.length > 0 && (
-                    <ResultBox
-                      label="问题列表"
-                      value={schema.result.issues
-                        .map((issue) => `${issue.path} [${issue.keyword}] ${issue.message}`)
-                        .join('\n')}
-                      onCopy={() => copyText(JSON.stringify(schema.result, null, 2))}
-                    />
-                  )}
-                </div>
-              )}
             </>
           )}
         </div>
       </div>
-
-      <Note tone="info" title="解析规则">
-        默认按 JSON5 解析以兼容注释、单引号和尾逗号，但输出始终是标准 JSON。Schema 校验支持 draft-07
-        的常用子集（类型、必填、范围、正则、组合关键字与本地 <code>$ref</code>），不执行 <code>$ref</code>{' '}
-        之外的远程引用。
-      </Note>
-
-      <Section title="导出" description="按当前美化结果保存为 .json 文件">
-        <div className="flex flex-wrap items-center gap-2">
-          <NumberField
-            label="缩进"
-            value={indentValue === '\t' ? 0 : Number(indentValue)}
-            onChange={(value) => setIndent(String(value || 2))}
-            min={0}
-            max={8}
-            suffix="空格"
-          />
-          <span className="text-xs text-muted-foreground">文件名形如 {exportName('json', 'json')}</span>
-          <Button size="sm" onClick={handleDownload} disabled={formatted === ''}>
-            <Download className="size-3.5" />
-            下载
-          </Button>
-        </div>
-      </Section>
     </ToolPanel>
   );
 }

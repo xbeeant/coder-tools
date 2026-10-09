@@ -405,7 +405,7 @@ export default function WslTool() {
       }
     >
       {tab === 'config' && (
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-2">
+        <div className="grid flex-1 grid-cols-1 gap-3 lg:grid-cols-2">
           <div className="flex min-w-0 flex-col gap-3">
             <Section title=".wslconfig（Windows 侧）">
               <div className="grid grid-cols-3 gap-2">

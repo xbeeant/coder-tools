@@ -137,7 +137,7 @@ export default function UnicodeTool() {
         </>
       }
     >
-      <div className="flex min-h-0 flex-1 flex-col gap-2">
+      <div className="flex flex-1 flex-col gap-2">
         <Textarea
           value={input}
           onChange={(event) => setInput(event.target.value)}
@@ -154,7 +154,7 @@ export default function UnicodeTool() {
         />
 
         {mode === 'encode' && perChar.length > 0 && (
-          <div className="min-h-0 flex-1 overflow-auto rounded-md border scrollbar-thin">
+          <div className="flex-1 overflow-auto rounded-md border scrollbar-thin">
             <table className="w-full text-xs">
               <thead className="sticky top-0 bg-muted/60">
                 <tr className="text-left">

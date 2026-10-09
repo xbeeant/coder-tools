@@ -1,5 +1,5 @@
 import { Copy, Fingerprint, Network, RefreshCw, ShieldCheck } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useCallback, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { Checkbox, NumberField, TextField } from '../components/ui/field';
 import { Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
@@ -56,10 +56,10 @@ export default function Ipv6Ula() {
   const linkLocal = linkLocalAddress(ula.interfaceId);
   const expanded = useMemo(() => parseIpv6(expandInput), [expandInput]);
 
-  const regenerate = () => {
+  const regenerate = useCallback(() => {
     setGlobalId(randomHex(40));
     setRefreshKey((value) => value + 1);
-  };
+  }, []);
 
   return (
     <ToolPanel

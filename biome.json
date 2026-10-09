@@ -21,6 +21,9 @@
       "a11y": {
         "noLabelWithoutControl": "off"
       },
+      "correctness": {
+        "noUnusedImports": "error"
+      },
       "suspicious": {
         "noAssignInExpressions": "off",
         "noTemplateCurlyInString": "off"

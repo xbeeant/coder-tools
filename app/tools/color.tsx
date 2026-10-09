@@ -1,7 +1,8 @@
 import { Copy, Image as ImageIcon, Lock, RefreshCw, Shuffle, Unlock } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Checkbox, NumberField, Select, TextField } from '../components/ui/field';
+import { Select } from '../components/ui/select';
+import { Checkbox, NumberField, TextField } from '../components/ui/field';
 import { EmptyHint, Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { copyText, ResultBox } from '../components/ui/result';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -144,7 +145,7 @@ export default function ColorConverter() {
     [gradientType, gradientAngle, gradientColors, gradientMidpoints],
   );
 
-  const randomPalette = () => {
+  const randomPalette = useCallback(() => {
     const next = randomScheme(
       harmonyName,
       schemeWithLocks.map((_, index) => (lockIndexes[index] ? schemeWithLocks[index] : null)),
@@ -152,9 +153,9 @@ export default function ColorConverter() {
     const hexes = next.map((item) => rgbToHex(item));
     setInput(hexes[0]);
     setLockIndexes(lockIndexes.map((value, index) => value || (autoLock && index > 0)));
-  };
+  }, [harmonyName, schemeWithLocks, lockIndexes, autoLock]);
 
-  const pickImage = async () => {
+  const pickImage = useCallback(async () => {
     setImageBusy(true);
     setImageError(null);
     try {
@@ -189,11 +190,11 @@ export default function ColorConverter() {
     } finally {
       setImageBusy(false);
     }
-  };
+  }, []);
 
-  const applyColor = (value: RGB | string) => {
+  const applyColor = useCallback((value: RGB | string) => {
     setInput(typeof value === 'string' ? value : rgbToHex(value));
-  };
+  }, []);
 
   const swatchTextClass = (swatch: RGB) =>
     contrastReport(swatch).bestForeground === 'black' ? 'text-black' : 'text-white';

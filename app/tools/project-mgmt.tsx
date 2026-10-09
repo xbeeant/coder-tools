@@ -11,7 +11,8 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { NumberField, Select, TextField } from '../components/ui/field';
+import { Select } from '../components/ui/select';
+import { Checkbox, NumberField, TextField } from '../components/ui/field';
 import { Input } from '../components/ui/input';
 import { EmptyHint, Hint, LinkList, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
@@ -381,14 +382,6 @@ export default function ProjectMgmt() {
     }
   };
 
-  const toggleSelect = (id: string) =>
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-
   const allSelected = sorted.length > 0 && sorted.every((task) => selected.has(task.id));
 
   const batch = (patch: Partial<Task>) => {
@@ -594,9 +587,9 @@ export default function ProjectMgmt() {
       {isEmpty ? (
         <EmptyHint>还没有项目。点「新建项目」从空白开始，或用下面的示例数据先看看效果。</EmptyHint>
       ) : (
-        <div className="grid min-h-0 flex-1 gap-3 md:grid-cols-2">
+        <div className="grid flex-1 gap-3 md:grid-cols-2">
           {/* ── 左栏：看板 / 列表 / 需求 ── */}
-          <div className="flex min-h-0 flex-col gap-2">
+          <div className="flex flex-col gap-2">
             {tab === 'board' && (
               <>
                 <div className="flex flex-wrap items-center gap-2">
@@ -606,7 +599,7 @@ export default function ProjectMgmt() {
                   </Button>
                   <Hint>拖拽卡片换列；也可以用卡片上的 ◀ ▶ 按钮移动。</Hint>
                 </div>
-                <div className="grid min-h-0 flex-1 grid-cols-2 gap-2 overflow-auto pb-1 scrollbar-thin">
+                <div className="grid flex-1 grid-cols-2 gap-2 overflow-auto pb-1 scrollbar-thin">
                   {STATUS_ORDER.map((status) => {
                     const column = columnTasks(data.tasks, status);
                     return (
@@ -752,19 +745,18 @@ export default function ProjectMgmt() {
                     命中 {sorted.length} / {data.tasks.length} 条，已选 {selected.size}
                   </span>
                 </div>
-                <div className="min-h-0 flex-1 overflow-auto rounded-md border scrollbar-thin">
+                <div className="flex-1 overflow-auto rounded-md border scrollbar-thin">
                   <table className="w-full text-[11px]">
                     <thead className="sticky top-0 bg-muted/80 backdrop-blur">
                       <tr>
                         <th className="p-1.5">
-                          <input
-                            type="checkbox"
-                            aria-label="全选"
-                            className="size-3.5 accent-primary"
+                          <Checkbox
+                            label=""
                             checked={allSelected}
-                            onChange={() =>
-                              setSelected(allSelected ? new Set() : new Set(sorted.map((task) => task.id)))
+                            onChange={(checked) =>
+                              setSelected(checked ? new Set(sorted.map((task) => task.id)) : new Set())
                             }
+                            className="shrink-0"
                           />
                         </th>
                         {(
@@ -792,12 +784,21 @@ export default function ProjectMgmt() {
                       {sorted.map((task) => (
                         <tr key={task.id} className="border-t hover:bg-accent/40">
                           <td className="p-1.5">
-                            <input
-                              type="checkbox"
-                              aria-label={`选择 ${task.title}`}
-                              className="size-3.5 accent-primary"
+                            <Checkbox
+                              label=""
                               checked={selected.has(task.id)}
-                              onChange={() => toggleSelect(task.id)}
+                              onChange={(checked) => {
+                                if (checked) {
+                                  setSelected((prev) => new Set(prev).add(task.id));
+                                } else {
+                                  setSelected((prev) => {
+                                    const next = new Set(prev);
+                                    next.delete(task.id);
+                                    return next;
+                                  });
+                                }
+                              }}
+                              className="shrink-0"
                             />
                           </td>
                           <td className="max-w-40 truncate p-1.5" title={task.title}>
@@ -854,7 +855,7 @@ export default function ProjectMgmt() {
                 <Hint>
                   给任务加标签 <code>epic:&lt;需求名&gt;</code> 即可挂到需求下（示例数据已内置）。
                 </Hint>
-                <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-auto scrollbar-thin">
+                <div className="flex flex-1 flex-col gap-2 overflow-auto scrollbar-thin">
                   {progress.length === 0 ? (
                     <EmptyHint>还没有需求层级</EmptyHint>
                   ) : (
@@ -885,14 +886,11 @@ export default function ProjectMgmt() {
                           <ul className="mt-1.5 flex flex-col gap-0.5 border-t pt-1.5 text-[11px]">
                             {item.children.map((task) => (
                               <li key={task.id} className="flex items-center gap-1.5">
-                                <input
-                                  type="checkbox"
-                                  aria-label={`标记 ${task.title} 完成`}
-                                  className="size-3 accent-primary"
+                                <Checkbox
+                                  label=""
                                   checked={task.status === 'done'}
-                                  onChange={(event) =>
-                                    updateTask(task.id, { status: event.target.checked ? 'done' : 'todo' })
-                                  }
+                                  onChange={(checked) => updateTask(task.id, { status: checked ? 'done' : 'todo' })}
+                                  className="shrink-0"
                                 />
                                 <span className={task.status === 'done' ? 'text-muted-foreground line-through' : ''}>
                                   {task.title}
@@ -987,7 +985,7 @@ export default function ProjectMgmt() {
                         <span>红线 = 今天</span>
                       </div>
                     </div>
-                    <div className="min-h-0 flex-1 overflow-auto rounded-md border scrollbar-thin">
+                    <div className="flex-1 overflow-auto rounded-md border scrollbar-thin">
                       <table className="w-full text-[11px]">
                         <thead className="sticky top-0 bg-muted/80">
                           <tr>
@@ -1091,7 +1089,7 @@ export default function ProjectMgmt() {
                     <BarRows buckets={hoursByLabel(data.tasks)} metric="spent" />
                   </Section>
                 </div>
-                <div className="min-h-0 flex-1 overflow-auto rounded-md border scrollbar-thin">
+                <div className="flex-1 overflow-auto rounded-md border scrollbar-thin">
                   <table className="w-full text-[11px]">
                     <thead className="sticky top-0 bg-muted/80">
                       <tr>
@@ -1185,7 +1183,7 @@ export default function ProjectMgmt() {
           </div>
 
           {/* ── 右栏：概览 + 批量操作 ── */}
-          <div className="flex min-h-0 flex-col gap-3 overflow-auto scrollbar-thin">
+          <div className="flex flex-col gap-3 overflow-auto scrollbar-thin">
             <StatGrid>
               <Stat label="任务总数" value={data.tasks.length} />
               <Stat

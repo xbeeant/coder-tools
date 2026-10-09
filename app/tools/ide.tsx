@@ -1,7 +1,8 @@
 import { Blocks, Download, FileCode2, Keyboard, Package2, Puzzle, Table2, Wand2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { NumberField, Select, TextField } from '../components/ui/field';
+import { Select } from '../components/ui/select';
+import { Checkbox, NumberField, TextField } from '../components/ui/field';
 import { LinkList, Note, Section, ToolPanel } from '../components/ui/panel';
 import { ResultBox } from '../components/ui/result';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -122,33 +123,21 @@ function EditorConfigForm({
         hint="填 0 表示不限制"
       />
       <div className="flex flex-col justify-end gap-1">
-        <label className="flex items-center gap-1.5 text-xs">
-          <input
-            type="checkbox"
-            className="size-3.5 accent-primary"
-            checked={value.finalNewline}
-            onChange={(event) => set('finalNewline', event.target.checked)}
-          />
-          final_newline
-        </label>
-        <label className="flex items-center gap-1.5 text-xs">
-          <input
-            type="checkbox"
-            className="size-3.5 accent-primary"
-            checked={value.insertFinalNewline}
-            onChange={(event) => set('insertFinalNewline', event.target.checked)}
-          />
-          insert_final_newline
-        </label>
-        <label className="flex items-center gap-1.5 text-xs">
-          <input
-            type="checkbox"
-            className="size-3.5 accent-primary"
-            checked={value.trimTrailingWhitespace}
-            onChange={(event) => set('trimTrailingWhitespace', event.target.checked)}
-          />
-          trim_trailing_whitespace
-        </label>
+        <Checkbox
+          label="final_newline"
+          checked={value.finalNewline}
+          onChange={(checked) => set('finalNewline', checked)}
+        />
+        <Checkbox
+          label="insert_final_newline"
+          checked={value.insertFinalNewline}
+          onChange={(checked) => set('insertFinalNewline', checked)}
+        />
+        <Checkbox
+          label="trim_trailing_whitespace"
+          checked={value.trimTrailingWhitespace}
+          onChange={(checked) => set('trimTrailingWhitespace', checked)}
+        />
       </div>
     </div>
   );
@@ -244,15 +233,11 @@ function VscodeForm({
         className="col-span-2"
         hint="追加到 search.exclude 与 files.exclude，逗号分隔"
       />
-      <label className="col-span-2 flex items-center gap-1.5 text-xs">
-        <input
-          type="checkbox"
-          className="size-3.5 accent-primary"
-          checked={value.formatOnSave}
-          onChange={(event) => set('formatOnSave', event.target.checked)}
-        />
-        保存时自动格式化与修复
-      </label>
+      <Checkbox
+        label="保存时自动格式化与修复"
+        checked={value.formatOnSave}
+        onChange={(checked) => set('formatOnSave', checked)}
+      />
     </div>
   );
 }
@@ -365,10 +350,10 @@ export default function Ide() {
         </TabsList>
       </Tabs>
 
-      <div className="grid min-h-0 flex-1 gap-3 md:grid-cols-2">
+      <div className="grid flex-1 gap-3 md:grid-cols-2">
         {tab === 'generate' && (
           <>
-            <div className="flex min-h-0 flex-col gap-2">
+            <div className="flex flex-col gap-2">
               <Select
                 label="编辑器 / IDE"
                 value={editor}
@@ -397,7 +382,7 @@ export default function Ide() {
               <EditorConfigForm value={editorConfig} onChange={setEditorConfig} />
             </div>
 
-            <div className="flex min-h-0 flex-col gap-2">
+            <div className="flex flex-col gap-2">
               <div className="flex flex-wrap items-center gap-1.5">
                 {files.map((file) => (
                   <Button
@@ -441,12 +426,12 @@ export default function Ide() {
 
         {tab === 'plugins' && (
           <>
-            <div className="flex min-h-0 flex-col gap-2">
+            <div className="flex flex-col gap-2">
               <Section title="官方与生态入口">
                 <LinkList items={EDITOR_LINKS} />
               </Section>
             </div>
-            <div className="flex min-h-0 flex-col gap-2 overflow-auto scrollbar-thin">
+            <div className="flex flex-col gap-2 overflow-auto scrollbar-thin">
               <Section title="高价值插件与主题" description="每条都说明它解决什么问题">
                 <LinkList items={PLUGIN_LINKS} columns={2} />
               </Section>
@@ -500,7 +485,7 @@ export default function Ide() {
 
         {tab === 'capability' && (
           <>
-            <div className="flex min-h-0 flex-col gap-2">
+            <div className="flex flex-col gap-2">
               <Section title="IDE 能力由什么技术承担" description="理解这层，跨编辑器迁移时就知道该换什么">
                 <div className="max-h-[26rem] overflow-auto rounded-md border scrollbar-thin">
                   <table className="w-full text-[11px]">
@@ -530,7 +515,7 @@ export default function Ide() {
                 为什么能跨文件重构」，答案是它内置了 LSP 客户端与代码索引，而不是靠模型直接改所有文件。
               </Note>
             </div>
-            <div className="flex min-h-0 flex-col gap-2 overflow-auto scrollbar-thin">
+            <div className="flex flex-col gap-2 overflow-auto scrollbar-thin">
               <Section
                 title={
                   <span className="inline-flex items-center gap-1">

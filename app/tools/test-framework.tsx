@@ -15,7 +15,8 @@ import {
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Checkbox, Select, TextField } from '../components/ui/field';
+import { Select } from '../components/ui/select';
+import { Checkbox, TextField } from '../components/ui/field';
 import { Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { copyText, ResultBox } from '../components/ui/result';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -185,8 +186,8 @@ export default function TestFrameworkTool() {
         </TabsList>
       </Tabs>
 
-      <div className="grid min-h-0 flex-1 gap-3 md:grid-cols-2">
-        <div className="flex min-h-0 flex-col gap-3 overflow-auto pr-0.5">
+      <div className="grid flex-1 gap-3 md:grid-cols-2">
+        <div className="flex flex-col gap-3 overflow-auto pr-0.5">
           <Section title="被测对象">
             <div className="flex flex-col gap-2">
               <Select
@@ -311,7 +312,7 @@ export default function TestFrameworkTool() {
           </Section>
         </div>
 
-        <div className="flex min-h-0 flex-col gap-2">
+        <div className="flex flex-col gap-2">
           {tab === 'cases' && (
             <>
               <StatGrid>
@@ -350,7 +351,7 @@ export default function TestFrameworkTool() {
                   </Button>
                 ))}
               </div>
-              <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-auto pr-0.5">
+              <div className="flex flex-1 flex-col gap-2 overflow-auto pr-0.5">
                 {visible.length === 0 && (
                   <p className="py-8 text-center text-xs text-muted-foreground">该分类下没有用例</p>
                 )}
@@ -499,7 +500,7 @@ export default function TestFrameworkTool() {
           )}
 
           {tab === 'explain' && (
-            <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto pr-0.5">
+            <div className="flex flex-1 flex-col gap-3 overflow-auto pr-0.5">
               <Section title="这些用例是怎么来的">
                 <ul className="flex list-disc flex-col gap-1.5 pl-4 text-[11px] leading-relaxed text-muted-foreground">
                   {CATEGORY_OPTIONS.map((option) => (

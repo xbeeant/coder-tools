@@ -1,7 +1,8 @@
 import { AlertTriangle, ArrowLeftRight, Copy, Download, Languages, Wrench } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Checkbox, Select, type SelectOption } from '../components/ui/field';
+import { Select, type SelectOption } from '../components/ui/select';
+import { Checkbox } from '../components/ui/field';
 import { EmptyHint, type LinkItem, LinkList, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -169,20 +170,20 @@ export default function CharsetConvert() {
   const repaired = useMemo(() => repairMojibake(input), [input]);
 
   /** 把解码结果回填成输入，并反向按原来的源编码重新写字节。 */
-  const swap = () => {
+  const swap = useCallback(() => {
     if (direction !== 'decode' || !conversion.text) return;
     setInput(conversion.text);
     setTarget(source);
     setDirection('encode');
-  };
+  }, [direction, conversion.text, source]);
 
-  const download = () => {
+  const download = useCallback(() => {
     if (!conversion.bytes) return;
     const bom = withBom || requiresBom(targetId) ? bomBytes(targetId) : new Uint8Array(0);
     const payload = bom.length > 0 ? concatBytes(bom, conversion.bytes) : toBytes(conversion.bytes);
     const name = direction === 'decode' ? `charset-${source}-to-${targetId}` : `charset-utf8-to-${targetId}`;
     downloadBlob(exportName(name, 'txt'), new Blob([payload]));
-  };
+  }, [conversion.bytes, withBom, targetId, direction, source]);
 
   return (
     <ToolPanel
@@ -487,7 +488,7 @@ export default function CharsetConvert() {
       {tab === 'reference' && (
         <>
           <Section title="编码速查表" description="「解码」指字节 → 文本，「编码」指文本 → 字节">
-            <div className="min-h-0 overflow-auto rounded-md border scrollbar-thin">
+            <div className="overflow-auto rounded-md border scrollbar-thin">
               <table className="w-full text-xs">
                 <thead className="sticky top-0 bg-muted/60">
                   <tr className="text-left">

@@ -1,10 +1,11 @@
 import { Cake, ChevronLeft, ChevronRight, Info, Minus, Plus } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Checkbox, Field, Select, TextField } from '../components/ui/field';
+import { Checkbox, Field, TextField } from '../components/ui/field';
 import { Input } from '../components/ui/input';
 import { EmptyHint, Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { copyText, ResultBox } from '../components/ui/result';
+import { Select } from '../components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Textarea } from '../components/ui/textarea';
 import {
@@ -229,10 +230,10 @@ export default function DateCalculator() {
     return lines.join('\n');
   }, [miscCursor, miscWeekStart, holidays, today]);
 
-  const shiftMonth = (year: number, month: number, step: number) => {
+  const shiftMonth = useCallback((year: number, month: number, step: number) => {
     const next = new Date(year, month + step, 1);
     return { year: next.getFullYear(), month: next.getMonth() };
-  };
+  }, []);
 
   return (
     <ToolPanel

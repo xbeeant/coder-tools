@@ -1,9 +1,10 @@
 import { AlertTriangle, ArrowLeftRight, ArrowUpFromLine, Copy, Download, Sigma, Sparkles } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Checkbox, Select } from '../components/ui/field';
+import { Checkbox } from '../components/ui/field';
 import { EmptyHint, Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
+import { Select } from '../components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Textarea } from '../components/ui/textarea';
 import { downloadText, exportName } from '../lib/file';
@@ -294,7 +295,7 @@ export default function SqlFormatter() {
           {resultTab === 'formatted' ? (
             <ResultBox label="格式化结果" value={output} rows="min-h-64" />
           ) : (
-            <div className="flex min-h-0 flex-1 flex-col">
+            <div className="flex flex-1 flex-col">
               <HighlightedSql tokens={tokens} />
               <Hint>关键字、函数、字符串、数字、注释、运算符分别着色；token 拼接与原文一致。</Hint>
             </div>

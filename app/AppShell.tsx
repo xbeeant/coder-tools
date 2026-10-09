@@ -403,7 +403,7 @@ export default function AppShell() {
             </div>
           </div>
 
-          <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col overflow-hidden p-4">
+          <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden p-4">
             <Suspense
               fallback={
                 <div className="flex flex-1 items-center justify-center text-xs text-muted-foreground">

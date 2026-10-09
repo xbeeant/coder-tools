@@ -1,5 +1,5 @@
 import { ArrowLeftRight, Link2 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { Section, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
@@ -41,11 +41,11 @@ export default function UrlEncode() {
     }
   }, [input, mode]);
 
-  const swap = () => {
+  const swap = useCallback(() => {
     if (!result.ok || !result.output) return;
     setInput(result.output);
     setMode(mode === 'encode' ? 'decode' : 'encode');
-  };
+  }, [result, mode]);
 
   return (
     <ToolPanel
@@ -78,13 +78,14 @@ export default function UrlEncode() {
         </>
       }
     >
-      <div className="flex min-h-0 flex-1 flex-col gap-2">
+      <div className="flex flex-1 flex-col gap-2">
         <Textarea
           value={input}
           onChange={(event) => setInput(event.target.value)}
           placeholder={mode === 'encode' ? '输入完整 URL 或需要编码的片段' : '输入需要解码的 %XX 字符串'}
           spellCheck={false}
           className="min-h-28 flex-1 resize-none font-mono text-xs"
+          aria-label="输入 URL 或编码片段"
         />
         {parsed && (
           <Section title="URL 解析">

@@ -1,15 +1,15 @@
 import { Download, QrCode } from 'lucide-react';
 import { QRCodeCanvas, QRCodeSVG } from 'qrcode.react';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Select } from '../components/ui/field';
+import { Select } from '../components/ui/select';
 import { Input } from '../components/ui/input';
 import { Section, ToolPanel } from '../components/ui/panel';
 import { Textarea } from '../components/ui/textarea';
 
 type Level = 'L' | 'M' | 'Q' | 'H';
 
-function download(href: string, filename: string) {
+function downloadImage(href: string, filename: string) {
   const link = document.createElement('a');
   link.href = href;
   link.download = filename;
@@ -23,21 +23,21 @@ export default function QrGenerator() {
   const [fg, setFg] = useState('#0f172a');
   const [bg, setBg] = useState('#ffffff');
 
-  const downloadPng = () => {
+  const downloadPng = useCallback(() => {
     const canvas = document.querySelector<HTMLCanvasElement>('canvas[data-qr]');
-    if (canvas) download(canvas.toDataURL('image/png'), 'qrcode.png');
-  };
+    if (canvas) downloadImage(canvas.toDataURL('image/png'), 'qrcode.png');
+  }, []);
 
-  const downloadSvg = () => {
+  const downloadSvg = useCallback(() => {
     const svg = document.querySelector<SVGSVGElement>('svg[data-qr]');
     if (!svg) return;
     const blob = new Blob([new XMLSerializer().serializeToString(svg)], {
       type: 'image/svg+xml;charset=utf-8',
     });
     const url = URL.createObjectURL(blob);
-    download(url, 'qrcode.svg');
+    downloadImage(url, 'qrcode.svg');
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-  };
+  }, []);
 
   return (
     <ToolPanel
@@ -61,7 +61,7 @@ export default function QrGenerator() {
         </>
       }
     >
-      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto md:flex-row scrollbar-thin">
+      <div className="flex flex-1 flex-col gap-3 overflow-auto md:flex-row scrollbar-thin">
         <div className="flex flex-1 flex-col gap-2.5">
           <Textarea
             value={text}

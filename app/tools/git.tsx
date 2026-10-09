@@ -547,7 +547,7 @@ export default function GitCheatsheet() {
       </Tabs>
 
       {tab === 'commands' && (
-        <Section>
+        <div className="flex flex-1 flex-col gap-3">
           <div className="flex flex-wrap gap-1.5">
             <Button
               size="sm"
@@ -587,11 +587,11 @@ export default function GitCheatsheet() {
               ))}
             </ul>
           )}
-        </Section>
+        </div>
       )}
 
       {tab === 'scenarios' && (
-        <Section>
+        <div className="flex flex-1 flex-col gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <div className="relative min-w-56 flex-1">
               <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -636,12 +636,12 @@ export default function GitCheatsheet() {
           ) : (
             matches.map((match) => <ScenarioCard key={match.scenario.id} scenario={match.scenario} />)
           )}
-        </Section>
+        </div>
       )}
 
       {tab === 'graph' && (
-        <Section>
-          <div className="flex min-h-0 flex-col gap-2">
+        <div className="grid flex-1 gap-3 md:grid-cols-2">
+          <div className="flex flex-col gap-2">
             <Textarea
               value={graphText}
               onChange={(event) => setGraphText(event.target.value)}
@@ -669,7 +669,7 @@ export default function GitCheatsheet() {
             ))}
           </div>
 
-          <div className="flex min-h-0 flex-col gap-2">
+          <div className="flex flex-col gap-2">
             {graph.rows.length === 0 ? (
               <p className="py-10 text-center text-xs text-muted-foreground">粘贴左侧内容后在这里渲染分支图</p>
             ) : (
@@ -726,7 +726,7 @@ export default function GitCheatsheet() {
               </div>
             </div>
           </Section>
-        </Section>
+        </div>
       )}
 
       <Note tone="info" title="关于本工具">

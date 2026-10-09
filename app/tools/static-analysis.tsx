@@ -14,9 +14,10 @@ import {
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Checkbox, Select, TextField } from '../components/ui/field';
+import { Checkbox, TextField } from '../components/ui/field';
 import { Hint, Note, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { copyText, ResultBox } from '../components/ui/result';
+import { Select } from '../components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Textarea } from '../components/ui/textarea';
 import { downloadText, exportName, pickFile, readAsText } from '../lib/file';
@@ -194,8 +195,8 @@ export default function StaticAnalysisTool() {
         </TabsList>
       </Tabs>
 
-      <div className="grid min-h-0 flex-1 gap-3 md:grid-cols-2">
-        <div className="flex min-h-0 flex-col gap-2">
+      <div className="grid flex-1 gap-3 md:grid-cols-2">
+        <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-1.5">
             <Button
               size="sm"
@@ -257,7 +258,7 @@ export default function StaticAnalysisTool() {
           </Hint>
         </div>
 
-        <div className="flex min-h-0 flex-col gap-2">
+        <div className="flex flex-col gap-2">
           <div className="grid grid-cols-2 gap-2">
             <Select
               label="语言"
@@ -388,7 +389,7 @@ export default function StaticAnalysisTool() {
                   复制报告
                 </Button>
               </div>
-              <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-auto pr-0.5">
+              <div className="flex flex-1 flex-col gap-1.5 overflow-auto pr-0.5">
                 {issues.length === 0 && (
                   <p className="py-10 text-center text-xs text-muted-foreground">
                     没有命中规则。可以放宽严重级别，或确认代码是否真的干净。
@@ -439,7 +440,7 @@ export default function StaticAnalysisTool() {
           )}
 
           {tab === 'rules' && (
-            <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-auto pr-0.5">
+            <div className="flex flex-1 flex-col gap-1.5 overflow-auto pr-0.5">
               {docs.map(({ rule, example }) => (
                 <div key={rule.id} className="rounded-md border px-2.5 py-2">
                   <div className="flex flex-wrap items-center gap-1.5">

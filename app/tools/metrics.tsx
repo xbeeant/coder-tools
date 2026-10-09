@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { CodeBlock } from '../components/ui/code-block';
+import { Checkbox } from '../components/ui/field';
 import { EmptyHint, type LinkItem, LinkList, Note, Section, ToolPanel } from '../components/ui/panel';
 import { copyText } from '../components/ui/result';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -418,20 +419,20 @@ export default function MetricsTool() {
       )}
 
       {tab === 'alerts' && (
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-2">
+        <div className="grid flex-1 grid-cols-1 gap-3 lg:grid-cols-2">
           <div className="flex min-w-0 flex-col gap-2">
             <p className="text-xs text-muted-foreground">勾选要包含的告警场景：</p>
             {ALERT_SCENARIOS.map((scenario) => (
               <label key={scenario.name} className="flex items-start gap-2 rounded-md border px-2.5 py-1.5">
-                <input
-                  type="checkbox"
+                <Checkbox
+                  label=""
                   checked={selectedAlerts.includes(scenario.name)}
-                  onChange={(event) =>
+                  onChange={(checked) =>
                     setSelectedAlerts((prev) =>
-                      event.target.checked ? [...prev, scenario.name] : prev.filter((n) => n !== scenario.name),
+                      checked ? [...prev, scenario.name] : prev.filter((n) => n !== scenario.name),
                     )
                   }
-                  className="mt-0.5 size-3.5 accent-primary"
+                  className="shrink-0"
                 />
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">

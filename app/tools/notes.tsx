@@ -18,7 +18,8 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Checkbox, Field, Select, TextField } from '../components/ui/field';
+import { Select } from '../components/ui/select';
+import { Checkbox, Field, TextField } from '../components/ui/field';
 import { Input } from '../components/ui/input';
 import { EmptyHint, Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { copyText, ResultBox } from '../components/ui/result';
@@ -487,9 +488,9 @@ export default function Notes() {
         <Stat label="本周新增" value={stats.thisWeek} />
       </StatGrid>
 
-      <div className="grid min-h-0 flex-1 gap-3 md:grid-cols-2">
+      <div className="grid flex-1 gap-3 md:grid-cols-2">
         {/* 左栏：检索与列表 */}
-        <div className="flex min-h-0 flex-col gap-2">
+        <div className="flex flex-col gap-2">
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -569,7 +570,7 @@ export default function Notes() {
         </div>
 
         {/* 右栏：编辑 / 预览 / 图谱 / 链接 / 任务 */}
-        <div className="flex min-h-0 flex-col gap-2">
+        <div className="flex flex-col gap-2">
           {active === null ? (
             <EmptyHint>左侧选择一篇笔记，或点「新建笔记」开始。</EmptyHint>
           ) : (
@@ -647,7 +648,7 @@ export default function Notes() {
               </Tabs>
 
               {tab === 'edit' && (
-                <div className="relative flex min-h-0 flex-1 flex-col gap-1.5">
+                <div className="relative flex flex-1 flex-col gap-1.5">
                   <Textarea
                     ref={textareaRef}
                     value={draft}
@@ -699,7 +700,7 @@ export default function Notes() {
               )}
 
               {tab === 'graph' && (
-                <div className="flex min-h-0 flex-1 flex-col gap-2">
+                <div className="flex flex-1 flex-col gap-2">
                   <Hint>
                     斥力 + 弹簧 + 向心力的简化力导向布局，最多渲染 {GRAPH_NODE_LIMIT}{' '}
                     个节点；拖拽固定节点，双击解除固定，点击跳转笔记。
@@ -793,7 +794,7 @@ export default function Notes() {
               )}
 
               {tab === 'links' && (
-                <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-auto">
+                <div className="flex flex-1 flex-col gap-2 overflow-auto">
                   <span className="text-xs text-muted-foreground">出链（本篇指向的笔记）</span>
                   {links.outgoing.length === 0 ? (
                     <EmptyHint>正文里用 [[标题]] 建立链接，输入时会弹出补全</EmptyHint>
@@ -851,7 +852,7 @@ export default function Notes() {
               )}
 
               {tab === 'todos' && (
-                <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-auto">
+                <div className="flex flex-1 flex-col gap-2 overflow-auto">
                   <StatGrid>
                     <Stat label="任务总数" value={progress.total} />
                     <Stat label="已完成" value={progress.done} tone="success" />
@@ -868,13 +869,13 @@ export default function Notes() {
                       {todos.map((item) => (
                         <li key={`${item.line}-${item.text}`}>
                           <label className="flex items-center gap-2 rounded border px-2 py-1 text-xs">
-                            <input
-                              type="checkbox"
+                            <Checkbox
+                              label=""
                               checked={item.done}
-                              onChange={(event) => {
-                                setDraft(setTodoState(draft, item.line, event.target.checked));
+                              onChange={(checked) => {
+                                setDraft(setTodoState(draft, item.line, checked));
                               }}
-                              className="size-3.5 accent-primary"
+                              className="shrink-0"
                             />
                             <span className={cn(item.done && 'text-muted-foreground line-through')}>
                               {item.text === '' ? '（空任务）' : item.text}
@@ -1079,7 +1080,7 @@ function PreviewPane({
 }) {
   const html = useMemo(() => renderNoteHtml(note.content, notes), [note.content, notes]);
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2">
+    <div className="flex flex-1 flex-col gap-2">
       <Checkbox
         label="安全渲染（marked + DOMPurify）"
         checked={safe}

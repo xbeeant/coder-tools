@@ -1,7 +1,8 @@
 import { Ban, Crop, Download, Images, Loader2, Trash2, Wand2, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Checkbox, NumberField, Select, TextField } from '../components/ui/field';
+import { Select } from '../components/ui/select';
+import { Checkbox, NumberField, TextField } from '../components/ui/field';
 import { EmptyHint, Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { ResultBox } from '../components/ui/result';
 import { formatBytes } from '../lib/bytes';
@@ -405,7 +406,7 @@ export default function ImageConvert() {
   return (
     <section
       aria-label="图片处理区，可拖入图片文件"
-      className="flex min-h-0 flex-1 flex-col"
+      className="flex flex-1 flex-col"
       onDragOver={(event) => {
         if (event.dataTransfer.types.includes('Files')) event.preventDefault();
       }}

@@ -1,5 +1,5 @@
 import { Boxes, Container, Download, FileCode2, Layers, ListChecks, Network, ScrollText, Ship } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { Checkbox } from '../components/ui/field';
 import { Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
@@ -80,7 +80,7 @@ export default function DockerComposeTool() {
   const serviceCount = built?.serviceNames.length ?? 0;
   const isMulti = validRuns.length > 1;
 
-  const toggleDep = (service: string, target: string) => {
+  const toggleDep = useCallback((service: string, target: string) => {
     setDeps((prev) => {
       const current = prev[service] ?? [];
       return {
@@ -88,7 +88,7 @@ export default function DockerComposeTool() {
         [service]: current.includes(target) ? current.filter((item) => item !== target) : [...current, target],
       };
     });
-  };
+  }, []);
 
   return (
     <ToolPanel
@@ -134,8 +134,8 @@ export default function DockerComposeTool() {
         </TabsList>
       </Tabs>
 
-      <Section>
-        <div className="flex min-h-0 flex-col gap-2">
+      <div className="grid flex-1 gap-3 md:grid-cols-2">
+        <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[11px] text-muted-foreground">示例：</span>
             {DOCKER_EXAMPLES.map((example) => (
@@ -187,7 +187,7 @@ export default function DockerComposeTool() {
           )}
         </div>
 
-        <div className="flex min-h-0 flex-col gap-2">
+        <div className="flex flex-col gap-2">
           {tab === 'compose' && (
             <>
               <StatGrid>
@@ -217,7 +217,7 @@ export default function DockerComposeTool() {
           )}
 
           {tab === 'parse' && (
-            <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto">
+            <div className="flex flex-1 flex-col gap-3 overflow-auto">
               {lines.length === 0 ? (
                 <p className="py-10 text-center text-xs text-muted-foreground">
                   输入命令后这里显示解析出的镜像、端口、卷、环境变量与资源限制
@@ -320,7 +320,7 @@ export default function DockerComposeTool() {
           )}
 
           {tab === 'help' && (
-            <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto">
+            <div className="flex flex-1 flex-col gap-3 overflow-auto">
               <Section title="粘贴到终端时的 shell 语法" description="浏览器里不做任何展开，原样保留给你在终端执行">
                 <ul className="flex list-disc flex-col gap-1 pl-4 text-[11px] leading-relaxed text-muted-foreground">
                   <li>
@@ -360,7 +360,7 @@ export default function DockerComposeTool() {
             </div>
           )}
         </div>
-      </Section>
+      </div>
 
       {isMulti && serviceCount > 1 && (
         <Section title="服务依赖确认" description="推断依据不总是可靠，请勾选真实存在的依赖；勾选后会写入 depends_on">
@@ -383,9 +383,8 @@ export default function DockerComposeTool() {
                         const hint = guess?.deps.find((dep) => dep.service === target);
                         return (
                           <label key={target} className="flex items-center gap-1.5 text-[11px]">
-                            <input
-                              type="checkbox"
-                              className="size-3.5 accent-primary"
+                            <Checkbox
+                              label={target}
                               checked={(deps[service] ?? []).includes(target)}
                               onChange={() => toggleDep(service, target)}
                             />

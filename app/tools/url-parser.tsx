@@ -1,7 +1,8 @@
 import { AlertTriangle, Link2, Scissors, Shuffle, Trash2 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Select, TextField } from '../components/ui/field';
+import { Select } from '../components/ui/select';
+import { TextField } from '../components/ui/field';
 import { Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -112,19 +113,22 @@ export default function UrlParser() {
     }
   }, [parsed, params]);
 
-  const applyParams = (next: EditableParam[]) => {
-    setEdited(next);
-    setSource('params');
-    if (parsed.ok) {
-      try {
-        const url = new URL(parsed.url.href);
-        url.search = buildSearch(next);
-        setUrlInput(url.toString());
-      } catch {
-        /* 保持原值 */
+  const applyParams = useCallback(
+    (next: EditableParam[]) => {
+      setEdited(next);
+      setSource('params');
+      if (parsed.ok) {
+        try {
+          const url = new URL(parsed.url.href);
+          url.search = buildSearch(next);
+          setUrlInput(url.toString());
+        } catch {
+          /* 保持原值 */
+        }
       }
-    }
-  };
+    },
+    [parsed],
+  );
 
   const normalizeOptions = DEFAULT_NORMALIZE_OPTIONS;
   const normalized = useMemo(() => normalizeUrl(urlInput, normalizeOptions), [urlInput]);
@@ -653,7 +657,7 @@ export default function UrlParser() {
   );
 }
 
-function EncodeRow({ label, value }: { label: string; value: string }) {
+export function EncodeRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-md border bg-muted/20 px-2.5 py-1.5">
       <div className="flex items-center justify-between gap-2">

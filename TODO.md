@@ -55,7 +55,7 @@
 
 | # | 工具 | id / 文件 | 状态 |
 |---|---|---|---|
-| 17 | JSON 格式化 / 压缩 / 校验 | `json-formatter` · `tools/json-formatter.tsx` + `lib/json-schema.ts` | ✅ 已完成 |
+| 17 | JSON 格式化 / 压缩 | `json-formatter` · `tools/json-formatter.tsx` | ✅ 已完成 |
 | 18 | JSON ↔ CSV / XML / YAML / TOML | `json-convert` · `tools/json-convert.tsx` + `lib/json-convert.ts` | ✅ 已完成 |
 | 19 | JSON 转代码实体 | `json-to-code` · `tools/json-to-code.tsx` + `lib/json-to-code.ts` | ✅ 已完成 |
 | 20 | YAML / XML 格式化 | `yaml-xml` · `tools/yaml-xml.tsx` + `lib/markup.ts` | ✅ 已完成 |

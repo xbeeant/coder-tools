@@ -15,9 +15,10 @@ import {
   Wand2,
   Zap,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Checkbox, Field, Select, TextField } from '../components/ui/field';
+import { Select } from '../components/ui/select';
+import { Checkbox, Field, TextField } from '../components/ui/field';
 import { Input } from '../components/ui/input';
 import { Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { copyText, ResultBox } from '../components/ui/result';
@@ -165,7 +166,7 @@ export default function ApiDebugTool() {
   const [mockType, setMockType] = useState(MOCK_CONTENT_TYPES[0]?.value ?? 'application/json');
   const [mockBody, setMockBody] = useState('');
 
-  const update = (delta: Partial<RequestState>) => setState((prev) => ({ ...prev, ...delta }));
+  const update = useCallback((delta: Partial<RequestState>) => setState((prev) => ({ ...prev, ...delta })), []);
 
   const options: CurlBuildOptions = useMemo(
     () => ({ pretty, maskSecrets, alwaysMethod }),
@@ -198,12 +199,15 @@ export default function ApiDebugTool() {
     [mockBody, mockDelay, mockStatus, mockType, state],
   );
 
-  const fillMockBody = (status: string) => {
-    setMockStatus(status);
-    setMockBody(mockBodyFor(Number(status), state.method, pathOf(state.url)));
-  };
+  const fillMockBody = useCallback(
+    (status: string) => {
+      setMockStatus(status);
+      setMockBody(mockBodyFor(Number(status), state.method, pathOf(state.url)));
+    },
+    [state.method, state.url],
+  );
 
-  const importCurl = (text: string) => {
+  const importCurl = useCallback((text: string) => {
     const parsed = parseCurl(text);
     if ('error' in parsed) {
       setImportError(parsed.error);
@@ -214,7 +218,7 @@ export default function ApiDebugTool() {
     setState(parsed.state);
     setWarnings(parsed.warnings);
     setImportText('');
-  };
+  }, []);
 
   const suggestions = useMemo(() => suggestHeaders(state), [state]);
   const jsonError = useMemo(() => {
@@ -280,8 +284,8 @@ export default function ApiDebugTool() {
         </TabsList>
       </Tabs>
 
-      <Section>
-        <div className="flex min-h-0 flex-col gap-3 overflow-auto pr-0.5">
+      <div className="grid flex-1 gap-3 md:grid-cols-2">
+        <div className="flex flex-col gap-3 overflow-auto pr-0.5">
           <Section title="从 curl 命令导入" description="浏览器 DevTools → Network → 右键 → Copy as cURL">
             <div className="flex flex-col gap-2">
               <Textarea
@@ -577,7 +581,7 @@ export default function ApiDebugTool() {
           </Section>
         </div>
 
-        <div className="flex min-h-0 flex-col gap-2">
+        <div className="flex flex-col gap-2">
           {tab === 'curl' && (
             <>
               <StatGrid>
@@ -705,7 +709,7 @@ export default function ApiDebugTool() {
           )}
 
           {tab === 'notes' && (
-            <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto">
+            <div className="flex flex-1 flex-col gap-3 overflow-auto">
               {envRefs.length > 0 && (
                 <Note tone="warn" title="检测到环境变量占位符">
                   <ul className="flex flex-wrap gap-1.5">
@@ -760,7 +764,7 @@ export default function ApiDebugTool() {
             </Note>
           )}
         </div>
-      </Section>
+      </div>
 
       <Note tone="info" title="权限与限制">
         <ul className="flex list-disc flex-col gap-1 pl-4">

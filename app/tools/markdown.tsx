@@ -220,8 +220,8 @@ export default function Markdown() {
         </TabsList>
       </Tabs>
 
-      <Section>
-        <div className="flex min-h-0 flex-col gap-2">
+      <div className="grid flex-1 gap-3 md:grid-cols-2">
+        <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <Button size="sm" variant="ghost" onClick={() => setInput(SAMPLE)}>
               <ClipboardPaste className="size-3.5" />
@@ -245,7 +245,7 @@ export default function Markdown() {
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-col gap-2">
+        <div className="flex flex-col gap-2">
           {tab === 'preview' ? (
             <div className="flex min-h-48 flex-1 flex-col gap-1.5">
               <span className="text-xs text-muted-foreground">渲染预览（已净化）</span>
@@ -282,7 +282,7 @@ export default function Markdown() {
             </Hint>
           </div>
         </div>
-      </Section>
+      </div>
 
       <Section title="渲染选项" description="影响所有输出页签">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

@@ -62,7 +62,8 @@ import {
 import type * as React from 'react';
 import { useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Checkbox, Select } from '../components/ui/field';
+import { Select } from '../components/ui/select';
+import { Checkbox } from '../components/ui/field';
 import { Input } from '../components/ui/input';
 import { EmptyHint, Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { copyText } from '../components/ui/result';
@@ -131,7 +132,7 @@ export default function IconEmoji() {
   );
 }
 
-function EmojiPanel() {
+export function EmojiPanel() {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('all');
   const [skinOnly, setSkinOnly] = useState(false);
@@ -291,7 +292,7 @@ function EmojiPanel() {
   );
 }
 
-function IconPanel() {
+export function IconPanel() {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('all');
   const [selected, setSelected] = useState<IconItem | null>(null);
@@ -395,7 +396,7 @@ const GLYPH_ALIASES: Record<string, string> = {
  * 图标预览：优先用静态引入的字形，其余回退为等宽名称文本。
  * 清单来自内置数据，不遍历 npm 包，缺字形只影响预览不影响复制。
  */
-function IconGlyph({ name, className = 'size-5' }: { name: string; className?: string }) {
+export function IconGlyph({ name, className = 'size-5' }: { name: string; className?: string }) {
   const registry = lucideSubset as unknown as Record<string, React.ComponentType<GlyphProps>>;
   const Glyph = registry[GLYPH_ALIASES[name] ?? name];
   if (!Glyph) return <span className="font-mono text-[9px] text-muted-foreground">{name.slice(0, 6)}</span>;
@@ -459,7 +460,7 @@ const lucideSubset = {
   Zap,
 };
 
-function SymbolPanel() {
+export function SymbolPanel() {
   const [query, setQuery] = useState('');
   const [group, setGroup] = useState('全部');
   const items = useMemo(() => filterSymbols(query, group), [query, group]);
@@ -544,7 +545,7 @@ function SymbolPanel() {
   );
 }
 
-function CopyRow({ label, value }: { label: string; value: string }) {
+export function CopyRow({ label, value }: { label: string; value: string }) {
   const [done, setDone] = useState(false);
   return (
     <div className="flex items-center gap-1.5 rounded-md border bg-muted/20 px-2 py-1.5">
@@ -567,7 +568,7 @@ function CopyRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Row({ label, value, onCopy }: { label: string; value: string; onCopy?: () => void }) {
+export function Row({ label, value, onCopy }: { label: string; value: string; onCopy?: () => void }) {
   return (
     <div className="flex items-center gap-1.5 rounded border px-2 py-1">
       <span className="shrink-0 text-muted-foreground">{label}</span>

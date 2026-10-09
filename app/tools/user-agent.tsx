@@ -1,7 +1,8 @@
 import { AlertTriangle, Copy, FileUp, Search, Sparkles } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { NumberField, Select, TextField } from '../components/ui/field';
+import { Select } from '../components/ui/select';
+import { NumberField, TextField } from '../components/ui/field';
 import { EmptyHint, Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -43,7 +44,7 @@ function toneOf(supported: boolean | 'partial'): string {
   return supported === true ? 'yes' : supported === 'partial' ? 'partial' : 'no';
 }
 
-function ParsedStats({ ua, parsed }: { ua: string; parsed: ParsedUserAgent }) {
+export function ParsedStats({ ua, parsed }: { ua: string; parsed: ParsedUserAgent }) {
   const device = describeDevice(ua, parsed);
   const iosModel = parsed.os === 'iOS' ? iosDeviceFromOsVersion(parsed.osVersion) : null;
   const keyword = matchBotKeyword(ua);
@@ -96,7 +97,7 @@ function ParsedStats({ ua, parsed }: { ua: string; parsed: ParsedUserAgent }) {
   );
 }
 
-function CapabilityTable({ rows }: { rows: CapabilityRow[] }) {
+export function CapabilityTable({ rows }: { rows: CapabilityRow[] }) {
   return (
     <div className="overflow-hidden rounded-md border">
       <table className="w-full table-fixed text-left text-[11px]">
@@ -181,11 +182,11 @@ export default function UserAgentTool() {
     [featureBrowser, featureVersion],
   );
 
-  const loadSample = async () => {
+  const loadSample = useCallback(async () => {
     const file = await pickFile({ accept: '.txt,text/plain' });
     if (!file) return;
     setInput(await readAsText(file));
-  };
+  }, []);
 
   return (
     <ToolPanel

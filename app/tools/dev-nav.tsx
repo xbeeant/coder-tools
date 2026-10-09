@@ -285,6 +285,29 @@ const CATEGORIES: NavCategory[] = [
   },
 ];
 
+function SearchBox({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <div className="relative w-56">
+      <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+      <Input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        aria-label={placeholder}
+        className="h-8 pl-7 text-xs"
+      />
+    </div>
+  );
+}
+
 export default function DevNav() {
   const [query, setQuery] = useState('');
 
@@ -308,17 +331,7 @@ export default function DevNav() {
     <ToolPanel
       title="开发者导航站"
       description={`按场景聚合常用站点，共 ${CATEGORIES.reduce((sum, c) => sum + c.items.length, 0)} 个入口`}
-      actions={
-        <div className="relative w-56">
-          <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="筛选站点或标签"
-            className="h-8 pl-7 text-xs"
-          />
-        </div>
-      }
+      actions={<SearchBox value={query} onChange={setQuery} placeholder="筛选站点或标签" />}
     >
       <Note tone="info" title="离线导航">
         <span className="inline-flex items-center gap-1">

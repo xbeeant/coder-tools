@@ -2,7 +2,8 @@ import { Dices, Wand2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { v1 as uuidv1, v4 as uuidv4, v7 as uuidv7 } from 'uuid';
 import { Button } from '../components/ui/button';
-import { Select } from '../components/ui/field';
+import { Select } from '../components/ui/select';
+import { Checkbox } from '../components/ui/field';
 import { Input } from '../components/ui/input';
 import { ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText } from '../components/ui/result';
@@ -68,14 +69,8 @@ export default function UuidTool() {
               className="h-7 w-16 text-xs"
             />
           </label>
-          <label className="flex items-center gap-1.5 text-xs">
-            <input type="checkbox" checked={uppercase} onChange={(event) => setUppercase(event.target.checked)} />
-            大写
-          </label>
-          <label className="flex items-center gap-1.5 text-xs">
-            <input type="checkbox" checked={hyphens} onChange={(event) => setHyphens(event.target.checked)} />
-            连字符
-          </label>
+          <Checkbox label="大写" checked={uppercase} onChange={setUppercase} />
+          <Checkbox label="连字符" checked={hyphens} onChange={setHyphens} />
           <Button size="sm" variant="outline" onClick={() => setSeed((n) => n + 1)}>
             <Dices className="size-3.5" />
             重新生成
@@ -87,7 +82,7 @@ export default function UuidTool() {
         </>
       }
     >
-      <div className="min-h-0 flex-1 overflow-auto rounded-md border bg-muted/30 p-3 font-mono text-xs leading-relaxed whitespace-pre-wrap scrollbar-thin">
+      <div className="flex-1 overflow-auto rounded-md border bg-muted/30 p-3 font-mono text-xs leading-relaxed whitespace-pre-wrap scrollbar-thin">
         {output}
       </div>
     </ToolPanel>

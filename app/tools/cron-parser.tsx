@@ -1,9 +1,10 @@
 // 默认入口不含多语言包，zh_CN 只在 i18n bundle 中注册；用默认入口会静默回退成英文
 import cronstrue from 'cronstrue/dist/cronstrue-i18n';
 import { CalendarClock, Copy, Eraser, ListTree, Wand2 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Select, TextField } from '../components/ui/field';
+import { Select } from '../components/ui/select';
+import { TextField } from '../components/ui/field';
 import { Input } from '../components/ui/input';
 import { EmptyHint, Hint, Note, Section, ToolPanel } from '../components/ui/panel';
 import { copyText } from '../components/ui/result';
@@ -187,7 +188,10 @@ export default function CronParser() {
   // ── 可视化生成 ──────────────────────────────────────────────
   const [draft, setDraft] = useState({ minute: '*', hour: '*', day: '*', month: '*', weekday: '*' });
   const built = useMemo(() => buildCronExpr(draft), [draft]);
-  const setField = (key: keyof typeof draft, value: string) => setDraft((prev) => ({ ...prev, [key]: value }));
+  const setField = useCallback(
+    (key: keyof typeof draft, value: string) => setDraft((prev) => ({ ...prev, [key]: value })),
+    [],
+  );
 
   // ── 反向生成 ────────────────────────────────────────────────
   const [freq, setFreq] = useState('minutes');

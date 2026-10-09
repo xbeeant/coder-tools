@@ -1,5 +1,5 @@
 import { Copy, Hash } from 'lucide-react';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { ToolPanel } from '../components/ui/panel';
@@ -158,7 +158,7 @@ export default function HashTool() {
   const [results, setResults] = useState<Record<ShaAlg | 'MD5', string> | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const compute = async () => {
+  const compute = useCallback(async () => {
     if (!input) return;
     setBusy(true);
     try {
@@ -172,7 +172,7 @@ export default function HashTool() {
     } finally {
       setBusy(false);
     }
-  };
+  }, [input]);
 
   return (
     <ToolPanel
@@ -198,7 +198,7 @@ export default function HashTool() {
         </>
       }
     >
-      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto scrollbar-thin">
+      <div className="flex flex-1 flex-col gap-3 overflow-auto scrollbar-thin">
         <Textarea
           value={input}
           onChange={(event) => {

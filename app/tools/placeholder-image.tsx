@@ -1,7 +1,8 @@
 import { Copy, Dices, Download, Image as ImageIcon, RefreshCw, Wand2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Checkbox, NumberField, Select, TextField } from '../components/ui/field';
+import { Select } from '../components/ui/select';
+import { Checkbox, NumberField, TextField } from '../components/ui/field';
 import { EmptyHint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { copyText } from '../components/ui/result';
 import { Textarea } from '../components/ui/textarea';
@@ -35,7 +36,7 @@ interface FormatMeta {
   ext: string;
 }
 
-function formatInfo(value: PlaceholderFormat): FormatMeta {
+export function formatInfo(value: PlaceholderFormat): FormatMeta {
   return FORMAT_OPTIONS.find((option) => option.value === value) ?? FORMAT_OPTIONS[0];
 }
 
@@ -470,7 +471,7 @@ export default function PlaceholderImage() {
   );
 }
 
-function SnippetBlock({ title, value, onCopy }: { title: string; value: string; onCopy: () => void }) {
+export function SnippetBlock({ title, value, onCopy }: { title: string; value: string; onCopy: () => void }) {
   return (
     <div className="flex flex-col gap-1 rounded-md border bg-muted/20 p-2">
       <div className="flex items-center justify-between">

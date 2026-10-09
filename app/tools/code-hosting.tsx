@@ -267,14 +267,14 @@ export default function CodeHosting() {
         </TabsList>
       </Tabs>
 
-      <div className="grid min-h-0 flex-1 gap-3 md:grid-cols-2">
+      <div className="grid flex-1 gap-3 md:grid-cols-2">
         {tab === 'compare' && (
           <>
-            <div className="flex min-h-0 flex-col gap-2">
+            <div className="flex flex-col gap-2">
               <Note tone="warn" title="数据为编写时的快照">
                 免费额度、私有仓库限制与 CI 额度都会随商业策略变化，采购或迁移前请以各平台官方定价页为准。
               </Note>
-              <div className="min-h-0 flex-1 overflow-auto rounded-md border scrollbar-thin">
+              <div className="flex-1 overflow-auto rounded-md border scrollbar-thin">
                 <table className="w-full text-[11px]">
                   <thead className="sticky top-0 bg-muted/90 backdrop-blur">
                     <tr>
@@ -313,7 +313,7 @@ export default function CodeHosting() {
                 </table>
               </div>
             </div>
-            <div className="flex min-h-0 flex-col gap-2 overflow-auto scrollbar-thin">
+            <div className="flex flex-col gap-2 overflow-auto scrollbar-thin">
               <Section title="平台与关键工具官网">
                 <LinkList items={HOSTING_LINKS} />
               </Section>
@@ -351,7 +351,7 @@ export default function CodeHosting() {
 
         {tab === 'cli' && (
           <>
-            <div className="flex min-h-0 flex-col gap-2 overflow-auto scrollbar-thin">
+            <div className="flex flex-col gap-2 overflow-auto scrollbar-thin">
               {cliGroups.length === 0 ? (
                 <EmptyHint>没有匹配的命令</EmptyHint>
               ) : (
@@ -388,7 +388,7 @@ export default function CodeHosting() {
                 ))
               )}
             </div>
-            <div className="flex min-h-0 flex-col gap-2 overflow-auto scrollbar-thin">
+            <div className="flex flex-col gap-2 overflow-auto scrollbar-thin">
               <Section
                 title={
                   <span className="inline-flex items-center gap-1">
@@ -438,7 +438,7 @@ export default function CodeHosting() {
 
         {tab === 'review' && (
           <>
-            <div className="flex min-h-0 flex-col gap-2 overflow-auto scrollbar-thin">
+            <div className="flex flex-col gap-2 overflow-auto scrollbar-thin">
               <Section
                 title={
                   <span className="inline-flex items-center gap-1">
@@ -490,7 +490,7 @@ export default function CodeHosting() {
                 </ul>
               </Section>
             </div>
-            <div className="flex min-h-0 flex-col gap-2 overflow-auto scrollbar-thin">
+            <div className="flex flex-col gap-2 overflow-auto scrollbar-thin">
               <Section title="Conventional Commits" description="type 与示例">
                 <div className="overflow-auto rounded-md border">
                   <table className="w-full text-[11px]">
@@ -580,7 +580,7 @@ export default function CodeHosting() {
 
         {tab === 'flow' && (
           <>
-            <div className="flex min-h-0 flex-col gap-2 overflow-auto scrollbar-thin">
+            <div className="flex flex-col gap-2 overflow-auto scrollbar-thin">
               {WORKFLOWS.map((flow) => (
                 <Section key={flow.title} title={flow.title} description={flow.desc}>
                   <BranchGraph flow={flow} />
@@ -588,7 +588,7 @@ export default function CodeHosting() {
                 </Section>
               ))}
             </div>
-            <div className="flex min-h-0 flex-col gap-2 overflow-auto scrollbar-thin">
+            <div className="flex flex-col gap-2 overflow-auto scrollbar-thin">
               {WORKFLOWS.map((flow) => (
                 <Section key={flow.title} title={`${flow.title} · 步骤`}>
                   <ol className="flex list-none flex-col gap-1">
@@ -650,7 +650,7 @@ export default function CodeHosting() {
 
         {tab === 'config' && (
           <>
-            <div className="flex min-h-0 flex-col gap-2">
+            <div className="flex flex-col gap-2">
               <div className="flex flex-wrap items-center gap-1.5">
                 {SNIPPETS.map((item) => (
                   <Button
@@ -665,7 +665,7 @@ export default function CodeHosting() {
               </div>
               <Hint>{snippet.note}</Hint>
             </div>
-            <div className="flex min-h-0 flex-col gap-2">
+            <div className="flex flex-col gap-2">
               <ResultBox
                 label={snippet.path}
                 value={snippet.content}

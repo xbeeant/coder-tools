@@ -1,8 +1,9 @@
 /** 文本统计：字数、行数、词频、字符分布与行特征，报告可导出 Markdown。 */
 import { Copy, Download, FileUp } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Checkbox, NumberField, Select } from '../components/ui/field';
+import { Select } from '../components/ui/select';
+import { Checkbox, NumberField } from '../components/ui/field';
 import { EmptyHint, Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
 import { Textarea } from '../components/ui/textarea';
@@ -27,7 +28,7 @@ React 19 让并发渲染变得简单，而 Vite 把构建时间压到毫秒级�
 这是一段中文示例，用来演示按字统计与停用词过滤的效果。
 The lazy dog sleeps; the quick fox runs.`;
 
-function Bar({ percent }: { percent: number }) {
+export function Bar({ percent }: { percent: number }) {
   return (
     <span className="block h-1.5 w-full overflow-hidden rounded-full bg-muted">
       <span
@@ -58,14 +59,16 @@ export default function TextStats() {
   const markdown = useMemo(() => markdownReport(report), [report]);
   const { stats, lines } = report;
 
-  const setOption = <K extends keyof StatsOptions>(key: K, value: StatsOptions[K]) =>
-    setOptions((prev) => ({ ...prev, [key]: value }));
+  const setOption = useCallback(
+    <K extends keyof StatsOptions>(key: K, value: StatsOptions[K]) => setOptions((prev) => ({ ...prev, [key]: value })),
+    [],
+  );
 
-  const importFile = async () => {
+  const importFile = useCallback(async () => {
     const file = await pickFile({ accept: '.txt,.md,.json,.log,.csv,text/*' });
     if (!file) return;
     setInput(await readAsText(file));
-  };
+  }, []);
 
   return (
     <ToolPanel
@@ -108,7 +111,7 @@ export default function TextStats() {
           <Hint>支持拖入文件内容后统计；统计口径可在右侧调整。</Hint>
         </div>
 
-        <div className="flex min-w-0 flex-col gap-3">
+        <div className="flex flex-col gap-3">
           <Section title="统计口径" description="不同口径下的词数差异很大，报告里会注明使用哪一种">
             <div className="grid grid-cols-2 gap-2">
               <Select

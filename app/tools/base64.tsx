@@ -1,5 +1,5 @@
 import { ArrowLeftRight, ClipboardPaste } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { Note, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
@@ -40,11 +40,11 @@ export default function Base64Tool() {
     }
   }, [input, mode]);
 
-  const swap = () => {
+  const swap = useCallback(() => {
     if (!result.ok || result.output === '') return;
     setInput(result.output);
     setMode(mode === 'encode' ? 'decode' : 'encode');
-  };
+  }, [result, mode]);
 
   return (
     <ToolPanel
@@ -71,7 +71,7 @@ export default function Base64Tool() {
         </TabsList>
       </Tabs>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-2">
+      <div className="flex flex-1 flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <Button
             size="sm"

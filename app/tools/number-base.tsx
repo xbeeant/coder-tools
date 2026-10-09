@@ -81,7 +81,7 @@ export default function NumberBase() {
       }
       description="在二进制、八进制、十进制、十六进制之间转换，支持 0x/0b/0o 前缀"
     >
-      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-auto scrollbar-thin">
+      <div className="flex flex-1 flex-col gap-2 overflow-auto scrollbar-thin">
         <label className="text-xs text-muted-foreground">
           输入（支持 0x / 0b / 0o 前缀与下划线分隔）
           <Input
@@ -90,6 +90,7 @@ export default function NumberBase() {
             placeholder="例如 0xFF、1010、42"
             spellCheck={false}
             className="mt-1 h-8 font-mono text-xs"
+            aria-label="输入数值"
           />
         </label>
 

@@ -1,7 +1,8 @@
 import { ArrowLeftRight, Download, RefreshCw } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Checkbox, Field, Select } from '../components/ui/field';
+import { Select } from '../components/ui/select';
+import { Checkbox, Field } from '../components/ui/field';
 import { Input } from '../components/ui/input';
 import { EmptyHint, Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { copyText, ResultBox } from '../components/ui/result';
@@ -73,28 +74,36 @@ export default function UnitConverter() {
 
   const result = useMemo(() => {
     if (!valid) return null;
+    // 切换分类时 fromUnit / toUnit 可能还未被 useEffect 更新，先校验
+    const fromUnitDef = category.units.find((u) => u.id === fromUnit);
+    const toUnitDef = category.units.find((u) => u.id === toUnit);
+    if (!fromUnitDef || !toUnitDef) return null;
     try {
       return convertUnit(categoryId, value, fromUnit, toUnit);
     } catch {
       return null;
     }
-  }, [categoryId, value, valid, fromUnit, toUnit]);
+  }, [categoryId, value, valid, fromUnit, toUnit, category.units]);
 
-  const resultText = result === null ? '' : `${formatValue(result, formatOptions)} ${unitShort(toUnit)}`;
-  const allRows = useMemo(
-    () => (valid ? convertAll(categoryId, value, fromUnit, formatOptions) : []),
-    [categoryId, value, valid, fromUnit, formatOptions],
-  );
-  const markdown = useMemo(
-    () => (valid ? toMarkdownTable(categoryId, value, fromUnit, formatOptions) : ''),
-    [categoryId, value, valid, fromUnit, formatOptions],
-  );
+  const resultText =
+    result === null ? '' : `${formatValue(result, formatOptions)} ${unitShort(category.units, toUnit)}`;
+  const allRows = useMemo(() => {
+    if (!valid) return [];
+    // 切换分类时校验单位是否属于当前分类
+    if (!category.units.some((u) => u.id === fromUnit)) return [];
+    return convertAll(categoryId, value, fromUnit, formatOptions);
+  }, [categoryId, value, valid, fromUnit, formatOptions, category.units]);
+  const markdown = useMemo(() => {
+    if (!valid) return '';
+    if (!category.units.some((u) => u.id === fromUnit)) return '';
+    return toMarkdownTable(categoryId, value, fromUnit, formatOptions);
+  }, [categoryId, value, valid, fromUnit, formatOptions, category.units]);
 
-  const swap = () => {
+  const swap = useCallback(() => {
     setFromUnit(toUnit);
     setToUnit(fromUnit);
     if (result !== null) setValueInput(formatValue(result, { significant: 15 }));
-  };
+  }, [toUnit, fromUnit, result]);
 
   const unitOptions = category.units.map((unit) => ({ value: unit.id, label: unit.label }));
 
@@ -195,11 +204,11 @@ export default function UnitConverter() {
           />
           <StatGrid className="grid-cols-2">
             <Stat label="数值" value={result === null ? '-' : formatValue(result, formatOptions)} />
-            <Stat label="目标单位" value={unitShort(toUnit)} hint={labelOf(toUnit)} />
+            <Stat label="目标单位" value={unitShort(category.units, toUnit)} hint={labelOf(category.units, toUnit)} />
             <Stat
               label="1 源单位"
               value={allRows.find((row) => row.unit.id === toUnit)?.text ?? '-'}
-              hint={`= ${unitShort(toUnit)}`}
+              hint={`= ${unitShort(category.units, toUnit)}`}
             />
             <Stat label="基准单位" value={category.base} hint={categoryDescription(categoryId)} />
           </StatGrid>
@@ -214,7 +223,7 @@ export default function UnitConverter() {
         </Section>
       </div>
 
-      <Section title="常用换算表" description={`1 ${labelOf(fromUnit)} 等于各类目标单位的数值`}>
+      <Section title="常用换算表" description={`1 ${labelOf(category.units, fromUnit)} 等于各类目标单位的数值`}>
         {allRows.length === 0 ? (
           <EmptyHint>请输入有效的源值</EmptyHint>
         ) : (
@@ -279,14 +288,14 @@ export default function UnitConverter() {
       </Note>
     </ToolPanel>
   );
+}
 
-  function unitShort(unitId: string): string {
-    const unit = category.units.find((item) => item.id === unitId);
-    const match = /\(([^()]+)\)\s*$/.exec(unit?.label ?? '');
-    return match ? match[1] : (unit?.label ?? unitId);
-  }
+function unitShort(categoryUnits: { id: string; label: string }[], unitId: string): string {
+  const unit = categoryUnits.find((item) => item.id === unitId);
+  const match = /\(([^()]+)\)\s*$/.exec(unit?.label ?? '');
+  return match ? match[1] : (unit?.label ?? unitId);
+}
 
-  function labelOf(unitId: string): string {
-    return category.units.find((item) => item.id === unitId)?.label ?? unitId;
-  }
+function labelOf(categoryUnits: { id: string; label: string }[], unitId: string): string {
+  return categoryUnits.find((item) => item.id === unitId)?.label ?? unitId;
 }

@@ -1,7 +1,8 @@
 import { Copy, Download, FileSearch, Gauge, ListFilter, ScrollText, Search, Timer, Zap } from 'lucide-react';
 import { useDeferredValue, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Checkbox, Select, TextField } from '../components/ui/field';
+import { Select } from '../components/ui/select';
+import { Checkbox, TextField } from '../components/ui/field';
 
 import {
   EmptyHint,

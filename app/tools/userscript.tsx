@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { CodeBlock } from '../components/ui/code-block';
-import { Checkbox, Field, Select, TextField } from '../components/ui/field';
+import { Select } from '../components/ui/select';
+import { Checkbox, Field, TextField } from '../components/ui/field';
 import { Hint, type LinkItem, LinkList, Note, Section, ToolPanel } from '../components/ui/panel';
 import { copyText } from '../components/ui/result';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -112,14 +113,14 @@ export default function UserscriptTool() {
     return buildUserscript(meta, body);
   }, [meta, customCode, modules]);
 
-  const checkSyntax = () => {
+  const checkSyntax = useCallback(() => {
     try {
       new Function(code);
       setSyntaxError(null);
     } catch (error) {
       setSyntaxError(error instanceof Error ? error.message : String(error));
     }
-  };
+  }, [code]);
 
   const matchLines = matchInput
     .split('\n')
@@ -127,10 +128,10 @@ export default function UserscriptTool() {
     .filter(Boolean);
   const matchResults = matchLines.map((pattern) => ({ pattern, result: explainMatch(pattern, testUrl) }));
 
-  const addSnippet = (snippetCode: string) => {
+  const addSnippet = useCallback((snippetCode: string) => {
     setCustomCode((prev) => (prev.trim() ? `${prev}\n\n${snippetCode}` : snippetCode));
     setTab('builder');
-  };
+  }, []);
 
   return (
     <ToolPanel
@@ -149,7 +150,7 @@ export default function UserscriptTool() {
       }
     >
       {tab === 'builder' && (
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-2">
+        <div className="grid flex-1 grid-cols-1 gap-3 lg:grid-cols-2">
           <div className="flex min-w-0 flex-col gap-3">
             <Section title="元数据">
               <div className="grid grid-cols-2 gap-2">

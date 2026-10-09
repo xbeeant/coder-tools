@@ -1,7 +1,7 @@
 import { AlarmClock, BellRing, Coffee, Flag, Play, Plus, RotateCcw, SkipForward, Volume2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { NumberField, TextField } from '../components/ui/field';
+import { Checkbox, NumberField, TextField } from '../components/ui/field';
 import { EmptyHint, Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { copyText, ResultBox } from '../components/ui/result';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -78,7 +78,7 @@ function useBeep() {
   return { ready, unsupported, enable, beep };
 }
 
-function KeyHint({ items }: { items: string[] }) {
+export function KeyHint({ items }: { items: string[] }) {
   return (
     <Hint>
       快捷键：
@@ -91,7 +91,7 @@ function KeyHint({ items }: { items: string[] }) {
   );
 }
 
-function StopwatchPanel() {
+export function StopwatchPanel() {
   const [accumulated, setAccumulated] = useState(0);
   const [display, setDisplay] = useState(0);
   const [laps, setLaps] = useState<Lap[]>([]);
@@ -235,7 +235,7 @@ function StopwatchPanel() {
   );
 }
 
-function CountdownPanel() {
+export function CountdownPanel() {
   const { ready, unsupported, enable, beep } = useBeep();
   const [hours, setHours] = useState('0');
   const [minutes, setMinutes] = useState('5');
@@ -404,15 +404,7 @@ function CountdownPanel() {
           </Button>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <label className="flex items-center gap-1.5 text-xs">
-            <input
-              type="checkbox"
-              className="size-3.5 accent-primary"
-              checked={loop}
-              onChange={(e) => setLoop(e.target.checked)}
-            />
-            循环倒计时
-          </label>
+          <Checkbox label="循环倒计时" checked={loop} onChange={setLoop} />
           <Button size="sm" variant="outline" onClick={enable} disabled={ready}>
             <Volume2 className="size-3.5" />
             {ready ? '提示音已启用' : '启用提示音'}
@@ -495,7 +487,7 @@ function readPomodoro(): PomodoroState {
   }
 }
 
-function PomodoroPanel() {
+export function PomodoroPanel() {
   const { ready, enable, beep } = useBeep();
   const [state, setState] = useState<PomodoroState>(readPomodoro);
   const [remaining, setRemaining] = useState(0);
@@ -683,7 +675,7 @@ const FORMAT_PRESETS = [
   { label: '1 天', value: '1d' },
 ];
 
-function FormatPanel() {
+export function FormatPanel() {
   const [text, setText] = useState('1h 2m 3s');
   const [seconds, setSeconds] = useState('3723');
   const parsed = useMemo(() => parseDuration(text), [text]);

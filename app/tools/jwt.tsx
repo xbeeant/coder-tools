@@ -1,9 +1,10 @@
 import { AlertTriangle, CheckCircle2, KeyRound, ShieldAlert, Sparkles, XCircle } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { NumberField, Select, TextField } from '../components/ui/field';
+import { Checkbox, NumberField, TextField } from '../components/ui/field';
 import { EmptyHint, Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
+import { Select } from '../components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Textarea } from '../components/ui/textarea';
 import {
@@ -92,7 +93,7 @@ export default function JwtTool() {
   );
   const spec = useMemo(() => getJwtSignatureSpec(decoded.ok ? (decoded.info.header.alg ?? '') : ''), [decoded]);
 
-  const runVerify = async () => {
+  const runVerify = useCallback(async () => {
     setBusy(true);
     setHmacError('');
     setHmac(null);
@@ -103,9 +104,9 @@ export default function JwtTool() {
     } finally {
       setBusy(false);
     }
-  };
+  }, [token, secret]);
 
-  const runSign = async () => {
+  const runSign = useCallback(async () => {
     setBusy(true);
     setBuildError('');
     setSigned('');
@@ -130,7 +131,6 @@ export default function JwtTool() {
           subject: payload.sub,
           audience: payload.aud,
         });
-        // 用户手写的声明优先，只有缺失的时间声明才补齐
         for (const [key, value] of Object.entries(time)) {
           if (payload[key as keyof JwtPayload] === undefined) payload[key as keyof JwtPayload] = value as never;
         }
@@ -145,9 +145,9 @@ export default function JwtTool() {
     } finally {
       setBusy(false);
     }
-  };
+  }, [secret, buildAlg, buildHeader, buildPayload, buildTtl, addTimeClaims]);
 
-  const fillTimeClaims = () => {
+  const fillTimeClaims = useCallback(() => {
     try {
       const base = buildPayload.trim() === '' ? {} : (JSON.parse(buildPayload) as JwtPayload);
       const merged = { ...base, ...buildJwtTimeClaims({ ttlSeconds: buildTtl }) };
@@ -155,7 +155,7 @@ export default function JwtTool() {
     } catch {
       setBuildPayload(prettyJson(buildJwtTimeClaims({ ttlSeconds: buildTtl })));
     }
-  };
+  }, [buildPayload, buildTtl]);
 
   return (
     <ToolPanel
@@ -695,16 +695,7 @@ export default function JwtTool() {
                   disabled={buildAlg === 'none'}
                 />
               </div>
-              <label className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                <input
-                  type="checkbox"
-                  className="size-3.5 accent-primary"
-                  checked={addTimeClaims}
-                  onChange={(event) => setAddTimeClaims(event.target.checked)}
-                  aria-label="自动补齐时间声明"
-                />
-                自动补齐 iat / nbf / exp / jti
-              </label>
+              <Checkbox label="自动补齐 iat / nbf / exp / jti" checked={addTimeClaims} onChange={setAddTimeClaims} />
               {buildAlg !== 'none' && (
                 <Note tone={assessSecretStrength(secret, buildAlg).ok ? 'info' : 'warn'} title="密钥强度">
                   {assessSecretStrength(secret, buildAlg).text}
