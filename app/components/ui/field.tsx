@@ -127,13 +127,14 @@ export interface CheckboxProps {
   checked: boolean;
   onChange: (checked: boolean) => void;
   hint?: React.ReactNode;
+  title?: string;
   className?: string;
   disabled?: boolean;
 }
 
-export function Checkbox({ label, checked, onChange, hint, className, disabled }: CheckboxProps) {
+export function Checkbox({ label, checked, onChange, hint, title, className, disabled }: CheckboxProps) {
   return (
-    <label className={cn('flex min-w-0 flex-col gap-0.5', className)}>
+    <label title={title} className={cn('flex min-w-0 flex-col gap-0.5', className)}>
       <span className="flex items-center gap-1.5 text-xs">
         <input
           type="checkbox"

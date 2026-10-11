@@ -17,7 +17,7 @@ import { type DragEvent, useCallback, useEffect, useMemo, useState } from 'react
 import { Button } from '../components/ui/button';
 import { Checkbox } from '../components/ui/field';
 import { JsonTree } from '../components/ui/json-tree';
-import { EmptyHint, Hint, Note, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
+import { EmptyHint, Note, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
 import { Select } from '../components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -355,13 +355,6 @@ export default function JsonFormatter() {
             <FolderOpen className="size-3.5" />
             打开文件
           </Button>
-          <Button size="sm" variant="outline" onClick={handleEscape} disabled={input === ''}>
-            转义
-          </Button>
-          <Button size="sm" variant="outline" onClick={handleUnescape} disabled={input === ''}>
-            去转义
-          </Button>
-          <ClearButton onClick={() => setInput('')} disabled={input === ''} />
           <Button size="sm" variant="ghost" onClick={() => setInput(SAMPLE)}>
             <ClipboardPaste className="size-3.5" />
             示例
@@ -369,8 +362,8 @@ export default function JsonFormatter() {
         </div>
       }
     >
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <Tabs value={mainTab} onValueChange={(value) => setMainTab(value as MainTab)}>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <Tabs value={mainTab} onValueChange={(value) => setMainTab(value as MainTab)} className="w-fit">
           <TabsList>
             <TabsTrigger value="format" active={mainTab === 'format'}>
               格式化
@@ -380,25 +373,10 @@ export default function JsonFormatter() {
             </TabsTrigger>
           </TabsList>
         </Tabs>
-        <Hint className="hidden sm:block">拖拽 .json 文件到左侧输入区即可导入</Hint>
-      </div>
-
-      {isLarge && (
-        <Note tone="warn" title="大文件模式">
-          内容超过 100 万字符，已暂停自动解析以免卡顿。
-          <div className="mt-1.5">
-            <Button size="sm" variant="outline" onClick={() => setCommitted(input)} disabled={!pending}>
-              <Play className="size-3.5" />
-              {pending ? '开始处理' : '已是最新'}
-            </Button>
-          </div>
-        </Note>
-      )}
-
-      {mainTab === 'format' && (
-        <>
-          <div className="flex flex-wrap items-center gap-2">
-            <Tabs value={mode} onValueChange={(value) => setMode(value as OutputMode)}>
+        {mainTab === 'format' && (
+          <span className="flex min-w-0 flex-wrap items-center gap-1.5">
+            <span aria-hidden className="h-4 w-px bg-border" />
+            <Tabs value={mode} onValueChange={(value) => setMode(value as OutputMode)} className="w-fit">
               <TabsList>
                 <TabsTrigger value="pretty" active={mode === 'pretty'}>
                   美化
@@ -416,195 +394,239 @@ export default function JsonFormatter() {
               selectClassName="w-24"
               disabled={mode === 'minify'}
             />
-            <Checkbox label="键排序" checked={sortKeys} onChange={setSortKeys} hint="按字母顺序排列对象键" />
-            <Checkbox label="严格 JSON" checked={strict} onChange={setStrict} hint="关闭时接受注释、单引号与尾逗号" />
+            <Checkbox label="键排序" checked={sortKeys} onChange={setSortKeys} title="按字母顺序排列对象键" />
+            <Checkbox label="严格 JSON" checked={strict} onChange={setStrict} title="关闭时接受注释、单引号与尾逗号" />
             <Checkbox
               label="去转义"
               checked={unescapeJson}
               onChange={setUnescapeJson}
-              hint="适用于粘贴被转义的字符串"
+              title="适用于粘贴被转义的字符串"
             />
+          </span>
+        )}
+        {mainTab === 'tree' && (
+          <span className="flex min-w-0 flex-wrap items-center gap-1.5">
+            <span aria-hidden className="h-4 w-px bg-border" />
+            <Tabs value={treeTab} onValueChange={(value) => setTreeTab(value as TreeTab)} className="w-fit">
+              <TabsList>
+                <TabsTrigger value="text" active={treeTab === 'text'}>
+                  <span className="inline-flex items-center gap-1">
+                    <FileJson className="size-3.5" />
+                    JSON 树
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger value="stats" active={treeTab === 'stats'}>
+                  <span className="inline-flex items-center gap-1">
+                    <Rows3 className="size-3.5" />
+                    类型统计
+                  </span>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </span>
+        )}
+      </div>
+
+      {isLarge && (
+        <Note tone="warn" title="大文件模式">
+          内容超过 100 万字符，已暂停自动解析以免卡顿。
+          <div className="mt-1.5">
+            <Button size="sm" variant="outline" onClick={() => setCommitted(input)} disabled={!pending}>
+              <Play className="size-3.5" />
+              {pending ? '开始处理' : '已是最新'}
+            </Button>
           </div>
+        </Note>
+      )}
 
-          <div className="grid flex-1 gap-3 md:grid-cols-2">
-            <section
-              aria-label="JSON 输入区，可拖入文件"
-              className={cn('relative flex flex-col', dragging && 'rounded-md ring-2 ring-primary ring-offset-2')}
-              onDragOver={(event) => {
-                if (event.dataTransfer.types.includes('Files')) {
-                  event.preventDefault();
-                  setDragging(true);
-                }
-              }}
-              onDragLeave={(event) => {
-                if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
-                setDragging(false);
-              }}
-              onDrop={handleDrop}
-            >
-              <Textarea
-                value={input}
-                onChange={(event) => setInput(event.target.value)}
-                placeholder="粘贴 JSON 或 JSON5 内容，或拖入 .json 文件"
-                spellCheck={false}
-                aria-label="JSON 输入"
-                className="min-h-48 flex-1 resize-none font-mono text-xs"
-              />
-              {dragging && (
-                <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-md border-2 border-dashed border-primary bg-background/80">
-                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-primary">
-                    <Upload className="size-4" />
-                    松手读取 JSON 文件
+      {mainTab === 'format' && (
+        <div className="grid flex-1 gap-2 md:grid-cols-2">
+          <section
+            aria-label="JSON 输入区，可拖入文件"
+            className={cn(
+              'relative flex min-w-0 flex-col gap-1.5',
+              dragging && 'rounded-md ring-2 ring-primary ring-offset-2',
+            )}
+            onDragOver={(event) => {
+              if (event.dataTransfer.types.includes('Files')) {
+                event.preventDefault();
+                setDragging(true);
+              }
+            }}
+            onDragLeave={(event) => {
+              if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+              setDragging(false);
+            }}
+            onDrop={handleDrop}
+          >
+            <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
+              <span className="flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                输入
+                {pending ? (
+                  <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                    <Info className="size-3.5" />
+                    已暂停解析
                   </span>
-                </div>
-              )}
-            </section>
-
-            <div className="flex min-w-0 flex-col gap-2">
-              <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
-                  <span className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-                    {outputLabel}
-                    {mode === 'pretty' && (
-                      <span className="inline-flex items-center">
-                        <Tabs value={outputView} onValueChange={(value) => setOutputView(value as OutputView)}>
-                          <TabsList className="h-6">
-                            <TabsTrigger value="text" active={outputView === 'text'} className="px-2 py-0 text-[10px]">
-                              文本
-                            </TabsTrigger>
-                            <TabsTrigger value="tree" active={outputView === 'tree'} className="px-2 py-0 text-[10px]">
-                              树形
-                            </TabsTrigger>
-                          </TabsList>
-                        </Tabs>
-                      </span>
-                    )}
+                ) : analysis.error !== null ? (
+                  <span className="inline-flex items-center gap-1 text-destructive">
+                    <XCircle className="size-3.5" />
+                    解析失败
                   </span>
-                  <Button size="sm" variant="ghost" disabled={!hasResult || pending} onClick={() => void handleCopy()}>
-                    <Copy className="size-3.5" />
-                    复制
-                  </Button>
-                </div>
-                {mode === 'pretty' && outputView === 'tree' && hasResult && !pending ? (
-                  <JsonTree value={sorted} defaultExpandedDepth={2} fill />
+                ) : hasResult ? (
+                  <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                    <CheckCircle2 className="size-3.5" />
+                    {summary ? `${TYPE_LABEL[summary.type]} · ${formatBytes(inputBytes)}` : ''}
+                  </span>
                 ) : (
-                  <ResultBox value={output} error={pending ? null : analysis.error} rows="min-h-48" fill />
+                  <span className="inline-flex items-center gap-1">
+                    <Info className="size-3.5" />
+                    等待输入
+                  </span>
                 )}
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button size="sm" variant="outline" onClick={handleDownload} disabled={output === ''}>
-                  <Download className="size-3.5" />
-                  下载 JSON
+              </span>
+              <div className="flex shrink-0 items-center gap-0.5">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleEscape}
+                  disabled={input === ''}
+                  title="将输入编码为 JSON 字符串字面量"
+                >
+                  转义
                 </Button>
-                <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-                  {pending ? (
-                    <>
-                      <Info className="size-3.5" />
-                      有未处理的大文件内容
-                    </>
-                  ) : analysis.error !== null ? (
-                    <>
-                      <XCircle className="size-3.5 text-destructive" />
-                      解析失败
-                    </>
-                  ) : hasResult ? (
-                    <>
-                      <CheckCircle2 className="size-3.5 text-emerald-600" />
-                      {summary ? `${TYPE_LABEL[summary.type]} · ${formatBytes(inputBytes)}` : ''}
-                    </>
-                  ) : (
-                    <>
-                      <Info className="size-3.5" />
-                      等待输入
-                    </>
-                  )}
-                </span>
-                {fileNote && <span className="truncate text-[11px] text-muted-foreground">{fileNote}</span>}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleUnescape}
+                  disabled={input === ''}
+                  title="解码被转义粘贴的 JSON 字符串"
+                >
+                  去转义
+                </Button>
+                <ClearButton onClick={() => setInput('')} disabled={input === ''} />
               </div>
             </div>
+            <Textarea
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              placeholder="粘贴 JSON 或 JSON5 内容，或拖入 .json 文件"
+              spellCheck={false}
+              aria-label="JSON 输入"
+              className="min-h-40 flex-1 resize-none font-mono text-xs"
+            />
+            {fileNote && <p className="truncate text-[11px] text-muted-foreground">{fileNote}</p>}
+            {dragging && (
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-md border-2 border-dashed border-primary bg-background/80">
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-primary">
+                  <Upload className="size-4" />
+                  松手读取 JSON 文件
+                </span>
+              </div>
+            )}
+          </section>
+
+          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+            <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
+              <span className="flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                {outputLabel}
+                {mode === 'pretty' && (
+                  <span className="inline-flex items-center">
+                    <Tabs
+                      value={outputView}
+                      onValueChange={(value) => setOutputView(value as OutputView)}
+                      className="w-fit"
+                    >
+                      <TabsList className="h-6">
+                        <TabsTrigger value="text" active={outputView === 'text'} className="px-2 py-0 text-[10px]">
+                          文本
+                        </TabsTrigger>
+                        <TabsTrigger value="tree" active={outputView === 'tree'} className="px-2 py-0 text-[10px]">
+                          树形
+                        </TabsTrigger>
+                      </TabsList>
+                    </Tabs>
+                  </span>
+                )}
+              </span>
+              <div className="flex shrink-0 items-center gap-0.5">
+                <Button size="sm" variant="ghost" disabled={output === ''} onClick={handleDownload}>
+                  <Download className="size-3.5" />
+                  下载
+                </Button>
+                <Button size="sm" variant="ghost" disabled={!hasResult || pending} onClick={() => void handleCopy()}>
+                  <Copy className="size-3.5" />
+                  复制
+                </Button>
+              </div>
+            </div>
+            {mode === 'pretty' && outputView === 'tree' && hasResult && !pending ? (
+              <JsonTree value={sorted} defaultExpandedDepth={2} fill />
+            ) : (
+              <ResultBox value={output} error={pending ? null : analysis.error} rows="min-h-40" fill />
+            )}
           </div>
-        </>
+        </div>
       )}
 
-      {mainTab === 'tree' && (
-        <>
-          <Tabs value={treeTab} onValueChange={(value) => setTreeTab(value as TreeTab)}>
-            <TabsList>
-              <TabsTrigger value="text" active={treeTab === 'text'}>
-                <span className="inline-flex items-center gap-1">
-                  <FileJson className="size-3.5" />
-                  JSON 树
-                </span>
-              </TabsTrigger>
-              <TabsTrigger value="stats" active={treeTab === 'stats'}>
-                <span className="inline-flex items-center gap-1">
-                  <Rows3 className="size-3.5" />
-                  类型统计
-                </span>
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-
-          {pending ? (
-            <EmptyHint>内容较大，请切回「格式化」标签点击「开始处理」。</EmptyHint>
-          ) : (
-            <>
-              {treeTab === 'text' &&
-                (analysis.parsed === null ? (
-                  <EmptyHint>输入 JSON 后以可折叠的树形结构展示。</EmptyHint>
-                ) : analysis.error !== null ? (
-                  <ResultBox value="" error={analysis.error} rows="min-h-48" />
-                ) : (
-                  <div className="flex min-w-0 flex-col gap-1.5">
-                    <div className="flex shrink-0 items-center justify-between gap-2">
-                      <span className="min-w-0 text-xs text-muted-foreground">结构化 JSON</span>
-                      <Button size="sm" variant="ghost" disabled={formatted === ''} onClick={() => void handleCopy()}>
-                        <Copy className="size-3.5" />
-                        复制
-                      </Button>
-                    </div>
-                    <JsonTree value={analysis.parsed.value} defaultExpandedDepth={3} />
+      {mainTab === 'tree' &&
+        (pending ? (
+          <EmptyHint>内容较大，请切回「格式化」标签点击「开始处理」。</EmptyHint>
+        ) : (
+          <>
+            {treeTab === 'text' &&
+              (analysis.parsed === null ? (
+                <EmptyHint>输入 JSON 后以可折叠的树形结构展示。</EmptyHint>
+              ) : analysis.error !== null ? (
+                <ResultBox value="" error={analysis.error} rows="min-h-48" />
+              ) : (
+                <div className="flex min-w-0 flex-col gap-1.5">
+                  <div className="flex shrink-0 items-center justify-between gap-2">
+                    <span className="min-w-0 text-xs text-muted-foreground">结构化 JSON</span>
+                    <Button size="sm" variant="ghost" disabled={formatted === ''} onClick={() => void handleCopy()}>
+                      <Copy className="size-3.5" />
+                      复制
+                    </Button>
                   </div>
-                ))}
+                  <JsonTree value={analysis.parsed.value} defaultExpandedDepth={3} />
+                </div>
+              ))}
 
-              {treeTab === 'stats' &&
-                (summary === null ? (
-                  <EmptyHint>输入 JSON 后显示类型、字段与深度统计。</EmptyHint>
-                ) : (
-                  <div className="flex flex-col gap-3">
-                    <StatGrid>
-                      <Stat label="根类型" value={TYPE_LABEL[summary.type]} />
-                      <Stat label="字段数" value={summary.keys} />
-                      <Stat label="元素个数" value={summary.items} />
-                      <Stat label="最大深度" value={summary.depth} />
-                      <Stat
-                        label="数组元素类型"
-                        value={itemType === null ? '不适用' : TYPE_LABEL[itemType]}
-                        hint={itemType === 'mixed' ? '数组内混有多种类型' : undefined}
-                      />
-                      <Stat label="输入体积" value={formatBytes(inputBytes)} />
-                      <Stat
-                        label="语法"
-                        value={analysis.parsed?.strict ? '标准 JSON' : 'JSON5'}
-                        tone={analysis.parsed?.strict ? 'success' : 'warn'}
-                      />
-                    </StatGrid>
-                    <ResultBox
-                      label="统计 JSON"
-                      value={JSON.stringify(summary, null, 2)}
-                      onCopy={() => void handleCopy()}
+            {treeTab === 'stats' &&
+              (summary === null ? (
+                <EmptyHint>输入 JSON 后显示类型、字段与深度统计。</EmptyHint>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  <StatGrid>
+                    <Stat label="根类型" value={TYPE_LABEL[summary.type]} />
+                    <Stat label="字段数" value={summary.keys} />
+                    <Stat label="元素个数" value={summary.items} />
+                    <Stat label="最大深度" value={summary.depth} />
+                    <Stat
+                      label="数组元素类型"
+                      value={itemType === null ? '不适用' : TYPE_LABEL[itemType]}
+                      hint={itemType === 'mixed' ? '数组内混有多种类型' : undefined}
                     />
-                    {analysis.warnings.map((warning) => (
-                      <Note key={warning} tone="warn" title="重复键提示">
-                        {warning}
-                      </Note>
-                    ))}
-                  </div>
-                ))}
-            </>
-          )}
-        </>
-      )}
+                    <Stat label="输入体积" value={formatBytes(inputBytes)} />
+                    <Stat
+                      label="语法"
+                      value={analysis.parsed?.strict ? '标准 JSON' : 'JSON5'}
+                      tone={analysis.parsed?.strict ? 'success' : 'warn'}
+                    />
+                  </StatGrid>
+                  <ResultBox
+                    label="统计 JSON"
+                    value={JSON.stringify(summary, null, 2)}
+                    onCopy={() => void handleCopy()}
+                  />
+                  {analysis.warnings.map((warning) => (
+                    <Note key={warning} tone="warn" title="重复键提示">
+                      {warning}
+                    </Note>
+                  ))}
+                </div>
+              ))}
+          </>
+        ))}
     </ToolPanel>
   );
 }
