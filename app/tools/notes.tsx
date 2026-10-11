@@ -459,7 +459,7 @@ export default function Notes() {
       }
       description="Markdown 笔记、双向链接、任务提取与力导向关系图，全部数据只存本地浏览器"
       actions={
-        <>
+        <div className="flex flex-row gap-1">
           <Button size="sm" onClick={() => create()}>
             <Plus className="size-3.5" />
             新建笔记
@@ -476,7 +476,7 @@ export default function Notes() {
             <Download className="size-3.5" />
             导出 JSON
           </Button>
-        </>
+        </div>
       }
     >
       <StatGrid>
@@ -1003,7 +1003,7 @@ export default function Notes() {
         title="导入 / 导出"
         description="导出是唯一可靠的备份途径"
         actions={
-          <>
+          <div className="flex flex-row gap-1">
             <Button size="sm" variant="outline" onClick={handleExportMd} disabled={active === null}>
               <FileDown className="size-3.5" />
               导出当前 Markdown
@@ -1017,7 +1017,7 @@ export default function Notes() {
               <FileDown className="size-3.5" />
               全部导出 zip
             </Button>
-          </>
+          </div>
         }
       >
         <div className="flex flex-wrap items-center gap-2">

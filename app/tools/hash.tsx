@@ -184,7 +184,7 @@ export default function HashTool() {
       }
       description="计算 MD5、SHA-1、SHA-256、SHA-384、SHA-512 哈希值"
       actions={
-        <>
+        <div className="flex flex-row gap-1">
           <Button size="sm" onClick={() => void compute()} disabled={!input || busy}>
             {busy ? '计算中' : '计算'}
           </Button>
@@ -195,7 +195,7 @@ export default function HashTool() {
             }}
             disabled={!input}
           />
-        </>
+        </div>
       }
     >
       <div className="flex flex-1 flex-col gap-3 overflow-auto scrollbar-thin">

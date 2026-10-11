@@ -153,7 +153,7 @@ export default function WifiQr() {
       title="WiFi 二维码生成"
       description="生成扫码即可连网的 WiFi 配置码，全部在本地渲染，不做任何网络请求"
       actions={
-        <>
+        <div className="flex flex-row gap-1">
           <Button size="sm" variant="outline" disabled={!ready} onClick={downloadPng}>
             <Download className="size-3.5" />
             PNG
@@ -162,7 +162,7 @@ export default function WifiQr() {
             <Download className="size-3.5" />
             SVG
           </Button>
-        </>
+        </div>
       }
     >
       <div className="grid gap-3 md:grid-cols-2">

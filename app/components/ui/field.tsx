@@ -2,19 +2,29 @@ import type * as React from 'react';
 import { Input } from './input';
 import { cn } from './utils';
 
-interface FieldProps {
+export interface FieldProps {
   label: React.ReactNode;
   hint?: React.ReactNode;
   className?: string;
   children: React.ReactNode;
+  horizontal?: boolean;
 }
 
-/** 表单字段容器：标题在上、控件在下、说明文字在底部。 */
-export function Field({ label, hint, className, children }: FieldProps) {
+/** 表单字段容器：标题在上、控件在下、说明文字在底部（默认上下布局），支持水平布局。 */
+export function Field({ label, hint, className, children, horizontal }: FieldProps) {
   return (
     <label className={cn('flex min-w-0 flex-col gap-1 text-xs', className)}>
-      <span className="text-muted-foreground">{label}</span>
-      {children}
+      {horizontal ? (
+        <div className="flex min-w-0 items-center gap-1">
+          <span className="shrink-0 text-muted-foreground">{label}</span>
+          {children}
+        </div>
+      ) : (
+        <>
+          <span className="text-muted-foreground">{label}</span>
+          {children}
+        </>
+      )}
       {hint && <span className="text-[11px] leading-relaxed text-muted-foreground/80">{hint}</span>}
     </label>
   );
@@ -32,6 +42,7 @@ export interface TextFieldProps {
   disabled?: boolean;
   readOnly?: boolean;
   spellCheck?: boolean;
+  horizontal?: boolean;
 }
 
 export function TextField({
@@ -46,9 +57,10 @@ export function TextField({
   disabled,
   readOnly,
   spellCheck = false,
+  horizontal,
 }: TextFieldProps) {
   return (
-    <Field label={label} hint={hint} className={className}>
+    <Field label={label} hint={hint} className={className} horizontal={horizontal}>
       <Input
         type={type}
         value={value}

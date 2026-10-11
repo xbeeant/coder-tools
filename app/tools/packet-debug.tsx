@@ -338,13 +338,19 @@ export default function PacketDebug() {
         </Tabs>
       }
     >
+      <Note tone="info" title="本地处理">
+        <span className="inline-flex items-center gap-1">
+          <Gauge className="size-3" />
+          HAR、cURL、响应文本全部只在当前标签页内存中解析，刷新页面即清空；文件导入走浏览器 File API，不经过任何服务器。
+        </span>
+      </Note>
       {tab === 'har' && (
         <div className="flex flex-col gap-3">
           <Section
             title="HAR 输入"
             description="支持 DevTools 导出的 .har JSON，base64 响应体会自动解码"
             actions={
-              <>
+              <div className="flex flex-row gap-1">
                 <Button
                   size="sm"
                   variant="outline"
@@ -367,7 +373,7 @@ export default function PacketDebug() {
                   导出 HAR
                 </Button>
                 <ClearButton onClick={() => setHarText('')} disabled={!harText} />
-              </>
+              </div>
             }
           >
             <Field label="HAR JSON">
@@ -709,7 +715,7 @@ export default function PacketDebug() {
             title="cURL 命令"
             description="支持多行续行、单双引号、-H/--header、-d/--data-raw/-F、-u/-b、-G 等常见写法"
             actions={
-              <>
+              <div className="flex flex-row gap-1">
                 <Button
                   size="sm"
                   variant="outline"
@@ -726,7 +732,7 @@ export default function PacketDebug() {
                   示例
                 </Button>
                 <ClearButton onClick={() => setCurlText('')} disabled={!curlText} />
-              </>
+              </div>
             }
           >
             <Field label="curl 命令">
@@ -1110,12 +1116,12 @@ export default function PacketDebug() {
             title="响应文本"
             description="支持「响应头 + 空行 + body」；耗时取 x-response-time 头"
             actions={
-              <>
+              <div className="flex flex-row gap-1">
                 <Button size="sm" variant="outline" onClick={() => setResponseText(RESPONSE_PRESET)}>
                   示例
                 </Button>
                 <ClearButton onClick={() => setResponseText('')} disabled={!responseText} />
-              </>
+              </div>
             }
           >
             <Field label="响应">
@@ -1139,7 +1145,7 @@ export default function PacketDebug() {
             title="断言规则"
             description="状态码、响应头、JSON 路径、正则、body 包含与耗时"
             actions={
-              <>
+              <div className="flex flex-row gap-1">
                 <Button
                   size="sm"
                   variant="outline"
@@ -1164,7 +1170,7 @@ export default function PacketDebug() {
                   <Eraser className="size-3.5" />
                   重置
                 </Button>
-              </>
+              </div>
             }
           >
             <div className="flex flex-col gap-2">
@@ -1226,7 +1232,7 @@ export default function PacketDebug() {
             title="Mock 规则"
             description="路径支持 * 单层与 ** 多层通配；响应头与 body 支持 {{uuid}}、{{int}}、{{name}}、{{email}}、{{iso}}、{{timestamp}}、{{ip}} 等占位符"
             actions={
-              <>
+              <div className="flex flex-row gap-1">
                 <Button
                   size="sm"
                   variant="outline"
@@ -1260,7 +1266,7 @@ export default function PacketDebug() {
                   导出目录
                 </Button>
                 <ClearButton onClick={() => setMocks([])} disabled={mocks.length === 0} />
-              </>
+              </div>
             }
           >
             {mocks.length === 0 ? (
@@ -1415,13 +1421,6 @@ export default function PacketDebug() {
           </Section>
         </div>
       )}
-
-      <Note tone="info" title="本地处理">
-        <span className="inline-flex items-center gap-1">
-          <Gauge className="size-3" />
-          HAR、cURL、响应文本全部只在当前标签页内存中解析，刷新页面即清空；文件导入走浏览器 File API，不经过任何服务器。
-        </span>
-      </Note>
     </ToolPanel>
   );
 }

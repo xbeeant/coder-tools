@@ -330,7 +330,7 @@ export default function TextStats() {
         title="Markdown 报告"
         description="可直接粘贴到 issue、PR 或工单中"
         actions={
-          <>
+          <div className="flex flex-row gap-1">
             <Button
               size="sm"
               variant="ghost"
@@ -351,7 +351,7 @@ export default function TextStats() {
               <Download className="size-3.5" />
               下载
             </Button>
-          </>
+          </div>
         }
       >
         <ResultBox label="报告预览" value={markdown} rows="min-h-40" />

@@ -212,15 +212,21 @@ export default function JsonToCode() {
       }
       description="由一份 JSON 样例推断类型，生成 TypeScript / Java / Python / Go / SQL / JSON Schema"
       actions={
-        <>
+        <div className="flex flex-row gap-1">
           <Button size="sm" variant="outline" onClick={() => void handlePick()} disabled={busy}>
             <FolderOpen className="size-3.5" />
             打开文件
           </Button>
           <ClearButton onClick={() => setInput('')} disabled={input === ''} />
-        </>
+        </div>
       }
     >
+      <Note tone="info" title="使用说明">
+        <span className="inline-flex items-center gap-1">
+          <FileJson className="size-3.5" />
+          左侧贴一份真实结构的 JSON 样例即可。所有字段都会按样例推断，建议提供包含多种类型的完整对象数组。
+        </span>
+      </Note>
       <Tabs value={target} onValueChange={(value) => setTarget(value as CodeTarget)}>
         <TabsList>
           {CODE_TARGETS.map((item) => (
@@ -231,6 +237,23 @@ export default function JsonToCode() {
         </TabsList>
       </Tabs>
 
+      {target === 'sample' && (
+        <Note tone="info" title="示例数据说明">
+          <span className="inline-flex items-center gap-1">
+            <Repeat className="size-3.5" />
+            示例数据用于快速造出符合推断结构的测试数据，数值随机但可复现，不保证业务语义正确。
+          </span>
+        </Note>
+      )}
+
+      {target === 'schema' && (
+        <Note tone="info" title="Schema 适用范围">
+          <span className="inline-flex items-center gap-1">
+            <Languages className="size-3.5" />
+            生成的是 draft-07 的常用子集，只描述「样例里出现过的类型」，不包含枚举取值与格式约束。
+          </span>
+        </Note>
+      )}
       <div className="grid flex-1 gap-3 md:grid-cols-2">
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
@@ -240,6 +263,7 @@ export default function JsonToCode() {
             </Button>
             <TextField
               label="根类型名"
+              horizontal={true}
               value={rootName}
               onChange={setRootName}
               placeholder="Root"
@@ -454,33 +478,6 @@ export default function JsonToCode() {
           </ul>
         </div>
       </Section>
-
-      {target === 'sample' && (
-        <Note tone="info" title="示例数据说明">
-          <span className="inline-flex items-center gap-1">
-            <Repeat className="size-3.5" />
-            示例数据用于快速造出符合推断结构的测试数据，数值随机但可复现，不保证业务语义正确。
-          </span>
-        </Note>
-      )}
-
-      {target === 'schema' && (
-        <Note tone="info" title="Schema 适用范围">
-          <span className="inline-flex items-center gap-1">
-            <Languages className="size-3.5" />
-            生成的是 draft-07 的常用子集，只描述「样例里出现过的类型」，不包含枚举取值与格式约束。
-          </span>
-        </Note>
-      )}
-
-      {input.trim() === '' && (
-        <Note tone="info" title="使用说明">
-          <span className="inline-flex items-center gap-1">
-            <FileJson className="size-3.5" />
-            左侧贴一份真实结构的 JSON 样例即可。所有字段都会按样例推断，建议提供包含多种类型的完整对象数组。
-          </span>
-        </Note>
-      )}
     </ToolPanel>
   );
 }

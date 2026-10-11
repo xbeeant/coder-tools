@@ -42,7 +42,7 @@ export default function HtmlEntityTool() {
       }
       description="HTML 实体编码与解码，支持命名、十进制与十六进制格式"
       actions={
-        <>
+        <div className="flex flex-row gap-1">
           {mode === 'encode' && (
             <Tabs value={style} onValueChange={(value) => setStyle(value as HtmlEntityMode)}>
               <TabsList>
@@ -65,9 +65,13 @@ export default function HtmlEntityTool() {
             互换
           </Button>
           <ClearButton onClick={handleClear} disabled={!input} />
-        </>
+        </div>
       }
     >
+      <Note tone="info" title="说明">
+        编码时会转义 <code className="font-mono">&amp; &lt; &gt; &quot; &#39;</code>{' '}
+        以及常见命名实体；解码同时支持命名、十进制与十六进制写法，未知实体原样保留。
+      </Note>
       <div className="flex flex-1 flex-col gap-2">
         <Textarea
           value={input}
@@ -81,10 +85,6 @@ export default function HtmlEntityTool() {
         />
         <ResultBox label="输出" value={output} onCopy={() => copyText(output)} rows="min-h-32" fill />
       </div>
-      <Note tone="info" title="说明">
-        编码时会转义 <code className="font-mono">&amp; &lt; &gt; &quot; &#39;</code>{' '}
-        以及常见命名实体；解码同时支持命名、十进制与十六进制写法，未知实体原样保留。
-      </Note>
     </ToolPanel>
   );
 }

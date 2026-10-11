@@ -112,7 +112,7 @@ export default function UnitConverter() {
       title="单位换算"
       description={`${UNIT_CATEGORIES.length} 个类别、${UNIT_CATEGORIES.reduce((sum, item) => sum + item.units.length, 0)} 个单位，温度等非线性单位单独处理`}
       actions={
-        <>
+        <div className="flex flex-row gap-1">
           <Button
             size="sm"
             variant="outline"
@@ -127,7 +127,7 @@ export default function UnitConverter() {
           <Button size="sm" variant="ghost" onClick={() => copyText(resultText)} disabled={!resultText}>
             复制结果
           </Button>
-        </>
+        </div>
       }
     >
       <Section title="分类" description={categoryDescription(categoryId)}>

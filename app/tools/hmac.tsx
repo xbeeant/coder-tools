@@ -111,6 +111,9 @@ export default function HmacTool() {
       description="使用密钥对消息计算消息认证码，用于 Webhook 签名与接口验签"
       actions={<ClearButton onClick={() => setMessage('')} disabled={message === ''} />}
     >
+      <Note tone="info" title="说明">
+        验签按恒定时间比较，避免通过响应耗时侧信道推断签名；重新校验使用生成该签名时的编码， 切换输出编码不会影响结果。
+      </Note>
       <div className="flex flex-1 flex-col gap-2 overflow-auto scrollbar-thin">
         <div className="flex flex-wrap items-center gap-3 text-xs">
           <Select
@@ -174,10 +177,6 @@ export default function HmacTool() {
           rows="min-h-16"
         />
       </div>
-
-      <Note tone="info" title="说明">
-        验签按恒定时间比较，避免通过响应耗时侧信道推断签名；重新校验使用生成该签名时的编码， 切换输出编码不会影响结果。
-      </Note>
     </ToolPanel>
   );
 }

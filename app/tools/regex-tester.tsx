@@ -248,6 +248,10 @@ export default function RegexTester() {
 
       {tab === 'cheat' && (
         <>
+          <Note tone="warn" title="性能与陷阱">
+            嵌套量词（如 (a+)+）容易在特定输入下触发灾难性回溯；能用具体字符类就别写 .*；邮箱、HTML
+            这类复杂结构优先用成熟库而不是正则硬刚。
+          </Note>
           <Section
             title={
               <span className="inline-flex items-center gap-1">
@@ -299,10 +303,6 @@ export default function RegexTester() {
               </table>
             </div>
           </Section>
-          <Note tone="warn" title="性能与陷阱">
-            嵌套量词（如 (a+)+）容易在特定输入下触发灾难性回溯；能用具体字符类就别写 .*；邮箱、HTML
-            这类复杂结构优先用成熟库而不是正则硬刚。
-          </Note>
         </>
       )}
 

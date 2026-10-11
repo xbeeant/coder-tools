@@ -421,7 +421,7 @@ export default function ImageConvert() {
         title="图片压缩与格式转换"
         description="纯本地 Canvas 处理：格式转换、缩放、旋转、裁剪、填充、水印与批量打包"
         actions={
-          <>
+          <div className="flex flex-row gap-1">
             <Button size="sm" variant="outline" onClick={() => void openImage()}>
               <Images className="size-3.5" />
               选择图片
@@ -430,7 +430,7 @@ export default function ImageConvert() {
               <Download className="size-3.5" />
               下载
             </Button>
-          </>
+          </div>
         }
       >
         {!source ? (
@@ -768,7 +768,7 @@ export default function ImageConvert() {
             title="批量转换"
             description="批量流程统一按原尺寸输出为当前格式，便于快速打包"
             actions={
-              <>
+              <div className="flex flex-row gap-1">
                 <Button size="sm" variant="outline" onClick={() => void runBatch()}>
                   <Images className="size-3.5" />
                   选择多张
@@ -781,7 +781,7 @@ export default function ImageConvert() {
                   <Download className="size-3.5" />
                   {zipBusy ? '打包中…' : '全部下载'}
                 </Button>
-              </>
+              </div>
             }
           >
             {batch.length === 0 ? (

@@ -91,7 +91,7 @@ export default function RsaTool() {
       }
       description="使用 Web Crypto 生成 RSA-OAEP (SHA-256) 密钥对"
       actions={
-        <>
+        <div className="flex flex-row gap-1">
           <Select
             ariaLabel="密钥长度"
             value={String(modulusLength)}
@@ -103,7 +103,7 @@ export default function RsaTool() {
             <ShieldCheck className="size-3.5" />
             {busy ? '生成中…' : '生成密钥对'}
           </Button>
-        </>
+        </div>
       }
     >
       <div className="flex flex-1 flex-col gap-3 overflow-auto scrollbar-thin">
@@ -119,8 +119,10 @@ export default function RsaTool() {
               <code className="font-mono">{keys.fingerprint}</code>
             </div>
 
-            <KeyBlock label="公钥 (SPKI / PEM)" value={keys.publicKey} />
-            <KeyBlock label="私钥 (PKCS#8 / PEM)" value={keys.privateKey} warn />
+            <div className="flex flex-row gap-1">
+              <KeyBlock label="公钥 (SPKI / PEM)" value={keys.publicKey} />
+              <KeyBlock label="私钥 (PKCS#8 / PEM)" value={keys.privateKey} warn />
+            </div>
           </>
         )}
 
@@ -147,7 +149,7 @@ function KeyBlock({ label, value, warn }: { label: string; value: string; warn?:
           复制
         </Button>
       </div>
-      <pre className="max-h-48 overflow-auto rounded-md border bg-muted/30 p-2.5 font-mono text-[11px] leading-relaxed scrollbar-thin">
+      <pre className="max-h-96 overflow-y-auto rounded-md border bg-muted/30 p-2.5 font-mono text-[11px] leading-relaxed scrollbar-thin">
         {value}
       </pre>
     </div>

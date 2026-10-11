@@ -182,13 +182,13 @@ export default function Markdown() {
       }
       description="渲染预览、导出净化后的 HTML、生成目录并可反向转回 Markdown"
       actions={
-        <>
+        <div className="flex flex-row gap-1">
           <Button size="sm" variant="outline" onClick={() => void handlePick()} disabled={busy}>
             <FolderOpen className="size-3.5" />
             打开文件
           </Button>
           <ClearButton onClick={() => setInput('')} disabled={input === ''} />
-        </>
+        </div>
       }
     >
       <Tabs value={tab} onValueChange={(value) => setTab(value as MdTab)}>

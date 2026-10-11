@@ -486,7 +486,7 @@ function FuzzyPanel() {
         title="结果"
         description="黄色为命中字符，右侧是分数与命中位置"
         actions={
-          <>
+          <div className="flex flex-row gap-1">
             <Button size="sm" variant="ghost" onClick={() => setSelected(new Set(result.hits.map((hit) => hit.index)))}>
               全选
             </Button>
@@ -513,7 +513,7 @@ function FuzzyPanel() {
               <Download className="size-3.5" />
               下载
             </Button>
-          </>
+          </div>
         }
       >
         {result.hits.length === 0 ? (
@@ -824,7 +824,7 @@ function GrepPanel() {
         title="命中结果"
         description="黄色为命中片段；点击行可展开上下文"
         actions={
-          <>
+          <div className="flex flex-row gap-1">
             <Button
               size="sm"
               variant="ghost"
@@ -845,7 +845,7 @@ function GrepPanel() {
               <Download className="size-3.5" />
               下载
             </Button>
-          </>
+          </div>
         }
       >
         {mode !== 'lines' ? (

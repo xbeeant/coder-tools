@@ -177,9 +177,10 @@ export default function SqlFormatter() {
       title="SQL 格式化"
       description="格式化、压缩、关键字大小写、方言改写、语法高亮、结构分析与安全改写"
       actions={
-        <>
+        <div className="flex flex-row gap-1">
           <Select
             label="目标方言"
+            layout={'horizontal'}
             value={dialect}
             onChange={(value) => setDialect(value as SqlDialect)}
             options={DIALECT_OPTIONS}
@@ -191,7 +192,7 @@ export default function SqlFormatter() {
               </Button>
             ))}
           </div>
-        </>
+        </div>
       }
     >
       <Note tone="info" title="自研轻量解析器">

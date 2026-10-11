@@ -225,7 +225,7 @@ export default function TimezoneTool() {
       title="时区转换"
       description="IANA 时区对照、夏令时分析、跨时区会议时间与批量转换，全部离线计算"
       actions={
-        <>
+        <div className="flex flex-row gap-1">
           <Button size="sm" variant="outline" onClick={setToNow}>
             <RefreshCw className="size-3.5" />
             现在
@@ -238,7 +238,7 @@ export default function TimezoneTool() {
               <TabsTrigger value="clock">世界时钟</TabsTrigger>
             </TabsList>
           </Tabs>
-        </>
+        </div>
       }
     >
       <Section title="源时间与源时区" description="默认为浏览器本地时区与当前时间">

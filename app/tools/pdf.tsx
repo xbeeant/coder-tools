@@ -620,7 +620,7 @@ export default function PdfTool() {
           <Section
             title="拆分"
             actions={
-              <>
+              <div className="flex flex-row gap-1">
                 <Button size="sm" variant="outline" onClick={() => void openSplit()}>
                   <FileText className="size-3.5" />
                   选择 PDF
@@ -638,7 +638,7 @@ export default function PdfTool() {
                   <Download className="size-3.5" />
                   打包下载
                 </Button>
-              </>
+              </div>
             }
           >
             {splitBytes ? (
@@ -1059,7 +1059,7 @@ export default function PdfTool() {
             title="内嵌图片提取"
             description="按页提取位图，最多 200 张"
             actions={
-              <>
+              <div className="flex flex-row gap-1">
                 <Button size="sm" variant="outline" onClick={() => void openImages()}>
                   <Images className="size-3.5" />
                   选择 PDF
@@ -1072,7 +1072,7 @@ export default function PdfTool() {
                   <Download className="size-3.5" />
                   全部打包
                 </Button>
-              </>
+              </div>
             }
           >
             {!imageSrc ? (

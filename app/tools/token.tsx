@@ -105,7 +105,7 @@ export default function TokenGenerator() {
       }
       description="安全地生成随机 Token，支持自定义字符集与熵计算"
       actions={
-        <>
+        <div className="flex flex-row gap-1">
           <Button size="sm" variant="outline" onClick={() => setSeed((n) => n + 1)} disabled={pool.length === 0}>
             <Dices className="size-3.5" />
             重新生成
@@ -114,7 +114,7 @@ export default function TokenGenerator() {
             复制
           </Button>
           <ClearButton onClick={() => setSeed((n) => n + 1)} disabled={pool.length === 0 && !output} />
-        </>
+        </div>
       }
     >
       <div className="flex flex-1 flex-col gap-3">
@@ -145,7 +145,7 @@ export default function TokenGenerator() {
             label="覆盖所有字符集"
             checked={requireEach}
             onChange={setRequireEach}
-            title="保证每个已勾选字符集至少出现一次"
+            hint="保证每个已勾选字符集至少出现一次"
           />
         </div>
 
@@ -189,7 +189,7 @@ export default function TokenGenerator() {
           字符集大小 {pool.length} · 每个 Token 约 {bitsText} bits 熵
         </div>
 
-        <div className="flex-1 overflow-auto rounded-md border bg-muted/30 p-3 font-mono text-xs leading-relaxed break-all scrollbar-thin">
+        <div className="flex-1 overflow-auto rounded-md border bg-muted/30 whitespace-pre-wrap p-3 font-mono text-xs leading-relaxed break-all scrollbar-thin">
           {pool.length === 0 ? <span className="text-muted-foreground">请至少启用一个字符集</span> : output}
         </div>
       </div>

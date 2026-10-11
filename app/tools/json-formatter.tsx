@@ -302,7 +302,7 @@ export default function JsonFormatter() {
       }
       description="支持 JSON5 宽松语法，附带结构树与类型统计"
       actions={
-        <>
+        <div className="flex flex-row gap-1">
           <Button size="sm" variant="outline" onClick={() => void handlePick()} disabled={busy}>
             <FolderOpen className="size-3.5" />
             打开文件
@@ -318,7 +318,7 @@ export default function JsonFormatter() {
             <ClipboardPaste className="size-3.5" />
             示例
           </Button>
-        </>
+        </div>
       }
     >
       <Tabs value={mainTab} onValueChange={(value) => setMainTab(value as MainTab)}>

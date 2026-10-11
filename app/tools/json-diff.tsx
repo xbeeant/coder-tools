@@ -217,7 +217,7 @@ export default function JsonDiff() {
       }
       description="按路径递归比较两份 JSON，输出新增、删除、类型与值的差异"
       actions={
-        <>
+        <div className="flex flex-row gap-1">
           <Button size="sm" variant="outline" onClick={() => void pick('left')} disabled={busy}>
             <FolderOpen className="size-3.5" />
             打开左侧
@@ -238,7 +238,7 @@ export default function JsonDiff() {
             }}
             disabled={leftInput === '' && rightInput === ''}
           />
-        </>
+        </div>
       }
     >
       <div className="flex flex-1 flex-col gap-2">

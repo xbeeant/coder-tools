@@ -438,7 +438,7 @@ export default function DateCalculator() {
             title={`${cursor.year} 年 ${MONTH_LABELS[cursor.month] ?? cursor.month + 1} 月`}
             description="灰色为周末，橙色为节假日，蓝色描边为今天"
             actions={
-              <>
+              <div className="flex flex-row gap-1">
                 <Select
                   ariaLabel="周起始日"
                   value={String(weekStart)}
@@ -465,7 +465,7 @@ export default function DateCalculator() {
                 >
                   <ChevronRight className="size-3.5" />
                 </Button>
-              </>
+              </div>
             }
           >
             <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-muted-foreground">
@@ -653,7 +653,7 @@ export default function DateCalculator() {
             title={`${miscCursor.year} 年 ${miscCursor.month + 1} 月 月视图`}
             description="左侧为 ISO 周序号，可切换周起始日"
             actions={
-              <>
+              <div className="flex flex-row gap-1">
                 <Select
                   ariaLabel="周起始日"
                   value={String(miscWeekStart)}
@@ -680,7 +680,7 @@ export default function DateCalculator() {
                 >
                   <ChevronRight className="size-3.5" />
                 </Button>
-              </>
+              </div>
             }
           >
             <ResultBox label="月视图" value={monthTable} onCopy={() => copyText(monthTable)} rows="min-h-40" />

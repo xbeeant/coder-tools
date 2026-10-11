@@ -162,6 +162,13 @@ export default function UrlParser() {
         </Tabs>
       }
     >
+      <Note tone="info" title="离线解析说明">
+        <span className="inline-flex items-center gap-1">
+          <Link2 className="size-3" />
+          全部解析基于浏览器内置的 URL 实现（WHATWG Standard）完成，不会发起任何网络请求；
+          规范化后的结果仅供比较使用，请勿直接用于生产请求。
+        </span>
+      </Note>
       <Section
         title="输入 URL"
         description="支持完整 URL 或不带协议的地址（后者会按 https:// 之外的相对地址提示）"
@@ -365,7 +372,7 @@ export default function UrlParser() {
             title="查询参数编辑"
             description="修改后实时重建 URL；支持排序、删除重复键"
             actions={
-              <>
+              <div className="flex flex-row gap-1">
                 <Button
                   size="sm"
                   variant="outline"
@@ -402,7 +409,7 @@ export default function UrlParser() {
                   <Scissors className="size-3.5" />
                   删除重复
                 </Button>
-              </>
+              </div>
             }
           >
             {params.length === 0 ? (
@@ -645,14 +652,6 @@ export default function UrlParser() {
           </Section>
         </div>
       )}
-
-      <Note tone="info" title="离线解析说明">
-        <span className="inline-flex items-center gap-1">
-          <Link2 className="size-3" />
-          全部解析基于浏览器内置的 URL 实现（WHATWG Standard）完成，不会发起任何网络请求；
-          规范化后的结果仅供比较使用，请勿直接用于生产请求。
-        </span>
-      </Note>
     </ToolPanel>
   );
 }

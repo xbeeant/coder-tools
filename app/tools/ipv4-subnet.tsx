@@ -267,7 +267,7 @@ export default function Ipv4Subnet() {
             title="输入"
             description="支持 10.0.0.0/24 或「地址 + 子网掩码」两种写法"
             actions={
-              <>
+              <div className="flex flex-row gap-1">
                 <Tabs>
                   <TabsList>
                     <TabsTrigger active={mode === 'cidr'} onClick={() => setMode('cidr')}>
@@ -290,7 +290,7 @@ export default function Ipv4Subnet() {
                 >
                   清空
                 </Button>
-              </>
+              </div>
             }
           >
             {mode === 'cidr' ? (

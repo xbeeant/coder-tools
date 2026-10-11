@@ -300,9 +300,10 @@ function ModelTab() {
         title="表结构编辑"
         description="填写字段与约束，实时生成各方言 DDL"
         actions={
-          <>
+          <div className="flex flex-row gap-1">
             <Select
-              label="方言"
+              label="语言"
+              layout={"horizontal"}
               value={dialect}
               onChange={(value) => setDialect(value as SqlDialect)}
               options={DIALECT_OPTIONS}
@@ -317,7 +318,7 @@ function ModelTab() {
             >
               新建表
             </Button>
-          </>
+          </div>
         }
       >
         <div className="flex flex-wrap gap-1.5">
@@ -518,7 +519,7 @@ function ModelTab() {
         title="DDL 脚本"
         description="CREATE TABLE 与 DROP TABLE，可直接复制到客户端执行"
         actions={
-          <>
+          <div className="flex flex-row gap-1">
             <Button size="sm" variant="outline" onClick={() => setDdlInput(script)}>
               <FileText className="size-3.5" />
               填入下方解析框
@@ -527,7 +528,7 @@ function ModelTab() {
               <Download className="size-3.5" />
               下载 SQL
             </Button>
-          </>
+          </div>
         }
       >
         <ResultBox label="DDL" value={script} onCopy={() => copyText(script)} rows="min-h-40" />

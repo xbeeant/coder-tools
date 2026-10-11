@@ -214,7 +214,7 @@ export default function SlugTool() {
       title="Slugify 转换"
       description="把标题批量转成 URL 友好的短标识"
       actions={
-        <>
+        <div className="flex flex-row gap-1">
           <Button size="sm" variant="outline" disabled={!finalValues.length} onClick={() => copyText(lineText)}>
             <Copy className="size-3.5" />
             复制全部
@@ -235,7 +235,7 @@ export default function SlugTool() {
             下载 .txt
           </Button>
           <ClearButton onClick={() => setInput('')} disabled={!input} />
-        </>
+        </div>
       }
     >
       <div className="grid gap-3 md:grid-cols-2">

@@ -121,7 +121,7 @@ export default function TestFrameworkTool() {
       }
       description="按等价类、边界值与错误推测生成用例，可导出 Markdown / JSON / CSV"
       actions={
-        <>
+        <div className="flex flex-row gap-1">
           <Button size="sm" variant="outline" disabled={suite.cases.length === 0} onClick={() => copyText(markdown)}>
             <Copy className="size-3.5" />
             复制 Markdown
@@ -135,7 +135,7 @@ export default function TestFrameworkTool() {
             <Download className="size-3.5" />
             导出
           </Button>
-        </>
+        </div>
       }
     >
       <Note tone="info" title="使用提示">

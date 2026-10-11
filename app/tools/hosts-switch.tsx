@@ -358,7 +358,7 @@ export default function HostsSwitch() {
       }
       description="多套 hosts 方案管理、行级校验、方案对比与一键部署脚本生成"
       actions={
-        <>
+        <div className="flex flex-row gap-1">
           <Button size="sm" onClick={createProfileAction}>
             <FilePlus2 className="size-3.5" />
             新建方案
@@ -376,7 +376,7 @@ export default function HostsSwitch() {
             <Download className="size-3.5" />
             下载 hosts.txt
           </Button>
-        </>
+        </div>
       }
     >
       <Note tone="warn" title="扩展无法直接改写系统 hosts">

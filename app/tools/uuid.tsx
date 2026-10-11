@@ -45,10 +45,11 @@ export default function UuidTool() {
       }
       description="生成 UUID v4、v7、v1，支持大小写与是否保留连字符"
       actions={
-        <>
+        <div className="flex flex-row gap-1">
           <Select
             ariaLabel="版本"
             label="版本"
+            layout={'horizontal'}
             value={version}
             onChange={(value) => setVersion(value as Version)}
             options={[
@@ -79,7 +80,7 @@ export default function UuidTool() {
             复制全部
           </Button>
           <ClearButton onClick={() => setSeed((n) => n + 1)} disabled={count === 0} />
-        </>
+        </div>
       }
     >
       <div className="flex-1 overflow-auto rounded-md border bg-muted/30 p-3 font-mono text-xs leading-relaxed whitespace-pre-wrap scrollbar-thin">

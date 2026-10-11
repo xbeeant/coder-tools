@@ -51,13 +51,13 @@ export default function Base64Tool() {
       title="Base64 编码/解码"
       description="UTF-8 安全的 Base64 转换，解码兼容 URL-safe 变体"
       actions={
-        <>
+        <div className="flex flex-row gap-1">
           <Button size="sm" variant="ghost" onClick={swap} disabled={!result.ok || result.output === ''}>
             <ArrowLeftRight className="size-3.5" />
             互换
           </Button>
           <ClearButton onClick={() => setInput('')} disabled={input === ''} />
-        </>
+        </div>
       }
     >
       <Tabs value={mode} onValueChange={(value) => setMode(value as Mode)}>

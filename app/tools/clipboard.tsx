@@ -460,14 +460,14 @@ export default function ClipboardTool() {
           title="记录一条片段"
           description="类型自动识别；关闭记录或命中黑名单时不会写入历史。"
           actions={
-            <>
+            <div className="flex flex-row gap-1">
               <Button size="sm" variant="outline" onClick={() => void readClipboard()}>
                 读取剪贴板
               </Button>
               <Button size="sm" onClick={addDraft}>
                 记录到历史
               </Button>
-            </>
+            </div>
           }
         >
           <label className="flex min-w-0 flex-col gap-1 text-xs">
@@ -607,7 +607,7 @@ export default function ClipboardTool() {
           <Section
             title={`历史（${visible.length}/${entries.length}）`}
             actions={
-              <>
+              <div className="flex flex-row gap-1">
                 <Button size="sm" variant="outline" onClick={exportJson}>
                   导出 JSON
                 </Button>
@@ -620,7 +620,7 @@ export default function ClipboardTool() {
                 <Button size="sm" variant="destructive" onClick={() => setEntries([])}>
                   清空
                 </Button>
-              </>
+              </div>
             }
           >
             {visible.length === 0 ? (

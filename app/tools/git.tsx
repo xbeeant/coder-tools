@@ -692,7 +692,7 @@ export default function GitCheatsheet() {
             description="按「一行一条 lane」手写提交分布，列号即时间顺序"
             className="md:col-span-2"
             actions={
-              <>
+              <div className="flex flex-row gap-1">
                 <Button size="sm" variant="outline" onClick={() => setDslText(DSL_SAMPLE)}>
                   填入示例
                 </Button>
@@ -700,7 +700,7 @@ export default function GitCheatsheet() {
                   <Copy className="size-3.5" />
                   复制
                 </Button>
-              </>
+              </div>
             }
           >
             <div className="grid gap-3 md:grid-cols-2">

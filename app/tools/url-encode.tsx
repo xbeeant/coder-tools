@@ -57,7 +57,7 @@ export default function UrlEncode() {
       }
       description="使用 encodeURIComponent/encodeURI 进行 URL 编码与解码"
       actions={
-        <>
+        <div className="flex flex-row gap-1">
           <Tabs value={scope} onValueChange={(value) => setScope(value as Scope)}>
             <TabsList>
               <TabsTrigger value="component">Component</TabsTrigger>
@@ -75,7 +75,7 @@ export default function UrlEncode() {
             互换
           </Button>
           <ClearButton onClick={() => setInput('')} disabled={!input} />
-        </>
+        </div>
       }
     >
       <div className="flex flex-1 flex-col gap-2">

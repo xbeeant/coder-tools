@@ -348,7 +348,7 @@ export default function AesTool() {
       }
       description="AES-GCM / AES-CBC 使用 WebCrypto，DES-CBC / 3DES-CBC 使用内置纯 TS 实现"
       actions={
-        <>
+        <div className="flex flex-row gap-1">
           <Tabs
             value={mode}
             onValueChange={(value) => setMode(value === 'decrypt' ? 'decrypt' : 'encrypt')}
@@ -373,7 +373,7 @@ export default function AesTool() {
             selectClassName="h-7 w-auto text-xs"
             disabled={lockedByHeader}
           />
-        </>
+        </div>
       }
     >
       <Note tone={activeCipher.local ? 'warn' : 'info'} title={activeCipher.id}>

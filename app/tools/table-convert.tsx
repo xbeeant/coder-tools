@@ -240,7 +240,7 @@ export default function TableConvert() {
       title="表格互转"
       description="Excel / CSV / TSV / Markdown / HTML / JSON 数组互转，含行列整理与类型推断"
       actions={
-        <>
+        <div className="flex flex-row gap-1">
           <Button size="sm" onClick={() => void importFile()}>
             <FileUp className="size-3.5" />
             导入文件
@@ -254,7 +254,7 @@ export default function TableConvert() {
             }}
             disabled={sourceText === '' && table === null}
           />
-        </>
+        </div>
       }
     >
       <Note tone="info" title="格式能力说明">
@@ -283,6 +283,7 @@ export default function TableConvert() {
             </Button>
             <Select
               label="分隔符"
+              layout={"horizontal"}
               value={delimiter}
               onChange={(value) => {
                 setDelimiter(value);
@@ -319,7 +320,7 @@ export default function TableConvert() {
           title="输出"
           description={table === null ? '暂无数据' : `${table.columns.length} 列 / ${table.rows.length} 行`}
           actions={
-            <>
+            <div className="flex flex-row gap-1">
               <Button
                 size="sm"
                 variant="ghost"
@@ -346,7 +347,7 @@ export default function TableConvert() {
                 <Download className="size-3.5" />
                 下载
               </Button>
-            </>
+            </div>
           }
         >
           <Tabs value={format} onValueChange={(value) => setFormat(value as Format)}>

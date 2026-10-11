@@ -90,7 +90,7 @@ export default function BcryptTool() {
       }
       description="bcrypt 是为口令存储设计的慢哈希：自带随机盐、内置 salt，成本可调"
       actions={
-        <>
+        <div className="flex flex-row gap-1">
           <Tabs
             value={mode}
             onValueChange={(value) => setMode(value === 'verify' ? 'verify' : 'generate')}
@@ -106,7 +106,7 @@ export default function BcryptTool() {
             </TabsList>
           </Tabs>
           <ClearButton onClick={reset} />
-        </>
+        </div>
       }
     >
       <div className="grid  flex-1 grid-cols-1 gap-3 md:grid-cols-2">

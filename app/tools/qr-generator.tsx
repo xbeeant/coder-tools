@@ -49,7 +49,7 @@ export default function QrGenerator() {
       }
       description="生成二维码并支持 PNG/SVG 下载"
       actions={
-        <>
+        <div className="flex flex-row gap-1">
           <Button size="sm" variant="outline" onClick={downloadPng} disabled={!text}>
             <Download className="size-3.5" />
             PNG
@@ -58,7 +58,7 @@ export default function QrGenerator() {
             <Download className="size-3.5" />
             SVG
           </Button>
-        </>
+        </div>
       }
     >
       <div className="flex flex-1 flex-col gap-3 overflow-auto md:flex-row scrollbar-thin">

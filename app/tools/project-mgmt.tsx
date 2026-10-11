@@ -543,7 +543,7 @@ export default function ProjectMgmt() {
       }
       description="本地看板、迭代燃尽与工时统计，数据存在浏览器里"
       actions={
-        <>
+        <div className="flex flex-row gap-1">
           <Select
             ariaLabel="切换项目"
             value={workspace.currentProjectId}
@@ -558,7 +558,7 @@ export default function ProjectMgmt() {
             <Plus className="size-3.5" />
             新建项目
           </Button>
-        </>
+        </div>
       }
     >
       <Tabs value={tab} onValueChange={(value) => setTab(value as MainTab)}>

@@ -202,13 +202,13 @@ export default function YamlXml() {
       }
       description="格式化、压缩、结构校验与互转，全部在本地完成"
       actions={
-        <>
+        <div className="flex flex-row gap-1">
           <Button size="sm" variant="outline" onClick={() => void handlePick()} disabled={busy}>
             <FolderOpen className="size-3.5" />
             打开文件
           </Button>
           <ClearButton onClick={() => setInput('')} disabled={input === ''} />
-        </>
+        </div>
       }
     >
       <div className="flex flex-wrap items-center gap-2">

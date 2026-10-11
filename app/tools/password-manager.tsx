@@ -491,14 +491,14 @@ export default function PasswordManagerTool() {
           <Section
             title={`条目（${visible.length}/${items.length}）`}
             actions={
-              <>
+              <div className="flex flex-row gap-1">
                 <Button size="sm" variant="outline" onClick={() => setQuery('')}>
                   清除搜索
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => void importPlain()}>
                   导入 JSON
                 </Button>
-              </>
+              </div>
             }
           >
             <div className="grid gap-3 md:grid-cols-2">

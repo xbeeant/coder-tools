@@ -102,7 +102,7 @@ export default function UnicodeTool() {
       }
       description="字符与 Unicode 转义序列互相转换，支持 JS/十六进制/十进制/HTML 实体格式"
       actions={
-        <>
+        <div className="flex flex-row gap-1">
           {mode === 'encode' && (
             <Tabs value={style} onValueChange={(value) => setStyle(value as EscapeStyle)}>
               <TabsList>
@@ -134,9 +134,12 @@ export default function UnicodeTool() {
             互换
           </Button>
           <ClearButton onClick={() => setInput('')} disabled={!input} />
-        </>
+        </div>
       }
     >
+      <Note tone="info" title="说明">
+        解码支持 JS 转义序列（\u、\u&#123;&#123;&#125;&#125;、\x、八进制），未知序列将原样保留。
+      </Note>
       <div className="flex flex-1 flex-col gap-2">
         <Textarea
           value={input}
@@ -180,9 +183,6 @@ export default function UnicodeTool() {
           </div>
         )}
       </div>
-      <Note tone="info" title="说明">
-        解码支持 JS 转义序列（\u、\u&#123;&#123;&#125;&#125;、\x、八进制），未知序列将原样保留。
-      </Note>
     </ToolPanel>
   );
 }

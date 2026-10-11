@@ -96,13 +96,13 @@ export default function SecurityScanTool() {
       }
       description="静态检查依赖漏洞、危险写法与硬编码密钥，全部在浏览器内完成"
       actions={
-        <>
+        <div className="flex flex-row gap-1">
           <Button size="sm" disabled={files.length === 0} onClick={run}>
             <FileSearch className="size-3.5" />
             开始扫描
           </Button>
           <ClearButton onClick={reset} disabled={files.length === 0 && !report} />
-        </>
+        </div>
       }
     >
       <Note tone="warn" title="这不是渗透测试">

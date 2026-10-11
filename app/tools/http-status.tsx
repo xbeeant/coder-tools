@@ -235,6 +235,16 @@ export default function HttpStatusTool() {
         </div>
       }
     >
+
+
+      <Note tone="info" title="语义筛选说明">
+        <StatGrid className="grid-cols-1 sm:grid-cols-3">
+          <Stat label="可重试" value="500 / 502 / 503 / 504 / 429" hint="配指数退避与幂等键" tone="success" />
+          <Stat label="不可重试" value="400 / 403 / 404 / 410 / 501" hint="必须改代码或换配置" tone="danger" />
+          <Stat label="需要认证" value="401 / 403 / 407 / 511" hint="重新登录或申请授权" tone="warn" />
+        </StatGrid>
+      </Note>
+
       <Tabs value={category} onValueChange={(value) => setCategory(value as StatusCategory | '全部')}>
         <TabsList className="flex-wrap">
           {CATEGORY_ORDER.map((item) => (
@@ -399,14 +409,6 @@ export default function HttpStatusTool() {
           </div>
         </Section>
       </div>
-
-      <Note tone="info" title="语义筛选说明">
-        <StatGrid className="grid-cols-1 sm:grid-cols-3">
-          <Stat label="可重试" value="500 / 502 / 503 / 504 / 429" hint="配指数退避与幂等键" tone="success" />
-          <Stat label="不可重试" value="400 / 403 / 404 / 410 / 501" hint="必须改代码或换配置" tone="danger" />
-          <Stat label="需要认证" value="401 / 403 / 407 / 511" hint="重新登录或申请授权" tone="warn" />
-        </StatGrid>
-      </Note>
     </ToolPanel>
   );
 }

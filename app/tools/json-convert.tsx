@@ -320,13 +320,13 @@ export default function JsonConvert() {
       }
       description="JSON 与结构化文本格式互转，纯本地处理不上传任何数据"
       actions={
-        <>
+        <div className="flex flex-row gap-1">
           <Button size="sm" variant="outline" onClick={() => void handlePick()} disabled={busy}>
             <FolderOpen className="size-3.5" />
             打开文件
           </Button>
           <ClearButton onClick={() => setInput('')} disabled={input === ''} />
-        </>
+        </div>
       }
     >
       <div className="flex flex-wrap items-center gap-2">

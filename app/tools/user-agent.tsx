@@ -213,6 +213,12 @@ export default function UserAgentTool() {
         </div>
       }
     >
+      <Note tone="info" title="关于设备与能力推断">
+        <span className="inline-flex items-start gap-1">
+          <Sparkles className="mt-0.5 size-3 shrink-0" />
+          全部基于 UA 字符串的关键词匹配与内置版本表，不联网、不上报；UA 可被随意伪造，判定结果只作参考。
+        </span>
+      </Note>
       <Section
         title={mode === 'single' ? 'User-Agent 字符串' : '批量 UA（每行一条）'}
         description={mode === 'batch' ? '按行解析，输出对比表与系统 / 浏览器分布统计' : undefined}
@@ -483,13 +489,6 @@ export default function UserAgentTool() {
           </span>
         </Note>
       </Section>
-
-      <Note tone="info" title="关于设备与能力推断">
-        <span className="inline-flex items-start gap-1">
-          <Sparkles className="mt-0.5 size-3 shrink-0" />
-          全部基于 UA 字符串的关键词匹配与内置版本表，不联网、不上报；UA 可被随意伪造，判定结果只作参考。
-        </span>
-      </Note>
     </ToolPanel>
   );
 }

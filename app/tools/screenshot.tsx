@@ -750,7 +750,7 @@ export default function ScreenshotAnnotate() {
       title="截图标注"
       description="屏幕捕获或上传图片后添加标注，支持马赛克、模糊、裁剪与快捷键"
       actions={
-        <>
+        <div className="flex flex-row gap-1">
           <Button size="sm" variant="outline" onClick={() => void captureScreen()}>
             <Monitor className="size-3.5" />
             捕获屏幕
@@ -763,7 +763,7 @@ export default function ScreenshotAnnotate() {
             <Download className="size-3.5" />
             下载 PNG
           </Button>
-        </>
+        </div>
       }
     >
       {error && <Note tone="danger">{error}</Note>}

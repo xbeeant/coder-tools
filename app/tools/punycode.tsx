@@ -213,7 +213,7 @@ export default function Punycode() {
       }
       description="RFC 3492：国际化域名与 xn-- ASCII 形式互转，支持中文、日文与 Emoji 域名"
       actions={
-        <>
+        <div className="flex flex-row gap-1">
           <Tabs value={mode} onValueChange={(value) => setMode(value as Mode)}>
             <TabsList>
               <TabsTrigger value="domain">域名</TabsTrigger>
@@ -225,7 +225,7 @@ export default function Punycode() {
             <ArrowLeftRight className="size-3.5" />
             互换
           </Button>
-        </>
+        </div>
       }
     >
       <Section

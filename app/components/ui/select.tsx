@@ -1,3 +1,26 @@
+/**
+ * Select 组件
+ *
+ * Props 说明：
+ *   label        - 表单标签
+ *   ariaLabel    - 无障碍标签（无 label 时必填）
+ *   value        - 选中值
+ *   onChange     - 值变更回调
+ *   options      - 选项数组
+ *   hint         - 辅助说明文字
+ *   disabled     - 禁用状态
+ *   className    - 外层容器类名
+ *   selectClassName - 下拉按钮类名
+ *   displayValue - 自定义选中展示文字
+ *   layout       - label 与 select 的布局方式（vertical=上下默认，horizontal=左右）
+ *
+ * SelectOption 字段：
+ *   value  - 选项值
+ *   label  - 选项显示文字
+ *   disabled - 是否禁用
+ *   group  - 分组标签（用于 <optgroup>）
+ */
+
 import { ChevronDown } from 'lucide-react';
 import * as React from 'react';
 import { Button } from './button';
@@ -24,6 +47,8 @@ export interface SelectProps {
   selectClassName?: string;
   /** 可选：自定义选中项的展示文字。 */
   displayValue?: string;
+  /** label 与 select 的布局方式：vertical=上下（默认），horizontal=左右 */
+  layout?: 'vertical' | 'horizontal';
 }
 
 function useClickOutside(ref: React.RefObject<HTMLElement | null>, handler: () => void) {
@@ -43,7 +68,20 @@ function useClickOutside(ref: React.RefObject<HTMLElement | null>, handler: () =
 
 const Select = React.forwardRef<HTMLDivElement, SelectProps>(
   (
-    { label, ariaLabel, value, onChange, options, hint, className, disabled, selectClassName, displayValue, ...props },
+    {
+      label,
+      ariaLabel,
+      value,
+      onChange,
+      options,
+      hint,
+      className,
+      disabled,
+      selectClassName,
+      displayValue,
+      layout = 'vertical',
+      ...props
+    },
     ref,
   ) => {
     const [open, setOpen] = React.useState(false);
@@ -126,28 +164,55 @@ const Select = React.forwardRef<HTMLDivElement, SelectProps>(
       <div ref={ref} className={cn('relative min-w-0', className)} {...props}>
         <div ref={containerRef}>
           {/* 触发按钮 */}
-          <div className={cn('flex min-w-0 flex-col gap-1 text-xs', label && 'text-muted-foreground')}>
-            {label && <span>{label}</span>}
-            <Button
-              ref={buttonRef}
-              type="button"
-              variant="outline"
-              role="combobox"
-              aria-expanded={open}
-              aria-label={label ? undefined : ariaLabel}
-              aria-haspopup="listbox"
-              disabled={disabled}
-              className={cn('flex h-8 w-full items-center justify-between gap-2 px-2 text-xs', selectClassName)}
-              onClick={() => {
-                if (!disabled) setOpen((prev) => !prev);
-              }}
-              onKeyDown={handleKeyDown}
-            >
-              <span className="min-w-0 truncate">{selectedLabel}</span>
-              <ChevronDown className={cn('size-3.5 shrink-0 transition-transform', open && 'rotate-180')} />
-            </Button>
-            {hint && <span className="text-[11px] leading-relaxed text-muted-foreground/80">{hint}</span>}
-          </div>
+          {layout === 'horizontal' ? (
+            <div className={cn('flex min-w-0 items-center gap-2 text-xs', label && 'text-muted-foreground')}>
+              {label && <span className="shrink-0">{label}</span>}
+              <div className="flex min-w-0 flex-1 flex-col gap-1">
+                <Button
+                  ref={buttonRef}
+                  type="button"
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={open}
+                  aria-label={label ? undefined : ariaLabel}
+                  aria-haspopup="listbox"
+                  disabled={disabled}
+                  className={cn('flex h-8 w-full items-center justify-between gap-2 px-2 text-xs', selectClassName)}
+                  onClick={() => {
+                    if (!disabled) setOpen((prev) => !prev);
+                  }}
+                  onKeyDown={handleKeyDown}
+                >
+                  <span className="min-w-0 truncate">{selectedLabel}</span>
+                  <ChevronDown className={cn('size-3.5 shrink-0 transition-transform', open && 'rotate-180')} />
+                </Button>
+                {hint && <span className="text-[11px] leading-relaxed text-muted-foreground/80">{hint}</span>}
+              </div>
+            </div>
+          ) : (
+            <div className={cn('flex min-w-0 flex-col gap-1 text-xs', label && 'text-muted-foreground')}>
+              {label && <span>{label}</span>}
+              <Button
+                ref={buttonRef}
+                type="button"
+                variant="outline"
+                role="combobox"
+                aria-expanded={open}
+                aria-label={label ? undefined : ariaLabel}
+                aria-haspopup="listbox"
+                disabled={disabled}
+                className={cn('flex h-8 w-full items-center justify-between gap-2 px-2 text-xs', selectClassName)}
+                onClick={() => {
+                  if (!disabled) setOpen((prev) => !prev);
+                }}
+                onKeyDown={handleKeyDown}
+              >
+                <span className="min-w-0 truncate">{selectedLabel}</span>
+                <ChevronDown className={cn('size-3.5 shrink-0 transition-transform', open && 'rotate-180')} />
+              </Button>
+              {hint && <span className="text-[11px] leading-relaxed text-muted-foreground/80">{hint}</span>}
+            </div>
+          )}
 
           {/* 下拉列表 */}
           {open && (

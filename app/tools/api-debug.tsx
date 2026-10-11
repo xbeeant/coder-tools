@@ -236,7 +236,7 @@ export default function ApiDebugTool() {
       }
       description="构造、解析 curl 命令并导出前端代码；全程离线，不发起任何网络请求"
       actions={
-        <>
+        <div className="flex flex-row gap-1">
           <Button size="sm" variant="outline" disabled={curl === ''} onClick={() => copyText(curl)}>
             <Copy className="size-3.5" />
             复制 curl
@@ -252,7 +252,7 @@ export default function ApiDebugTool() {
             <Download className="size-3.5" />
             下载脚本
           </Button>
-        </>
+        </div>
       }
     >
       <Tabs value={tab} onValueChange={(value) => setTab(value as OutputTab)}>

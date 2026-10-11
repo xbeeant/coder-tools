@@ -155,7 +155,7 @@ export default function StaticAnalysisTool() {
       }
       description="正则 + 行级检查，覆盖安全隐患、代码质量与性能三类规则；不上传任何代码"
       actions={
-        <>
+        <div className="flex flex-row gap-1">
           <Button size="sm" variant="outline" onClick={loadFile}>
             <FileUp className="size-3.5" />
             读取文件
@@ -169,7 +169,7 @@ export default function StaticAnalysisTool() {
             <Download className="size-3.5" />
             导出报告
           </Button>
-        </>
+        </div>
       }
     >
       <Tabs value={tab} onValueChange={(value) => setTab(value as ViewTab)}>
