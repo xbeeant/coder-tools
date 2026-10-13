@@ -226,7 +226,7 @@ export function JsonTree({
   const isArrayRoot = Array.isArray(value);
 
   return (
-    <div className={cn('flex min-w-0 flex-col gap-1.5', fill && 'flex-1', className)}>
+    <div className={cn('flex min-h-0 min-w-0 flex-col gap-1.5', fill && 'flex-1', className)}>
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
         <span className="text-[10px] text-muted-foreground">
           {nodeCount} 个节点

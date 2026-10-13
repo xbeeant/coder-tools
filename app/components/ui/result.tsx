@@ -30,7 +30,7 @@ export function ResultBox({
   fill = false,
 }: ResultBoxProps) {
   return (
-    <div className={cn('flex flex-col gap-1.5', fill && 'flex-1')}>
+    <div className={cn('flex min-h-0 flex-col gap-1.5', fill && 'flex-1')}>
       <div className="flex shrink-0 items-center justify-between gap-2">
         <span className="min-w-0 text-xs text-muted-foreground">
           {label}

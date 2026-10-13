@@ -440,11 +440,11 @@ export default function JsonFormatter() {
       )}
 
       {mainTab === 'format' && (
-        <div className="grid flex-1 gap-2 md:grid-cols-2">
+        <div className="grid min-h-0 flex-1 gap-2 md:auto-rows-fr md:grid-cols-2">
           <section
             aria-label="JSON 输入区，可拖入文件"
             className={cn(
-              'relative flex min-w-0 flex-col gap-1.5',
+              'relative flex min-h-0 min-w-0 flex-col gap-1.5',
               dragging && 'rounded-md ring-2 ring-primary ring-offset-2',
             )}
             onDragOver={(event) => {
@@ -525,7 +525,7 @@ export default function JsonFormatter() {
             )}
           </section>
 
-          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-1.5">
             <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
               <span className="flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                 {outputLabel}
