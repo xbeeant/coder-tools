@@ -1,10 +1,10 @@
-import { AlertTriangle, Layers, Network, Ruler, Wand2 } from 'lucide-react';
+import { AlertTriangle, Layers, Network, Ruler } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Select } from '../components/ui/select';
 import { NumberField, TextField } from '../components/ui/field';
 import { Note, type NoteTone, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
+import { Select } from '../components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Textarea } from '../components/ui/textarea';
 import { classifyIpv4, describeSubnet, formatIpv4, ipFlags, parseCidr, parseIpv4, prefixFromMask } from '../lib/ipv4';
@@ -622,13 +622,6 @@ export default function Ipv4Subnet() {
           )}
         </>
       )}
-
-      <Note tone="info" title="关于 classful 参考">
-        <span className="inline-flex items-center gap-1">
-          <Wand2 className="size-3" />
-          A/B/C 类划分（CIDR 之前的历史概念）早已废弃，此处仅作对照参考；实际网络一律按 CIDR 前缀理解。
-        </span>
-      </Note>
     </ToolPanel>
   );
 }
