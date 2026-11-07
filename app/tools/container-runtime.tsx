@@ -945,7 +945,7 @@ volumes:
                           row.risk === '高'
                             ? 'bg-destructive/15 text-destructive'
                             : row.risk === '中'
-                              ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                              ? 'bg-warning/15 text-warning'
                               : 'bg-muted text-muted-foreground'
                         }`}
                       >

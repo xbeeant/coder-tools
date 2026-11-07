@@ -239,7 +239,7 @@ function ConnectTab() {
                 {hint.values.map(([name, value]) => (
                   <li key={name} className="flex gap-2 text-[11px] text-muted-foreground">
                     <span className="w-24 shrink-0">{name}</span>
-                    <span className="min-w-0 break-all font-mono text-foreground/80">{value}</span>
+                    <span className="min-w-0 break-all font-mono text-foreground">{value}</span>
                   </li>
                 ))}
               </ul>
@@ -935,7 +935,7 @@ function ResultTable({ table }: { table: Table }) {
                     title={String(row[columnIndex] ?? '')}
                   >
                     {row[columnIndex] === null ? (
-                      <span className="italic text-muted-foreground/60">NULL</span>
+                      <span className="italic text-muted-foreground">NULL</span>
                     ) : (
                       String(row[columnIndex] ?? '')
                     )}
@@ -1023,7 +1023,7 @@ function ErDiagram({ tables }: { tables: ReturnType<typeof createModelTable>[] }
                   d={edge.path}
                   fill="none"
                   stroke="currentColor"
-                  className="text-muted-foreground/60"
+                  className="text-muted-foreground"
                   strokeWidth={1.5}
                 />
                 <text x={0} y={0} className="fill-muted-foreground text-[9px]">

@@ -4,20 +4,62 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
+    <meta
+      name="description"
+      content="Coder Tools · 程序员常用工具箱：85 项本地工具，覆盖编解码、格式化、正则、加解密、时间戳、二维码、JSON 与 HTTP 联调；数据不出浏览器。"
+    />
+    <meta name="theme-color" content="#f7f4ee" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0f1318" media="(prefers-color-scheme: dark)" />
     <title>Coder Tools · 程序员工具箱</title>
     <style>
+      /* 首屏兜底：与 Web 入口共用同一套配色，扩展离线加载时不会出现白屏。 */
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+      }
       html {
-        background-color: light-dark(#fff, #121212);
+        background-color: #f7f4ee;
+      }
+      #boot {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        font: 12px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+        color: #4f5762;
+        -webkit-font-smoothing: antialiased;
+      }
+      #boot::before {
+        content: "";
+        width: 12px;
+        height: 12px;
+        border: 1px solid #244773;
+        background: rgba(36, 71, 115, 0.12);
+      }
+      #boot span {
+        font-size: 11px;
+        letter-spacing: 0.04em;
       }
       @media (prefers-color-scheme: dark) {
         html {
-          background-color: #121212;
+          background-color: #0f1318;
+        }
+        #boot {
+          color: #bdc3cc;
+        }
+        #boot::before {
+          border-color: #f3f0ea;
+          background: rgba(243, 240, 234, 0.1);
         }
       }
     </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><div id="boot"><span>正在载入工具…</span></div></div>
+    <noscript>本工具箱需要启用 JavaScript 才能运行。</noscript>
     <script type="module" src="../app/main.tsx"></script>
   </body>
 </html>

@@ -28,8 +28,8 @@ export const CATEGORY_LABEL: Record<Category, string> = {
 
 export const CATEGORY_TONE: Record<Category, string> = {
   dependency: 'border-destructive/40 bg-destructive/5',
-  config: 'border-amber-500/40 bg-amber-500/5',
-  dangerous: 'border-amber-500/40 bg-amber-500/5',
+  config: 'border-warning/40 bg-warning/5',
+  dangerous: 'border-warning/40 bg-warning/5',
   secret: 'border-destructive/40 bg-destructive/5',
 };
 

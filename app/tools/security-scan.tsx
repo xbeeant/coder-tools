@@ -31,8 +31,8 @@ const ACCEPT = '.json,.txt,.lock,.xml,.gradle,.mod,.toml,.yaml,.yml,.env,.js,.ts
 const SEVERITY_STYLE: Record<Severity, string> = {
   critical: 'border-destructive/50 bg-destructive/10 text-destructive',
   high: 'border-destructive/40 bg-destructive/5 text-destructive',
-  medium: 'border-amber-500/50 bg-amber-500/10 text-amber-600 dark:text-amber-400',
-  low: 'border-sky-500/40 bg-sky-500/5 text-sky-600 dark:text-sky-400',
+  medium: 'border-warning/50 bg-warning/10 text-warning',
+  low: 'border-info/40 bg-info/5 text-info',
   info: 'border-muted bg-muted text-muted-foreground',
 };
 
@@ -211,7 +211,7 @@ export default function SecurityScanTool() {
             <div
               className={`rounded-md border px-2.5 py-2 text-[11px] ${
                 report.gate.passed
-                  ? 'border-emerald-500/40 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400'
+                  ? 'border-success/40 bg-success/5 text-success'
                   : 'border-destructive/40 bg-destructive/5 text-destructive'
               }`}
             >

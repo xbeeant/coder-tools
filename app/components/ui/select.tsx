@@ -186,7 +186,7 @@ const Select = React.forwardRef<HTMLDivElement, SelectProps>(
                   <span className="min-w-0 truncate">{selectedLabel}</span>
                   <ChevronDown className={cn('size-3.5 shrink-0 transition-transform', open && 'rotate-180')} />
                 </Button>
-                {hint && <span className="text-[11px] leading-relaxed text-muted-foreground/80">{hint}</span>}
+                {hint && <span className="text-[11px] leading-relaxed text-muted-foreground">{hint}</span>}
               </div>
             </div>
           ) : (
@@ -210,7 +210,7 @@ const Select = React.forwardRef<HTMLDivElement, SelectProps>(
                 <span className="min-w-0 truncate">{selectedLabel}</span>
                 <ChevronDown className={cn('size-3.5 shrink-0 transition-transform', open && 'rotate-180')} />
               </Button>
-              {hint && <span className="text-[11px] leading-relaxed text-muted-foreground/80">{hint}</span>}
+              {hint && <span className="text-[11px] leading-relaxed text-muted-foreground">{hint}</span>}
             </div>
           )}
 
@@ -221,8 +221,7 @@ const Select = React.forwardRef<HTMLDivElement, SelectProps>(
               role="listbox"
               aria-label={ariaLabel ?? selectedLabel}
               className={cn(
-                'absolute z-50 max-h-48 w-full overflow-auto rounded-md border bg-popover p-1 shadow-lg outline-none scrollbar-thin',
-                'data-[state=closed]:animate-out data-[state=closed]:fade-out data-[state=open]:animate-in bg-white',
+                'absolute z-50 max-h-48 w-full overflow-auto rounded-sm border border-border-strong bg-popover p-1 shadow-lg scrollbar-thin',
               )}
             >
               {options.map((option, index) => {
@@ -241,13 +240,12 @@ const Select = React.forwardRef<HTMLDivElement, SelectProps>(
                     disabled={option.disabled}
                     data-active={isActive}
                     className={cn(
-                      'flex w-full items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-left text-xs transition-colors',
-                      'bg-popover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
-                      option.disabled && 'pointer-events-none opacity-50',
+                      'flex w-full items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-left text-xs transition-colors duration-150 ease-out-quart',
+                      option.disabled && 'pointer-events-none opacity-45',
                       isSelected
-                        ? 'bg-primary text-primary-foreground'
-                        : 'hover:bg-accent hover:text-accent-foreground',
-                      isActive && !isSelected && 'bg-accent',
+                        ? 'bg-accent font-medium text-foreground'
+                        : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                      isActive && !isSelected && 'bg-accent/60 text-foreground',
                     )}
                     onClick={() => {
                       if (!option.disabled) {
@@ -259,7 +257,7 @@ const Select = React.forwardRef<HTMLDivElement, SelectProps>(
                     onMouseEnter={() => setActiveIndex(index)}
                   >
                     <span className="min-w-0 truncate">{option.label}</span>
-                    {isSelected && <span className="shrink-0">✓</span>}
+                    {isSelected && <span className="shrink-0 text-signal">✓</span>}
                   </button>
                 );
               })}

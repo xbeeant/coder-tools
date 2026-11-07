@@ -331,7 +331,7 @@ function VerifyPanel({ result }: { result: VerifyResult | null }) {
   }
   if (!result.matched) {
     return (
-      <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/5 p-2.5 text-xs text-amber-600 dark:text-amber-400">
+      <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/5 p-2.5 text-xs text-warning">
         <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
         <span>❌ 不匹配：口令与哈希不是同一份数据，或口令输入有误。</span>
       </div>
@@ -339,7 +339,7 @@ function VerifyPanel({ result }: { result: VerifyResult | null }) {
   }
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-2 rounded-md border border-emerald-500/40 bg-emerald-500/5 p-2.5 text-xs text-emerald-600 dark:text-emerald-400">
+      <div className="flex items-center gap-2 rounded-md border border-success/40 bg-success/5 p-2.5 text-xs text-success">
         <CheckCircle2 className="size-3.5 shrink-0" />✅ 匹配：口令正确
       </div>
       <StatGrid className="lg:grid-cols-2">

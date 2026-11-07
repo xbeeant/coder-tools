@@ -5,8 +5,6 @@ import {
   ChevronsLeft,
   ChevronsRight,
   ChevronsUpDown,
-  Clock3,
-  Command,
   Link2,
   Moon,
   ScanSearch,
@@ -395,66 +393,101 @@ export default function AppShell() {
 
   return (
     <div className="flex h-dvh w-screen flex-col overflow-hidden bg-background text-foreground">
-      <header className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
+      <a href="#tool-content" className="skip-link">
+        跳至工具内容
+      </a>
+      <header className="flex h-11 shrink-0 items-center gap-1 border-b border-border px-3">
         <Button
           size="icon"
           variant="ghost"
-          className="lg:hidden"
+          className="size-7 shrink-0"
           onClick={() => setSidebarOpen((open) => !open)}
           title="切换侧边栏 (⌘B)"
           aria-label="切换侧边栏"
         >
-          <ChevronRight className="size-4" />
+          {sidebarOpen ? <ChevronsLeft className="size-3.5" /> : <ChevronsRight className="size-3.5" />}
         </Button>
-        <Button
-          size="icon"
-          variant="ghost"
-          className="hidden lg:inline-flex"
-          onClick={() => setSidebarOpen((open) => !open)}
-          title="切换侧边栏 (⌘B)"
-          aria-label="切换侧边栏"
-        >
-          {sidebarOpen ? <ChevronLeft className="size-4" /> : <ChevronRight className="size-4" />}
-        </Button>
-        <div className="flex min-w-0 items-center gap-2">
-          <Command className="size-4 shrink-0 text-muted-foreground" />
-          <span className="truncate text-sm font-semibold">Coder Tools</span>
+
+        <span
+          aria-hidden
+          className="size-4 shrink-0 rounded-sm border border-primary/50 bg-primary/10 blueprint-grid"
+        />
+        <span className="hidden shrink-0 font-display text-[13px] font-semibold tracking-[0.01em] sm:inline">
+          Coder Tools
+        </span>
+        <span aria-hidden className="mx-1 hidden h-4 w-px shrink-0 bg-border sm:block" />
+
+        {/* 历史导航从二级标题栏上移，少一层横条。 */}
+        <div className="flex shrink-0 items-center gap-0.5">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="size-7"
+            disabled={history.index <= 0}
+            onClick={() => travel(-1)}
+            title="后退 (⌘[)"
+            aria-label="后退到上一个工具"
+          >
+            <ChevronLeft className="size-3.5" />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="size-7"
+            disabled={history.index >= history.stack.length - 1}
+            onClick={() => travel(1)}
+            title="前进 (⌘])"
+            aria-label="前进到下一个工具"
+          >
+            <ChevronRight className="size-3.5" />
+          </Button>
         </div>
+
+        {/* 当前通道读数：工具名与描述不再在二级栏重复出现。 */}
+        <div className="flex min-w-0 flex-1 items-center gap-2 px-2">
+          <div className="hidden w-full min-w-0 items-center gap-2 lg:flex">
+            <span className="instrument-label shrink-0">ACTIVE</span>
+            <span className="truncate font-display text-xs font-medium" title={activeTool.meta.description}>
+              {activeTool.meta.name}
+            </span>
+            <span aria-hidden className="h-px min-w-2 flex-1 bg-border" />
+            <span className="shrink-0 text-[10px] text-muted-foreground">{toolCategoryLabel(activeTool.meta.id)}</span>
+          </div>
+        </div>
+
+        {altKey && (
+          <span className="hidden shrink-0 rounded-sm border border-signal/60 bg-signal/10 px-1.5 py-0.5 text-[10px] lg:inline">
+            Alt + ↑/↓ 切换工具
+          </span>
+        )}
+
         <button
           type="button"
           onClick={() => setPickerOpen(true)}
-          className="ml-auto flex h-8 w-full max-w-sm items-center gap-2 rounded-md border bg-muted/40 px-2.5 text-left text-xs text-muted-foreground transition-colors hover:bg-muted"
+          className="flex h-7 w-7 shrink-0 items-center justify-center gap-2 rounded-sm border border-border-strong bg-surface px-1 text-left text-[11px] text-muted-foreground transition-colors duration-150 ease-out-quart hover:bg-surface-2 sm:w-56 sm:justify-start sm:px-2"
         >
           <Search className="size-3.5 shrink-0" />
-          <span className="flex-1 truncate">搜索工具…</span>
-          <kbd className="shrink-0 rounded border px-1 font-sans text-[10px]">⌘K</kbd>
+          <span className="hidden flex-1 truncate sm:inline">搜索工具</span>
+          <kbd className="hidden shrink-0 rounded-sm border border-border px-1 font-mono text-[10px] sm:inline">⌘K</kbd>
         </button>
+
         <div className="flex shrink-0 items-center gap-0.5">
-          <button
-            type="button"
-            onClick={() => {
-              copyText(shareableUrl(activeTool.meta.id));
-              notify('已复制当前工具链接');
-            }}
-            title="点击复制当前工具链接"
-            className="hidden rounded border px-1.5 py-1 text-[10px] text-muted-foreground transition-colors hover:bg-accent lg:inline-flex"
-          >
-            {RUNTIME_LABEL}
-          </button>
           {extensionFeatures && (
             <Button
               size="icon"
               variant="ghost"
+              className="size-7"
               onClick={() => setContextOpen(true)}
               title="页面上下文 (⌘⇧P)"
               aria-label="打开页面上下文"
             >
-              <ScanSearch className="size-4" />
+              <ScanSearch className="size-3.5" />
             </Button>
           )}
           <Button
             size="icon"
             variant="ghost"
+            className="size-7"
             onClick={() => {
               copyText(shareableUrl(activeTool.meta.id));
               notify('已复制当前工具链接');
@@ -462,34 +495,37 @@ export default function AppShell() {
             title="复制当前工具链接 (⌘⇧C)"
             aria-label="复制当前工具链接"
           >
-            <Link2 className="size-4" />
+            <Link2 className="size-3.5" />
           </Button>
           <Button
             size="icon"
             variant="ghost"
+            className="size-7"
             onClick={() => toggleFav(activeTool.meta.id)}
             title={isFavorite ? '取消收藏 (⌘⇧F)' : '收藏 (⌘⇧F)'}
             aria-label="收藏当前工具"
           >
-            <Star className={cn('size-4', isFavorite && 'fill-current text-amber-500')} />
+            <Star className={cn('size-3.5', isFavorite && 'fill-current text-signal')} />
           </Button>
           <Button
             size="icon"
             variant="ghost"
+            className="size-7"
             onClick={toggleTheme}
             title="切换明暗主题 (⌘⇧T)"
             aria-label="切换明暗主题"
           >
-            {theme === 'dark' ? <Sun className="size-4" /> : <Moon className="size-4" />}
+            {theme === 'dark' ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
           </Button>
           <Button
             size="icon"
             variant="ghost"
+            className="size-7"
             onClick={() => setSettingsOpen(true)}
             title="设置 (⌘,)"
             aria-label="打开设置"
           >
-            <Settings2 className="size-4" />
+            <Settings2 className="size-3.5" />
           </Button>
         </div>
       </header>
@@ -497,13 +533,13 @@ export default function AppShell() {
       <div className="flex min-h-0 flex-1">
         {sidebarOpen && (
           <nav
-            className="fixed top-12 bottom-0 left-0 z-40 flex w-64 shrink-0 flex-col border-r bg-background lg:static lg:z-auto"
+            className="fixed top-11 bottom-0 left-0 z-40 flex w-64 shrink-0 flex-col border-r border-border bg-sidebar lg:static lg:z-auto"
             aria-label="工具导航"
           >
-            <div className="flex h-9 shrink-0 items-center gap-1 border-b px-2">
-              {sidebarTab === 'tree' ? (
+            <div className="flex h-9 shrink-0 items-center gap-1 border-b border-border px-2">
+              <span className="instrument-label flex-1">{sidebarTab === 'tree' ? 'INDEX' : 'RECENT'}</span>
+              {sidebarTab === 'tree' && (
                 <>
-                  <span className="flex-1 text-[11px] font-medium text-muted-foreground">工具树</span>
                   <Button
                     size="icon"
                     variant="ghost"
@@ -525,8 +561,6 @@ export default function AppShell() {
                     <ChevronsRight className="size-3.5" />
                   </Button>
                 </>
-              ) : (
-                <span className="flex-1" />
               )}
               <Button
                 size="icon"
@@ -540,13 +574,13 @@ export default function AppShell() {
               </Button>
             </div>
 
-            <div className="flex shrink-0 items-center gap-2 border-b px-2 py-1.5">
+            <div className="shrink-0 px-2">
               <Tabs
                 value={sidebarTab}
                 onValueChange={(value) => setSidebarTab(value === 'recent' ? 'recent' : 'tree')}
                 className="w-full"
               >
-                <TabsList className="h-7 w-full">
+                <TabsList className="h-8 w-full">
                   <TabsTrigger value="recent" active={sidebarTab === 'recent'} className="flex-1">
                     最近使用
                     {recent.length > 0 && (
@@ -589,7 +623,7 @@ export default function AppShell() {
                 />
               ) : (
                 <section>
-                  <h2 className="px-2 pb-1 text-[11px] font-medium text-muted-foreground">
+                  <h2 className="instrument-label block px-2 pb-1.5">
                     {searching ? `搜索结果 ${matches.size}` : '全部分类'}
                   </h2>
                   <TreeBranch
@@ -607,62 +641,22 @@ export default function AppShell() {
                 </section>
               )}
             </div>
+
+            <div className="flex h-7 shrink-0 items-center justify-between border-t border-border px-2">
+              <span className="instrument-label">{RUNTIME_LABEL}</span>
+              <span className="font-mono text-[10px] tabular-nums text-muted-foreground">{TOOLS.length} 项</span>
+            </div>
           </nav>
         )}
 
-        <main className="flex min-h-0 flex-1 flex-col">
-          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b px-4 py-2">
-            <div className="flex min-w-0 items-center gap-2.5">
-              {(() => {
-                const Icon = activeTool.meta.icon;
-                return <Icon className="size-4 shrink-0 text-muted-foreground" />;
-              })()}
-              <div className="min-w-0">
-                <h1 className="truncate text-sm font-semibold">{activeTool.meta.name}</h1>
-                <p className="truncate text-xs text-muted-foreground">{activeTool.meta.description}</p>
-              </div>
-            </div>
-            <div className="flex shrink-0 items-center gap-1.5">
-              <Button
-                size="icon"
-                variant="ghost"
-                className="size-7"
-                disabled={history.index <= 0}
-                onClick={() => travel(-1)}
-                title="后退 (⌘[)"
-                aria-label="后退到上一个工具"
-              >
-                <ChevronLeft className="size-3.5" />
-              </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="size-7"
-                disabled={history.index >= history.stack.length - 1}
-                onClick={() => travel(1)}
-                title="前进 (⌘])"
-                aria-label="前进到下一个工具"
-              >
-                <ChevronRight className="size-3.5" />
-              </Button>
-              {altKey && (
-                <span className="rounded-md bg-primary px-2 py-1 text-[11px] text-primary-foreground">
-                  Alt + ↑/↓ 切换工具
-                </span>
-              )}
-              <span className="rounded-md bg-muted px-2 py-1 text-[11px] text-muted-foreground">
-                {toolCategoryLabel(activeTool.meta.id)}
-              </span>
-            </div>
-          </div>
-
-          <div ref={contentRef} className="flex min-h-0 w-full flex-1 flex-col overflow-hidden p-4">
+        <main id="tool-content" tabIndex={-1} className="flex min-h-0 flex-1 flex-col">
+          <div ref={contentRef} className="flex min-h-0 w-full flex-1 flex-col overflow-hidden p-3">
             <ToolErrorBoundary key={activeId} toolId={activeId}>
               <Suspense
                 fallback={
-                  <div className="flex flex-1 items-center justify-center text-xs text-muted-foreground">
-                    <Clock3 className="mr-1.5 size-3.5 animate-spin" />
-                    加载中
+                  <div className="flex flex-1 items-center justify-center gap-2 text-[11px] text-muted-foreground">
+                    <span aria-hidden className="size-1.5 animate-pulse rounded-sm bg-signal" />
+                    正在载入工具…
                   </div>
                 }
               >
@@ -678,26 +672,27 @@ export default function AppShell() {
         <button
           type="button"
           aria-label="关闭侧边栏"
-          className="fixed inset-0 z-30 bg-black/30 lg:hidden"
+          className="fixed inset-0 z-30 bg-scrim lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {pickerOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center p-8">
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 sm:p-8">
           <button
             type="button"
             aria-label="关闭命令面板"
-            className="absolute inset-0 bg-black/40"
+            className="absolute inset-0 bg-scrim"
             onClick={() => setPickerOpen(false)}
           />
           <div
             role="dialog"
             aria-modal="true"
-            className="relative mt-10 w-full max-w-lg overflow-hidden rounded-xl border bg-card shadow-2xl"
+            aria-label="工具搜索"
+            className="relative mt-10 w-full max-w-lg overflow-hidden rounded-sm border border-border-strong bg-surface shadow-lg"
           >
-            <div className="flex items-center gap-2 border-b px-3">
-              <Search className="size-4 shrink-0 text-muted-foreground" />
+            <div className="flex items-center gap-2 border-b border-border px-3">
+              <Search className="size-3.5 shrink-0 text-muted-foreground" />
               <Input
                 ref={searchRef}
                 autoFocus
@@ -717,10 +712,16 @@ export default function AppShell() {
                   }
                 }}
                 placeholder="搜索工具名称、分类或关键词…"
-                className="h-11 flex-1 border-0 shadow-none focus-visible:ring-0"
+                className="h-11 flex-1 border-0 bg-transparent"
               />
-              <Button size="icon" variant="ghost" onClick={() => setPickerOpen(false)} aria-label="关闭">
-                <X className="size-4" />
+              <Button
+                size="icon"
+                variant="ghost"
+                className="size-7"
+                onClick={() => setPickerOpen(false)}
+                aria-label="关闭"
+              >
+                <X className="size-3.5" />
               </Button>
             </div>
             <ul className="max-h-80 overflow-auto p-1.5 scrollbar-thin">
@@ -733,11 +734,13 @@ export default function AppShell() {
                       onMouseEnter={() => setPickerIndex(index)}
                       onClick={() => openTool(tool.meta.id)}
                       className={cn(
-                        'flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm transition-colors',
-                        index === pickerIndex ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/60',
+                        'flex w-full items-center gap-2.5 rounded-sm border-l-2 px-2.5 py-2 text-left text-xs transition-colors duration-150 ease-out-quart',
+                        index === pickerIndex
+                          ? 'border-l-signal bg-accent/70 text-foreground'
+                          : 'border-l-transparent text-muted-foreground hover:bg-accent/50 hover:text-foreground',
                       )}
                     >
-                      <Icon className="size-4 shrink-0" />
+                      <Icon className="size-3.5 shrink-0" />
                       <span className="truncate">{tool.meta.name}</span>
                       <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">
                         {toolCategoryLabel(tool.meta.id)}
@@ -750,6 +753,10 @@ export default function AppShell() {
                 <li className="px-2.5 py-6 text-center text-xs text-muted-foreground">没有匹配的工具</li>
               )}
             </ul>
+            <div className="flex shrink-0 items-center justify-between border-t border-border px-3 py-1.5 text-[10px] text-muted-foreground">
+              <span>↑↓ 选择 · Enter 打开 · Esc 关闭</span>
+              <span className="font-mono tabular-nums">{pickerResults.length} 项</span>
+            </div>
           </div>
         </div>
       )}
@@ -778,12 +785,14 @@ export default function AppShell() {
         <div
           role="status"
           className={cn(
-            'fixed bottom-4 left-1/2 z-[80] -translate-x-1/2 rounded-md border px-3 py-2 text-xs shadow-lg',
-            toast.tone === 'error'
-              ? 'border-destructive/60 bg-destructive/10 text-destructive'
-              : 'bg-card text-foreground',
+            'fixed bottom-4 left-1/2 z-[80] flex -translate-x-1/2 items-center gap-2 rounded-sm border border-border-strong bg-surface px-3 py-2 text-xs shadow-lg',
+            toast.tone === 'error' ? 'text-danger' : 'text-foreground',
           )}
         >
+          <span
+            aria-hidden
+            className={cn('size-1.5 shrink-0 rounded-sm', toast.tone === 'error' ? 'bg-danger' : 'bg-success')}
+          />
           {toast.message}
         </div>
       )}
@@ -814,7 +823,7 @@ function TreeBranch({ nodes, depth, activeId, expanded, matches, onToggleGroup, 
   if (visible.length === 0) return null;
 
   return (
-    <ul className={depth === 0 ? 'space-y-0.5' : 'ml-1.5 mt-0.5 space-y-0.5 border-l pl-1.5'}>
+    <ul className={depth === 0 ? 'space-y-0.5' : 'ml-2 mt-0.5 space-y-0.5 border-l border-border pl-1.5'}>
       {visible.map((node) =>
         node.type === 'group' ? (
           <li key={node.id}>
@@ -864,9 +873,9 @@ function TreeGroup({ node, depth, activeId, expanded, matches, onToggleGroup, on
         aria-expanded={isOpen}
         title={node.description}
         className={cn(
-          'flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left transition-colors',
-          isTopLevel ? 'text-[13px] font-medium' : 'text-xs',
-          activeInGroup && isTopLevel ? 'text-foreground' : 'text-foreground/75 hover:bg-accent/50',
+          'flex w-full items-center gap-1.5 rounded-sm px-2 py-1.5 text-left transition-colors duration-150 ease-out-quart hover:bg-accent/50',
+          isTopLevel ? 'text-[12px] font-semibold' : 'text-[11px] font-medium',
+          activeInGroup && isTopLevel ? 'text-foreground' : 'text-muted-foreground',
         )}
       >
         <ChevronDown
@@ -874,7 +883,7 @@ function TreeGroup({ node, depth, activeId, expanded, matches, onToggleGroup, on
         />
         <Icon className={cn('size-3.5 shrink-0', activeInGroup ? 'text-primary' : 'text-muted-foreground')} />
         <span className="truncate">{node.label}</span>
-        <span className="ml-auto shrink-0 text-[10px] tabular-nums text-muted-foreground">{stat.count}</span>
+        <span className="ml-auto shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground">{stat.count}</span>
       </button>
       {isOpen && (
         <TreeBranch
@@ -909,8 +918,10 @@ function ToolLeaf({
       onClick={() => onSelect(toolId)}
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'flex w-full items-center gap-2 rounded-md py-1.5 pl-8 pr-2 text-left text-[13px] transition-colors',
-        active ? 'bg-accent font-medium text-accent-foreground' : 'text-foreground/80 hover:bg-accent/50',
+        'flex w-full items-center gap-2 rounded-sm border-l-2 py-1.5 pl-7 pr-2 text-left text-[12px] transition-colors duration-150 ease-out-quart',
+        active
+          ? 'border-l-signal bg-accent/70 font-medium text-foreground'
+          : 'border-l-transparent text-muted-foreground hover:bg-accent/50 hover:text-foreground',
       )}
     >
       <Icon className={cn('size-3.5 shrink-0', active ? '' : 'text-muted-foreground')} />
@@ -952,7 +963,7 @@ function FlatSection({
   return (
     <section className={cn('mb-3', className)}>
       <div className="flex items-center gap-1 px-2 pb-1">
-        <h2 className="flex-1 text-[11px] font-medium text-muted-foreground">
+        <h2 className="instrument-label flex-1">
           {title}
           {tools.length > 0 && <span className="ml-1 tabular-nums">{tools.length}</span>}
         </h2>
@@ -971,10 +982,10 @@ function FlatSection({
                 onClick={() => onSelect(tool.meta.id)}
                 aria-current={tool.meta.id === activeId ? 'page' : undefined}
                 className={cn(
-                  'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] transition-colors',
+                  'flex w-full items-center gap-2 rounded-sm border-l-2 px-2 py-1.5 text-left text-[12px] transition-colors duration-150 ease-out-quart',
                   tool.meta.id === activeId
-                    ? 'bg-accent font-medium text-accent-foreground'
-                    : 'text-foreground/80 hover:bg-accent/50',
+                    ? 'border-l-signal bg-accent/70 font-medium text-foreground'
+                    : 'border-l-transparent text-muted-foreground hover:bg-accent/50 hover:text-foreground',
                 )}
               >
                 <IconBox tool={tool} />

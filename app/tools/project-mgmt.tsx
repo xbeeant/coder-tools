@@ -268,7 +268,7 @@ function BarRows({ buckets, metric }: { buckets: Bucket[]; metric: 'estimated' |
 
 const PRIORITY_TONE: Record<TaskPriority, string> = {
   P0: 'bg-destructive/15 text-destructive',
-  P1: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
+  P1: 'bg-warning/15 text-warning',
   P2: 'bg-primary/15 text-primary',
   P3: 'bg-muted text-muted-foreground',
 };

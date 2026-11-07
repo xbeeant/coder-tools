@@ -879,9 +879,9 @@ function SupportTable({ support }: { support: Record<string, boolean> }) {
               ) : support[format.mime] === undefined ? (
                 <span className="text-muted-foreground">检测中</span>
               ) : support[format.mime] ? (
-                <span className="text-emerald-600 dark:text-emerald-400">可用</span>
+                <span className="text-success">可用</span>
               ) : (
-                <span className="text-amber-600 dark:text-amber-400">不可用</span>
+                <span className="text-warning">不可用</span>
               )}
             </td>
             <td>{format.lossy ? '生效' : '无效'}</td>

@@ -901,7 +901,7 @@ export default function ClipboardTool() {
                 spellCheck={false}
                 className="font-mono text-xs"
               />
-              <span className="text-[11px] leading-relaxed text-muted-foreground/80">
+              <span className="text-[11px] leading-relaxed text-muted-foreground">
                 默认：{DEFAULT_SETTINGS.blacklist}
               </span>
             </label>

@@ -2,39 +2,133 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/*
+ * Coder Tools · 工业精密 / 仪器面板设计系统
+ *
+ * 令牌分两层：
+ *  - primitive（--ink / --paper / --brass 等）在两种主题下保持不变；
+ *  - semantic（--background / --primary / --signal 等）由 :root 与 .dark 分别定义。
+ * 深色主题是独立调校，不是把浅色取反：降低纯黑、抬高表面亮度、主色改用浅墨蓝配深色字。
+ *
+ * 配色比例按视觉重量 60 / 30 / 10：暖灰纸感中性 60%，墨蓝文字与细线 30%，
+ * 琥珀信号色 10% 且只用于「激活 / 聚焦 / 需要注意」。
+ * 禁用远程字体：扩展必须离线可用，字体栈全部使用系统字体。
+ */
+
 @layer base {
   :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.205 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.205 0 0);
-    --primary: oklch(0.546 0.245 262.9);
-    --primary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.967 0.001 286.4);
-    --muted-foreground: oklch(0.552 0.016 285.9);
-    --accent: oklch(0.967 0.001 286.4);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.3);
-    --border: oklch(0.92 0.004 286.3);
-    --input: oklch(0.92 0.004 286.3);
-    --ring: oklch(0.546 0.245 262.9);
+    color-scheme: light;
+
+    /* ── Surfaces：暖灰纸感，绝不使用纯白 ───────────────────── */
+    --background: oklch(0.968 0.008 85);
+    --surface: oklch(0.994 0.004 85);
+    --surface-2: oklch(0.94 0.01 85);
+    --sidebar: oklch(0.948 0.009 85);
+    --foreground: oklch(0.235 0.022 255);
+    --card: var(--surface);
+    --card-foreground: var(--foreground);
+    --popover: var(--surface);
+    --popover-foreground: var(--foreground);
+
+    /* ── Ink scale：带墨蓝倾向的中性色 ────────────────────── */
+    --muted: oklch(0.94 0.01 85);
+    --muted-foreground: oklch(0.455 0.02 255);
+    --accent: oklch(0.922 0.012 85);
+    --accent-foreground: oklch(0.235 0.022 255);
+    --secondary: oklch(0.94 0.01 85);
+    --secondary-foreground: oklch(0.3 0.022 255);
+
+    /* ── Lines：细线表达层级，不靠阴影 ─────────────────────── */
+    --border: oklch(0.862 0.01 85);
+    /* 交互控件边界需 ≥3:1（WCAG 1.4.11），与装饰性 --border 分级 */
+    --border-strong: oklch(0.585 0.018 85);
+    --input: oklch(0.585 0.018 85);
+    /* 模态遮罩：用带墨色的半透明层，不用纯黑 */
+    --scrim: oklch(0.235 0.022 255 / 42%);
+
+    /* ── Primary：深墨蓝 ──────────────────────────────────── */
+    --primary: oklch(0.395 0.085 255);
+    --primary-hover: oklch(0.34 0.082 255);
+    --primary-foreground: oklch(0.985 0.005 85);
+
+    /* ── Signal：单一黄铜 / 琥珀强调色 ─────────────────────── */
+    --signal: oklch(0.72 0.145 68);
+    --signal-foreground: oklch(0.18 0.022 255);
+    --ring: oklch(0.585 0.14 58);
+
+    /* ── Semantic ─────────────────────────────────────────── */
+    --success: oklch(0.505 0.105 155);
+    --warning: oklch(0.555 0.125 62);
+    --danger: oklch(0.505 0.185 25);
+    --info: oklch(0.5 0.09 250);
+    --destructive: var(--danger);
+    --destructive-foreground: oklch(0.99 0.004 85);
+
+    /* ── Syntax：校准过的语法色，两套主题各自可读 ─────────── */
+    --syntax-key: oklch(0.455 0.105 255);
+    --syntax-string: oklch(0.455 0.1 155);
+    --syntax-number: oklch(0.5 0.125 55);
+    --syntax-literal: oklch(0.49 0.13 320);
+    --syntax-comment: oklch(0.555 0.014 255);
+
+    /* ── Elevation：一层发丝线，不漂浮 ─────────────────────── */
+    --shadow-sm: 0 1px 0 0 color-mix(in oklch, var(--foreground) 6%, transparent);
+    --shadow-md: 0 1px 2px 0 color-mix(in oklch, var(--foreground) 9%, transparent);
+    --shadow-lg: 0 10px 28px -10px color-mix(in oklch, var(--foreground) 26%, transparent);
   }
 
   .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.185 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.623 0.214 259.8);
-    --primary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.713 0.014 286.1);
-    --accent: oklch(0.269 0.006 286.2);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.2);
-    --border: oklch(1 0 0 / 12%);
-    --input: oklch(1 0 0 / 16%);
-    --ring: oklch(0.623 0.214 259.8);
+    color-scheme: dark;
+
+    /* 深蓝炭灰而非纯黑；表面越「高」越亮 */
+    --background: oklch(0.185 0.012 255);
+    --surface: oklch(0.225 0.013 255);
+    --surface-2: oklch(0.262 0.013 255);
+    --sidebar: oklch(0.205 0.012 255);
+    --foreground: oklch(0.955 0.008 85);
+    --card: var(--surface);
+    --card-foreground: var(--foreground);
+    --popover: var(--surface);
+    --popover-foreground: var(--foreground);
+
+    --muted: oklch(0.268 0.012 255);
+    --muted-foreground: oklch(0.815 0.014 255);
+    --accent: oklch(0.29 0.013 255);
+    --accent-foreground: oklch(0.955 0.008 85);
+    --secondary: oklch(0.268 0.012 255);
+    --secondary-foreground: oklch(0.955 0.008 85);
+
+    --border: oklch(0.76 0.012 255 / 18%);
+    /* 深色下用实色而非低透明度，保证控件边界达到 3:1 */
+    --border-strong: oklch(0.57 0.016 255);
+    --input: oklch(0.57 0.016 255);
+    --scrim: oklch(0.1 0.012 255 / 64%);
+
+    /* 深色下主色变亮，前景字必须换成深墨色才能达标 */
+    --primary: oklch(0.76 0.08 255);
+    --primary-hover: oklch(0.82 0.072 255);
+    --primary-foreground: oklch(0.16 0.012 255);
+
+    --signal: oklch(0.8 0.135 72);
+    --signal-foreground: oklch(0.16 0.012 255);
+    --ring: oklch(0.8 0.135 72);
+
+    --success: oklch(0.76 0.11 155);
+    --warning: oklch(0.8 0.125 72);
+    --danger: oklch(0.72 0.16 25);
+    --info: oklch(0.76 0.09 250);
+    --destructive: var(--danger);
+    --destructive-foreground: oklch(0.16 0.012 255);
+
+    --syntax-key: oklch(0.78 0.09 255);
+    --syntax-string: oklch(0.78 0.1 155);
+    --syntax-number: oklch(0.8 0.115 65);
+    --syntax-literal: oklch(0.78 0.11 320);
+    --syntax-comment: oklch(0.79 0.02 255);
+
+    --shadow-sm: 0 1px 0 0 color-mix(in oklch, var(--foreground) 8%, transparent);
+    --shadow-md: 0 1px 2px 0 color-mix(in oklch, var(--foreground) 14%, transparent);
+    --shadow-lg: 0 12px 32px -10px color-mix(in oklch, oklch(0.02 0 0) 70%, transparent);
   }
 
   * {
@@ -50,38 +144,124 @@
     margin: 0;
     background-color: var(--background);
     color: var(--foreground);
+    font-family: var(--font-sans);
+    font-kerning: normal;
+    font-variant-numeric: tabular-nums;
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
     padding: 0;
     overflow: hidden;
   }
 
+  /* 等宽字体只用于真实数据，不用于普通文案 */
+  code,
+  pre,
+  kbd,
+  samp {
+    font-family: var(--font-mono);
+    font-variant-ligatures: none;
+  }
+
+  ::selection {
+    background: color-mix(in oklch, var(--signal) 38%, transparent);
+    color: var(--foreground);
+  }
+
+  /* 全局统一焦点环：各组件不再各写一套 ring，深浅色下都清晰可见。
+     现代浏览器的 outline 会跟随元素自身的 border-radius，无需在此强设圆角。 */
   :focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
+
+  /* 尊重系统的减少动效偏好：所有非必要过渡与动画归零 */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      /* 下面四处 !important 是刻意为之：必须压过组件 utility 的 transition / animation
+         声明，才能保证系统「减少动效」偏好一定生效。 */
+      /* biome-ignore lint/complexity/noImportantStyles: 覆盖组件的动画时长 */
+      animation-duration: 0.01ms !important;
+      /* biome-ignore lint/complexity/noImportantStyles: 覆盖组件的动画循环 */
+      animation-iteration-count: 1 !important;
+      /* biome-ignore lint/complexity/noImportantStyles: 覆盖组件的滚动行为 */
+      scroll-behavior: auto !important;
+      /* biome-ignore lint/complexity/noImportantStyles: 覆盖组件的过渡时长 */
+      transition-duration: 0.01ms !important;
+    }
+  }
 }
 
+/* ── Tailwind v4 主题映射 ─────────────────────────────────────
+ * inline 让工具类直接展开语义变量的值，避免嵌套 var() 在 /opacity
+ * 修饰符（如 bg-primary/10）下失效。
+ */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-sidebar: var(--sidebar);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --color-signal: var(--signal);
+  --color-signal-foreground: var(--signal-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  --color-syntax-key: var(--syntax-key);
+  --color-syntax-string: var(--syntax-string);
+  --color-syntax-number: var(--syntax-number);
+  --color-syntax-literal: var(--syntax-literal);
+  --color-syntax-comment: var(--syntax-comment);
+  --color-scrim: var(--scrim);
+}
+
+/* 与主题无关的静态令牌 */
+@theme {
+  --font-sans:
+    "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --font-display:
+    "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", "PingFang SC",
+    "Microsoft YaHei", sans-serif;
+  --font-mono:
+    "SF Mono", "JetBrains Mono", "Cascadia Mono", ui-monospace, Menlo, Consolas, "Liberation Mono", monospace;
+
+  /* 仪器面板：直角微圆角，不用胶囊 */
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+  --radius-xl: 6px;
+
+  /* 阴影变量在 :root / .dark 的 base 层里定义，会覆盖 Tailwind 默认主题值；
+     这里不要再声明一次，否则形成自引用循环。 */
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --tracking-label: 0.14em;
 }
 
 @utility scrollbar-thin {
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in oklch, var(--muted-foreground) 30%, transparent) transparent;
+  scrollbar-color: color-mix(in oklch, var(--border-strong) 70%, transparent) transparent;
 
   &::-webkit-scrollbar {
     width: 8px;
@@ -93,7 +273,61 @@
   }
 
   &::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
     border-radius: 9999px;
-    background: color-mix(in oklch, var(--muted-foreground) 28%, transparent);
+    background: color-mix(in oklch, var(--border-strong) 75%, transparent);
+    background-clip: padding-box;
+  }
+}
+
+/** 极淡的工程网格纹理，只用于品牌区 / 空态，不铺在正文上。 */
+@utility blueprint-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in oklch, var(--foreground) 5%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklch, var(--foreground) 5%, transparent) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+/** 仪表刻度式微型标签：大写、字距、细线，用于分区标题。 */
+@utility instrument-label {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  line-height: 1.4;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+/** 仪表分区：标题右侧引一条发丝线，替代「再套一张卡片」表达层级。 */
+@utility instrument-rule {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  &::after {
+    content: "";
+    flex: 1 1 auto;
+    height: 1px;
+    min-width: 8px;
+    background: var(--border);
+  }
+}
+
+/** 跳至主内容：默认隐藏，键盘聚焦时出现在左上角。 */
+@utility skip-link {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  transform: translateY(-120%);
+  padding: 8px 14px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 12px;
+  transition: transform 150ms var(--ease-out-quart);
+
+  &:focus-visible {
+    transform: translateY(0);
   }
 }

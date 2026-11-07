@@ -483,9 +483,9 @@ export default function DateCalculator() {
                     title={`${formatCnDate(cell.date)} ${WEEKDAY_LABELS[cell.date.getDay()]}${cell.holiday ? ' · 节假日' : ''}${cell.weekend ? ' · 周末' : ''}`}
                     className={[
                       'flex h-14 flex-col items-center justify-center rounded-md border text-[11px]',
-                      cell.inMonth ? 'bg-card' : 'bg-muted/20 text-muted-foreground/60',
+                      cell.inMonth ? 'bg-card' : 'bg-muted/20 text-muted-foreground',
                       cell.weekend ? 'bg-muted/50 text-muted-foreground' : '',
-                      cell.holiday ? 'border-amber-500/60 bg-amber-500/10 text-amber-700 dark:text-amber-300' : '',
+                      cell.holiday ? 'border-warning/60 bg-warning/10 text-warning' : '',
                       cell.today ? 'border-primary ring-1 ring-primary/40' : '',
                       inRange ? '' : 'opacity-50',
                     ]

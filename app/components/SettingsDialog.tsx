@@ -157,23 +157,25 @@ export function SettingsDialog({
 
   return (
     <div className="fixed inset-0 z-[60] flex items-start justify-center overflow-auto p-4 sm:p-8">
-      <button type="button" aria-label="关闭设置" className="fixed inset-0 bg-black/40" onClick={onClose} />
+      <button type="button" aria-label="关闭设置" className="fixed inset-0 bg-scrim" onClick={onClose} />
       <div
         role="dialog"
         aria-modal="true"
         aria-label="设置"
-        className="relative flex max-h-full w-full max-w-2xl flex-col overflow-hidden rounded-xl border bg-card shadow-2xl"
+        className="relative flex max-h-full w-full max-w-2xl flex-col overflow-hidden rounded-sm border border-border-strong bg-surface shadow-lg"
       >
-        <header className="flex shrink-0 items-center gap-2 border-b px-4 py-3">
-          <Settings2 className="size-4 text-muted-foreground" />
-          <h2 className="flex-1 text-sm font-semibold">设置</h2>
-          <span className="rounded bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">{RUNTIME_LABEL}</span>
+        <header className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-2.5">
+          <Settings2 className="size-3.5 text-muted-foreground" />
+          <h2 className="flex-1 font-display text-[13px] font-semibold">设置</h2>
+          <span className="rounded-sm border border-border bg-surface-2 px-2 py-0.5 text-[11px] text-muted-foreground">
+            {RUNTIME_LABEL}
+          </span>
           <Button size="icon" variant="ghost" className="size-7" onClick={onClose} aria-label="关闭设置">
-            <X className="size-4" />
+            <X className="size-3.5" />
           </Button>
         </header>
 
-        <div className="shrink-0 border-b px-4 py-2">
+        <div className="shrink-0 border-b border-border px-4 py-2">
           <Tabs
             value={tab}
             onValueChange={(value) => setTab(value === 'data' ? 'data' : value === 'about' ? 'about' : 'general')}
@@ -286,7 +288,7 @@ export function SettingsDialog({
                     </span>
                   </div>
                   <div
-                    className="h-2 overflow-hidden rounded-full bg-muted"
+                    className="h-1.5 overflow-hidden rounded-sm border border-border bg-surface-2"
                     role="progressbar"
                     aria-label="本地存储占用"
                     aria-valuenow={Math.round(quota.ratio * 100)}
@@ -294,12 +296,8 @@ export function SettingsDialog({
                     aria-valuemax={100}
                   >
                     <div
-                      className={`h-full rounded-full transition-all ${
-                        quota.level === 'danger'
-                          ? 'bg-destructive'
-                          : quota.level === 'warn'
-                            ? 'bg-amber-500'
-                            : 'bg-emerald-500'
+                      className={`h-full transition-[width] duration-200 ease-out-quart ${
+                        quota.level === 'danger' ? 'bg-danger' : quota.level === 'warn' ? 'bg-warning' : 'bg-success'
                       }`}
                       style={{ width: `${Math.max(quota.available ? 1 : 0, quota.ratio * 100)}%` }}
                     />
@@ -317,7 +315,7 @@ export function SettingsDialog({
                 title="本地数据"
                 description={`共 ${entries.length} 项，占用 ${formatBytes(totalBytes)}。导出文件包含收藏、偏好、输入快照以及各工具自行保存的数据。`}
               >
-                <div className="max-h-40 overflow-auto rounded-md border scrollbar-thin">
+                <div className="max-h-40 overflow-auto rounded-sm border border-border scrollbar-thin">
                   {entries.length === 0 ? (
                     <p className="px-3 py-4 text-center text-[11px] text-muted-foreground">暂无本地数据</p>
                   ) : (
@@ -435,7 +433,7 @@ export function SettingsDialog({
                 <ul className="grid gap-1.5 sm:grid-cols-2">
                   {shortcuts.map((item) => (
                     <li key={item.keys} className="flex items-center gap-2 text-[11px]">
-                      <kbd className="shrink-0 rounded border bg-muted px-1.5 py-0.5 font-mono text-[10px]">
+                      <kbd className="shrink-0 rounded-sm border border-border bg-surface-2 px-1.5 py-0.5 font-mono text-[10px]">
                         {item.keys}
                       </kbd>
                       <span className="text-muted-foreground">{item.label}</span>
@@ -472,14 +470,14 @@ export function SettingsDialog({
               </Section>
 
               <Note tone="warn" title="能力边界">
-                接口调试 / 抓包调试等工具是纯离线的命令与 HAR 转换器，不会真正发起网络请求； 安全扫描使用的是本地 CVE
-                快照，不等同于实时漏洞库；PDF 工具不支持写入打开密码。
+                接口调试 / 抓包调试是离线的命令与 HAR 转换器，不会发请求；真正发请求请使用「HTTP 客户端」。
+                安全扫描使用本地 CVE 快照，不等同于实时漏洞库；PDF 工具不支持写入打开密码。
               </Note>
             </>
           )}
         </div>
 
-        <footer className="flex shrink-0 items-center justify-between gap-2 border-t px-4 py-2">
+        <footer className="flex shrink-0 items-center justify-between gap-2 border-t border-border px-4 py-2">
           <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
             <Keyboard className="size-3.5" />⌘ / Ctrl + , 可随时打开设置
           </span>

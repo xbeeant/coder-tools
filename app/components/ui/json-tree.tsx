@@ -58,13 +58,14 @@ function shortText(text: string, max = 100): string {
 }
 
 /** 标量值的着色与文案。 */
+/** 标量着色与代码块共用同一套语义语法色，两套主题自动适配。 */
 function ScalarValue({ value }: { value: unknown }) {
-  if (value === null) return <span className="text-sky-600 dark:text-sky-400">null</span>;
-  if (typeof value === 'boolean') return <span className="text-sky-600 dark:text-sky-400">{String(value)}</span>;
-  if (typeof value === 'number') return <span className="text-amber-600 dark:text-amber-400">{String(value)}</span>;
+  if (value === null) return <span className="text-syntax-literal">null</span>;
+  if (typeof value === 'boolean') return <span className="text-syntax-literal">{String(value)}</span>;
+  if (typeof value === 'number') return <span className="text-syntax-number">{String(value)}</span>;
   if (typeof value === 'string')
     return (
-      <span className="text-emerald-600 dark:text-emerald-400" title={value}>
+      <span className="text-syntax-string" title={value}>
         &quot;{shortText(value)}&quot;
       </span>
     );
@@ -100,7 +101,7 @@ function TreeNode({ path, depth, value, keyName, kind, collapsed, onToggle, onSe
     (kind === 'array' ? (
       <span className="text-muted-foreground">{String(keyName)}</span>
     ) : (
-      <span className="text-fuchsia-600 dark:text-fuchsia-400">{JSON.stringify(String(keyName))}</span>
+      <span className="text-syntax-key">{JSON.stringify(String(keyName))}</span>
     ));
 
   const rowContent = (
@@ -119,7 +120,7 @@ function TreeNode({ path, depth, value, keyName, kind, collapsed, onToggle, onSe
       ) : (
         <>
           <Punc>{isArray ? '[' : '{'}</Punc>
-          <span className="text-muted-foreground/70">
+          <span className="text-muted-foreground">
             · {size} {isArray ? '个元素' : '个字段'}
           </span>
           <Punc>{isArray ? ']' : '}'}</Punc>
@@ -145,7 +146,7 @@ function TreeNode({ path, depth, value, keyName, kind, collapsed, onToggle, onSe
       }}
       data-path={path}
       style={{ paddingLeft: pad }}
-      className={cn(rowClass, 'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring')}
+      className={rowClass}
     >
       {rowContent}
     </button>
@@ -156,7 +157,7 @@ function TreeNode({ path, depth, value, keyName, kind, collapsed, onToggle, onSe
       onClick={() => onSelect(path)}
       data-path={path}
       style={{ paddingLeft: pad }}
-      className={cn(rowClass, 'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring')}
+      className={rowClass}
     >
       {rowContent}
     </button>
@@ -334,9 +335,9 @@ export function JsonTree({
       </div>
 
       {/* 面包屑：选中节点的完整路径，逐段可点击定位（类似 IDE 顶部路径）。 */}
-      <div className="flex h-6 shrink-0 items-center gap-1.5 overflow-x-auto rounded-md border bg-muted/30 px-1.5 font-mono text-[10px]">
+      <div className="flex h-6 shrink-0 items-center gap-1.5 overflow-x-auto rounded-sm border border-border bg-surface-2/50 px-1.5 font-mono text-[10px] scrollbar-thin">
         {crumbs === null ? (
-          <span className="flex min-w-0 items-center gap-1 truncate text-muted-foreground/70">
+          <span className="flex min-w-0 items-center gap-1 truncate text-muted-foreground">
             <Crosshair className="size-3 shrink-0" />
             点击节点以显示完整路径，点击片段可定位
           </span>
@@ -344,18 +345,18 @@ export function JsonTree({
           <span className="flex min-w-0 items-center gap-0.5">
             {crumbs.map((crumb, index) => (
               <span key={crumb.path} className="flex shrink-0 items-center gap-0.5">
-                {index > 0 && <span className="text-muted-foreground/50">›</span>}
+                {index > 0 && <span className="text-muted-foreground">›</span>}
                 <button
                   type="button"
                   title="点击定位到该节点"
-                  className="rounded px-0.5 text-sky-600 transition-colors hover:bg-accent hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300"
+                  className="rounded-sm px-0.5 text-syntax-key transition-colors duration-150 ease-out-quart hover:bg-accent hover:text-foreground"
                   onClick={() => findAndScroll(crumb.path)}
                 >
                   {crumb.display}
                 </button>
               </span>
             ))}
-            <CornerDownRight className="ml-0.5 size-3 shrink-0 text-muted-foreground/60" />
+            <CornerDownRight className="ml-0.5 size-3 shrink-0 text-muted-foreground" />
           </span>
         )}
       </div>
@@ -363,7 +364,7 @@ export function JsonTree({
       <div
         ref={scrollRef}
         className={cn(
-          'overflow-auto rounded-md border bg-background font-mono text-xs leading-5',
+          'overflow-auto rounded-sm border border-border bg-surface font-mono text-xs leading-5 scrollbar-thin',
           fill ? 'min-h-0 flex-1' : maxHeight,
         )}
       >

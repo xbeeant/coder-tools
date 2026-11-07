@@ -246,7 +246,7 @@ export default function TextStats() {
                   <span className="w-28 shrink-0 text-muted-foreground">{bucket.label}</span>
                   <span className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
                     <span
-                      className="block h-full rounded-full bg-emerald-500/70"
+                      className="block h-full rounded-full bg-success/70"
                       style={{ width: `${Math.min(100, bucket.percent)}%` }}
                     />
                   </span>

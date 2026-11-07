@@ -206,9 +206,9 @@ export function StopwatchPanel() {
                     <td
                       className={`py-1 pr-2 ${
                         stats.fastest === item.index
-                          ? 'text-emerald-600 dark:text-emerald-400'
+                          ? 'text-success'
                           : stats.slowest === item.index
-                            ? 'text-amber-600 dark:text-amber-400'
+                            ? 'text-warning'
                             : ''
                       }`}
                     >

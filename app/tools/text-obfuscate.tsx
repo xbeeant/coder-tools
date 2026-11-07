@@ -763,9 +763,7 @@ export default function TextObfuscate() {
             </div>
           )}
           {chained.skipped.length > 0 && (
-            <p className="text-[11px] text-amber-700 dark:text-amber-400">
-              逆向模式已跳过不可逆变换：{chained.skipped.join('、')}
-            </p>
+            <p className="text-[11px] text-warning">逆向模式已跳过不可逆变换：{chained.skipped.join('、')}</p>
           )}
         </div>
       </div>
@@ -799,9 +797,7 @@ export default function TextObfuscate() {
                       {GROUP_LABELS[transform.group]}
                     </span>
                     {!transform.reversible && (
-                      <span className="rounded bg-amber-500/15 px-1 text-[10px] text-amber-700 dark:text-amber-400">
-                        不可逆
-                      </span>
+                      <span className="rounded bg-warning/15 px-1 text-[10px] text-warning">不可逆</span>
                     )}
                   </p>
                   {transform.note && (

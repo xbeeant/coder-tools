@@ -362,7 +362,7 @@ export default function MacAddress() {
                       </td>
                       <td className="px-2 py-1 font-sans">
                         {row.parsed.ok ? (
-                          <span className="text-emerald-600 dark:text-emerald-400">
+                          <span className="text-success">
                             {row.parsed.analysis.multicast ? '组播' : '单播'} /{' '}
                             {row.parsed.analysis.localAdmin ? '本地' : '全局'}
                           </span>

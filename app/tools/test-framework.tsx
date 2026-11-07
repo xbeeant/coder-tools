@@ -56,8 +56,8 @@ const CATEGORY_OPTIONS: { value: CaseCategory; label: string }[] = [
 ];
 
 const PRIORITY_TONE: Record<string, string> = {
-  P0: 'bg-red-500/15 text-red-600 dark:text-red-400',
-  P1: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
+  P0: 'bg-danger/15 text-danger',
+  P1: 'bg-warning/15 text-warning',
   P2: 'bg-muted text-muted-foreground',
 };
 

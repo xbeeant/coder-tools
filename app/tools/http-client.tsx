@@ -620,9 +620,7 @@ export default function HttpClientTool() {
                         压成一行
                       </Button>
                       {(state.method === 'GET' || state.method === 'HEAD') && (
-                        <span className="text-[11px] text-amber-600 dark:text-amber-400">
-                          {state.method} 带 body 会被浏览器忽略
-                        </span>
+                        <span className="text-[11px] text-warning">{state.method} 带 body 会被浏览器忽略</span>
                       )}
                     </div>
                     <Textarea

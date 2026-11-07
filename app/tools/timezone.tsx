@@ -29,14 +29,7 @@ const HOUR_OPTIONS = Array.from({ length: 24 }, (_, hour) => ({
   value: String(hour),
   label: `${String(hour).padStart(2, '0')}:00`,
 }));
-const HEAT = [
-  'bg-muted',
-  'bg-emerald-500/20',
-  'bg-emerald-500/35',
-  'bg-emerald-500/50',
-  'bg-emerald-500/65',
-  'bg-emerald-500/80',
-];
+const HEAT = ['bg-muted', 'bg-success/20', 'bg-success/35', 'bg-success/50', 'bg-success/65', 'bg-success/80'];
 
 type TabKey = 'convert' | 'meeting' | 'batch' | 'clock';
 
@@ -90,7 +83,7 @@ export function ZoneSearchSelect({
         options={filtered.map((zone) => ({ value: zone, label: zone }))}
         selectClassName="w-full"
       />
-      {hint && <span className="text-[11px] leading-relaxed text-muted-foreground/80">{hint}</span>}
+      {hint && <span className="text-[11px] leading-relaxed text-muted-foreground">{hint}</span>}
     </div>
   );
 }
@@ -332,7 +325,7 @@ export default function TimezoneTool() {
                         <td className="py-1.5 pr-3 text-muted-foreground">{row.utc}</td>
                         <td className="py-1.5 pr-3">{row.offset}</td>
                         <td className="py-1.5 pr-3">
-                          <span className={row.isDst ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}>
+                          <span className={row.isDst ? 'text-warning' : 'text-muted-foreground'}>
                             {row.isDst ? '是' : '否'}
                           </span>
                         </td>
@@ -363,16 +356,14 @@ export default function TimezoneTool() {
                         <span className="truncate font-mono text-xs">{zone}</span>
                         <span
                           className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] ${
-                            info.isDst
-                              ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
-                              : 'bg-muted text-muted-foreground'
+                            info.isDst ? 'bg-warning/15 text-warning' : 'bg-muted text-muted-foreground'
                           }`}
                         >
                           {info.isDst ? '夏令时中' : '标准时'}
                         </span>
                       </div>
                       <p className="text-[11px] leading-relaxed text-muted-foreground">{info.rule}</p>
-                      <p className="text-[10px] text-muted-foreground/80">
+                      <p className="text-[10px] text-muted-foreground">
                         {info.source === 'builtin'
                           ? `内置规则，仅供参考（${info.ruleLabel ?? ''}）`
                           : '规则来源：Intl 通用名称'}
@@ -453,7 +444,7 @@ export default function TimezoneTool() {
                             className={`rounded-sm py-1 text-center font-mono text-[9px] ${heatClass(
                               matrix.counts[hour] ?? 0,
                               matrix.maxCount,
-                            )} ${row.inWork[hour] ? 'text-foreground' : 'text-muted-foreground/50'}`}
+                            )} ${row.inWork[hour] ? 'text-foreground' : 'text-muted-foreground'}`}
                             title={`UTC ${String(hour).padStart(2, '0')}:00 → ${row.timeZone} ${String(local).padStart(2, '0')}:00`}
                           >
                             {String(local).padStart(2, '0')}

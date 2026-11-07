@@ -61,23 +61,23 @@ function segments(parts: DiffSegment[] | undefined, fallback: string): DiffSegme
 /** 行内视图：新增绿色、删除红色、修改黄色，深浅色主题都可读。 */
 const INLINE_TONE: Record<DiffRow['kind'], string> = {
   equal: '',
-  add: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-  del: 'bg-red-500/10 text-red-700 line-through decoration-red-500/60 dark:text-red-300',
-  modify: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
+  add: 'bg-success/10 text-success',
+  del: 'bg-danger/10 text-danger line-through decoration-danger/60',
+  modify: 'bg-warning/10 text-warning',
 };
 
 const SPLIT_GUTTER: Record<DiffRow['kind'], string> = {
-  equal: 'text-muted-foreground/60',
-  add: 'text-emerald-600 dark:text-emerald-400',
-  del: 'text-red-600 dark:text-red-400',
-  modify: 'text-amber-600 dark:text-amber-400',
+  equal: 'text-muted-foreground',
+  add: 'text-success',
+  del: 'text-danger',
+  modify: 'text-warning',
 };
 
 const SPLIT_ROW: Record<DiffRow['kind'], string> = {
   equal: '',
-  add: 'bg-emerald-500/5',
-  del: 'bg-red-500/5',
-  modify: 'bg-amber-500/5',
+  add: 'bg-success/5',
+  del: 'bg-danger/5',
+  modify: 'bg-warning/5',
 };
 
 const KIND_SIGN: Record<DiffRow['kind'], string> = { equal: ' ', add: '+', del: '-', modify: '~' };
@@ -126,7 +126,7 @@ export function Parts({
 
 export function Gutter({ no }: { no: number | null }) {
   return (
-    <span className="w-10 shrink-0 select-none pr-1.5 text-right text-[10px] text-muted-foreground/70 tabular-nums">
+    <span className="w-10 shrink-0 select-none pr-1.5 text-right text-[10px] text-muted-foreground tabular-nums">
       {no ?? ''}
     </span>
   );
@@ -140,16 +140,14 @@ export function InlineRow({ row }: { row: DiffRow }) {
     <div className={`flex items-start gap-1 rounded px-1.5 py-0.5 font-mono text-xs leading-relaxed ${tone}`}>
       <span className="w-3 shrink-0 select-none text-center opacity-70">{KIND_SIGN[row.kind]}</span>
       <Gutter no={row.leftNo ?? row.rightNo} />
-      <Parts parts={primary} fallback={primaryText} changedClass="rounded bg-amber-500/25 font-semibold" />
+      <Parts parts={primary} fallback={primaryText} changedClass="rounded bg-warning/25 font-semibold" />
     </div>
   );
 }
 
 export function SplitRow({ row }: { row: DiffRow }) {
-  const leftHighlight =
-    row.kind === 'modify' || row.kind === 'del' ? 'rounded bg-amber-500/25 dark:bg-amber-400/20' : '';
-  const rightHighlight =
-    row.kind === 'modify' || row.kind === 'add' ? 'rounded bg-amber-500/25 dark:bg-amber-400/20' : '';
+  const leftHighlight = row.kind === 'modify' || row.kind === 'del' ? 'rounded bg-warning/25' : '';
+  const rightHighlight = row.kind === 'modify' || row.kind === 'add' ? 'rounded bg-warning/25' : '';
   return (
     <div className={`grid grid-cols-2 ${SPLIT_ROW[row.kind]}`}>
       <div className="flex items-start gap-1 border-r border-dashed px-1.5 py-0.5 font-mono text-xs leading-relaxed">
@@ -159,9 +157,7 @@ export function SplitRow({ row }: { row: DiffRow }) {
           {row.kind === 'modify' ? (
             <Parts parts={row.leftParts} fallback={row.left} changedClass={leftHighlight} />
           ) : (
-            <span
-              className={row.kind === 'del' ? 'text-red-700 line-through decoration-red-500/60 dark:text-red-300' : ''}
-            >
+            <span className={row.kind === 'del' ? 'text-danger line-through decoration-danger/60' : ''}>
               {row.left}
             </span>
           )}
@@ -174,7 +170,7 @@ export function SplitRow({ row }: { row: DiffRow }) {
           {row.kind === 'modify' ? (
             <Parts parts={row.rightParts} fallback={row.right} changedClass={rightHighlight} />
           ) : (
-            <span className={row.kind === 'add' ? 'text-emerald-700 dark:text-emerald-300' : ''}>{row.right}</span>
+            <span className={row.kind === 'add' ? 'text-success' : ''}>{row.right}</span>
           )}
         </span>
       </div>

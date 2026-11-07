@@ -304,7 +304,7 @@ export default function HostsSwitch() {
 
   const issueTone = useCallback((kind: HostsIssue['kind']) => {
     if (kind === 'bad-ip' || kind === 'bad-domain') return 'text-destructive';
-    if (kind === 'dup-ip' || kind === 'dup-domain') return 'text-amber-600 dark:text-amber-400';
+    if (kind === 'dup-ip' || kind === 'dup-domain') return 'text-warning';
     return 'text-muted-foreground';
   }, []);
 
@@ -740,7 +740,7 @@ export default function HostsSwitch() {
                 </div>
                 <p className="mt-0.5 text-[11px] text-muted-foreground">{item.description}</p>
                 {item.warning !== undefined && (
-                  <p className="mt-1 flex gap-1 text-[11px] text-amber-600 dark:text-amber-400">
+                  <p className="mt-1 flex gap-1 text-[11px] text-warning">
                     <AlertTriangle className="mt-0.5 size-3 shrink-0" />
                     {item.warning}
                   </p>
@@ -875,9 +875,9 @@ export default function HostsSwitch() {
                         <span
                           className={cn(
                             'shrink-0',
-                            row.kind === 'add' && 'text-emerald-600',
+                            row.kind === 'add' && 'text-success',
                             row.kind === 'del' && 'text-destructive',
-                            row.kind === 'change' && 'text-amber-600',
+                            row.kind === 'change' && 'text-warning',
                           )}
                         >
                           {row.kind === 'add' ? '+' : row.kind === 'del' ? '-' : '~'}
@@ -930,8 +930,8 @@ const DIFF_LABELS: Record<DiffKind, string> = {
 };
 
 function diffTone(kind: DiffKind): string {
-  if (kind === 'add') return 'text-emerald-600 dark:text-emerald-400';
+  if (kind === 'add') return 'text-success';
   if (kind === 'del') return 'text-destructive';
-  if (kind === 'change') return 'text-amber-600 dark:text-amber-400';
+  if (kind === 'change') return 'text-warning';
   return 'text-muted-foreground';
 }

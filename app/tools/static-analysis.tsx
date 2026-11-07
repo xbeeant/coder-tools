@@ -103,7 +103,7 @@ const GROUP_OPTIONS: { value: RuleGroup; label: string }[] = [
 
 const TONE_CLASS: Record<RuleSeverity, string> = {
   error: 'bg-destructive/10 text-destructive border-destructive/40',
-  warn: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/40',
+  warn: 'bg-warning/10 text-warning border-warning/40',
   info: 'bg-muted text-muted-foreground border-border',
 };
 
@@ -457,9 +457,7 @@ export default function StaticAnalysisTool() {
                   </div>
                   <p className="mt-1 text-[11px]">{rule.message}</p>
                   <p className="text-[11px] text-muted-foreground">修复：{rule.fix}</p>
-                  <code className="mt-1 block break-all font-mono text-[10px] text-muted-foreground/80">
-                    /{example}/
-                  </code>
+                  <code className="mt-1 block break-all font-mono text-[10px] text-muted-foreground">/{example}/</code>
                 </div>
               ))}
             </div>
@@ -511,7 +509,7 @@ function IssueRow({ issue }: { issue: Issue }) {
       </div>
       <p className="mt-1 text-[11px]">{issue.message}</p>
       <p className="text-[11px] text-muted-foreground">修复：{issue.fix}</p>
-      <code className="mt-1 block truncate font-mono text-[10px] text-muted-foreground/80">{issue.text}</code>
+      <code className="mt-1 block truncate font-mono text-[10px] text-muted-foreground">{issue.text}</code>
     </div>
   );
 }

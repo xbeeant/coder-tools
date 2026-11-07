@@ -23,20 +23,20 @@ const CATEGORY_ORDER: (StatusCategory | '全部')[] = ['全部', '信息', '成�
 
 /** 类别徽标配色，1xx~5xx 一眼区分。 */
 const CATEGORY_CLASS: Record<StatusCategory, string> = {
-  信息: 'border-sky-500/40 bg-sky-500/10 text-sky-700 dark:text-sky-300',
-  成功: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-  重定向: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300',
-  客户端错误: 'border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-300',
-  服务端错误: 'border-orange-500/40 bg-orange-500/10 text-orange-700 dark:text-orange-300',
+  信息: 'border-info/40 bg-info/10 text-info',
+  成功: 'border-success/40 bg-success/10 text-success',
+  重定向: 'border-warning/40 bg-warning/10 text-warning',
+  客户端错误: 'border-danger/40 bg-danger/10 text-danger',
+  服务端错误: 'border-warning/40 bg-warning/10 text-warning',
   未分配: 'border-border bg-muted text-muted-foreground',
 };
 
 const SEMANTIC_CLASS: Record<StatusSemantic, string> = {
-  retry: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-  'retry-careful': 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300',
-  'no-retry': 'border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-300',
-  auth: 'border-violet-500/40 bg-violet-500/10 text-violet-700 dark:text-violet-300',
-  'fix-request': 'border-sky-500/40 bg-sky-500/10 text-sky-700 dark:text-sky-300',
+  retry: 'border-success/40 bg-success/10 text-success',
+  'retry-careful': 'border-warning/40 bg-warning/10 text-warning',
+  'no-retry': 'border-danger/40 bg-danger/10 text-danger',
+  auth: 'border-syntax-literal/40 bg-syntax-literal/10 text-syntax-literal',
+  'fix-request': 'border-info/40 bg-info/10 text-info',
   'client-closed': 'border-border bg-muted text-muted-foreground',
 };
 

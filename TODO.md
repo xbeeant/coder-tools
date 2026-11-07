@@ -342,3 +342,71 @@
    （输入 / 输出类型、变量引用、失败策略），单独一批做，混进其它任务容易做浅。
 2. 让 `security-scan` 支持可选 advisory 数据源，并明确离线快照截止日期。
 3. JWT 签发 / 验证、db-client 真本地查询等「名不副实」能力的逐项坐实。
+
+## 第四批完善（2026-11-07 · UI 重新设计与实现）
+
+**动机**：原界面是未加设计的 shadcn 默认皮肤 —— 蓝紫主色、纯白 / 近黑、统一 `rounded-md` +
+灰边、万物皆卡片、三层横条堆叠且工具名与描述重复、深色只是浅色取反；`index.html` 的
+meta 还停留在「83 项工具」。设计目标定为「工业精密 · 仪器面板」，范围限定在令牌 + 共享组件
++ 全局外壳，不重写 85 个工具页内部逻辑。
+
+### 设计系统
+
+- 新建 `.impeccable.md` 设计上下文（用户画像、品牌人格、美学方向、反参考、原则、
+  约束与组件状态清单）。
+- 重写 `app/globals.css`：OKLCH 语义令牌，浅色暖灰纸感 + 墨蓝主色 + 单一琥珀信号色；
+  深色独立调校（抬高主色亮度、前景换深墨色、控件边界改用实色保 3:1）；
+  2–3px 微圆角、`font-display` / `font-mono` 字阶、tabular-nums、`ease-out-quart`；
+  `scrollbar-thin` / `blueprint-grid` / `instrument-label` / `instrument-rule` / `skip-link`。
+- 全局 `:focus-visible` 统一 2px 琥珀焦点环，`prefers-reduced-motion` 禁用非必要动效。
+- **先别名过渡、后语义化清理**：先由 `@theme inline` 兼容别名让 85 个工具页零改动换肤，
+  随后把 45 个文件、340 处默认调色板类名全量替换为语义类并移除别名层（详见下一节）。
+
+### 共享组件与外壳
+
+- `components/ui/`：Button 增 loading 与 signal 变体；Input / Textarea 增 `aria-invalid`、
+  read-only、disabled 态；Select 去掉深色下会变白底的 `bg-white`；Tabs 改底部细线刻度；
+  ToolPanel / Section / Note / Stat / CodeBlock / JsonTree 全部改语义令牌与语法色。
+- `AppShell.tsx`：三层横条压成一条 44px 顶栏；前进 / 后退、当前工具读数、Alt 提示上移；
+  去掉重复的工具名 + 描述二级栏；侧栏改 `bg-sidebar`、刻度标签与底部工具总数读数；
+  激活项用左侧琥珀竖线；命令面板 / 遮罩 / toast 改 `bg-scrim` + 微圆角；新增 skip-link。
+- 三个面板（设置 / 页面上下文 / 错误边界）同步换肤；设置里过时的「能力边界」文案
+  补上「真正发请求请用 HTTP 客户端」。
+
+### 入口与验证
+
+- Web / 扩展两个 `index.html`：description 校正为 85 项，`theme-color` 分浅深两套，
+  boot 屏配色由设计令牌换算成 sRGB（`#f7f4ee` / `#0f1318`），消除纯白闪屏。
+- `tests/design-tokens.test.ts` 从 8 个用例扩到 12 个，新增遮罩令牌、别名层已移除、
+  「全项目零残留默认调色板类名」与「共享组件零残留默认皮肤类名」等回归断言。
+- README 新增「界面设计」章节；`.impeccable.md` 记录实现决策与配色边界。
+
+### 设计技术债清理（同批收尾）
+
+**动机**：上一节为了让 85 个工具页零改动换肤，曾在 `@theme inline` 里加了一层兼容别名，
+把 `text-amber-600` 等默认调色板类重定向到语义令牌。别名层只是过渡手段，长期留着会让
+「源码写什么」和「设计系统认什么」出现两个真相来源，新增工具也容易继续写旧类名。
+
+- 精确侦查：实际是 340 处旧类名、82 个唯一类名、43 个工具文件，另有 `lime` / `indigo` /
+  `slate` / `teal` 冷门色与 `dark:` 变体；最终改动 45 个文件。
+- 映射方案：`amber` / `orange` / `yellow` → `warning`；`emerald` / `green` / `lime` →
+  `success`；`red` / `rose` → `danger`；`sky` / `blue` → `info`；`violet` / `fuchsia` /
+  `purple` → `syntax-literal`；`teal` → `syntax-string`；`indigo` → `syntax-key`；
+  `slate` → `muted-foreground`。删除 110 处冗余 `dark:` 变体（语义令牌自身随 `.dark` 切换）。
+- 次要文字不再靠降透明度表达层级：18 处 `text-muted-foreground/NN` 与
+  `text-foreground/NN` 改为纯前景色，避免深色主题下低于 WCAG AA。
+- 机械映射的三处区分度损失做了手工修正：`sql.tsx` 高亮从状态色改回 `syntax-*` 语法令牌
+  与 CodeBlock / JsonTree 统一；`password.ts` 五档强度条改为 3 个语义色 + 透明度递进；
+  `packet-debug.tsx` 七段瀑布图改用语义色与语法色保留分段区分。
+- 移除 `app/globals.css` 兼容别名层，CSS 从 405 行降到 333 行，配色只由语义令牌提供。
+- `tests/design-tokens.test.ts` 扩到 12 个用例：断言别名层已移除、全项目源码零残留默认
+  调色板类名与降透明度正文、共享组件与外壳零残留默认皮肤类名。
+
+**验证**：`bun run check` 零诊断（181 文件；Biome 自动修复 13 处批量替换后的 JSX 格式），
+`bun test` 68/68 通过；Web 与扩展双端构建通过；从入口 HTML 实际引用的 CSS 核对双端产物，
+兼容别名残留 0、默认调色板类规则 0、`.text-warning` / `.bg-success` / `.border-danger` /
+`.bg-syntax-key` / `.bg-scrim` 等全部生成；无头 Chrome 补拍浅色 `text-diff` 与深色 `sql`
+两张回归截图，确认差异红绿区分、语法色生效、深色无白底残留、无掉色。截图归档在
+`.workbuddy/ui-qa/05-cleanup-light.png` 与 `06-cleanup-dark.png`。
+
+**状态**：本批 UI 重设计 + 技术债清理的改动尚未提交；上一提交仍是 `af3ca0c`，未 push。

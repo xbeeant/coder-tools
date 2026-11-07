@@ -65,11 +65,11 @@ const FORMAT_TABS: { value: Format; label: string }[] = [
 const PREVIEW_LIMIT = 100;
 
 const TYPE_TONE: Record<string, string> = {
-  number: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
-  boolean: 'bg-violet-500/15 text-violet-700 dark:text-violet-300',
+  number: 'bg-warning/15 text-warning',
+  boolean: 'bg-syntax-literal/15 text-syntax-literal',
   empty: 'bg-muted text-muted-foreground',
-  string: 'bg-sky-500/15 text-sky-700 dark:text-sky-300',
-  mixed: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
+  string: 'bg-info/15 text-info',
+  mixed: 'bg-success/15 text-success',
 };
 
 export default function TableConvert() {
@@ -573,7 +573,7 @@ export default function TableConvert() {
                       {table.columns.map((name, columnIndex) => (
                         <td
                           key={columnKeys[columnIndex] ?? name}
-                          className={`max-w-56 truncate border-l px-2 py-1 font-mono ${row[columnIndex] === null ? 'text-muted-foreground/60 italic' : ''}`}
+                          className={`max-w-56 truncate border-l px-2 py-1 font-mono ${row[columnIndex] === null ? 'text-muted-foreground italic' : ''}`}
                         >
                           {cellText(row[columnIndex] ?? null)}
                         </td>

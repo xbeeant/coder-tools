@@ -39,15 +39,15 @@ export class ToolErrorBoundary extends Component<Props, State> {
     if (!error) return this.props.children;
 
     return (
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 rounded-lg border bg-card p-6">
-        <AlertTriangle className="size-6 text-destructive" />
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 rounded-sm border border-border bg-surface p-6">
+        <AlertTriangle className="size-6 text-danger" />
         <div className="text-center">
           <h2 className="text-sm font-medium">该工具暂时无法显示</h2>
           <p className="mt-1 text-xs text-muted-foreground">
             「{this.props.toolId}」在渲染时抛出了异常，其他工具不受影响。
           </p>
         </div>
-        <p className="max-w-lg break-all rounded-md bg-muted px-3 py-2 text-center font-mono text-[11px] text-destructive">
+        <p className="max-w-lg break-all rounded-sm border border-border bg-surface-2 px-3 py-2 text-center font-mono text-[11px] text-danger">
           {error.message || String(error)}
         </p>
         <div className="flex gap-2">

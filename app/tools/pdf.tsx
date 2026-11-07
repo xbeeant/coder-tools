@@ -820,7 +820,7 @@ export default function PdfTool() {
                         {page.width}×{page.height}
                       </span>
                       {page.rotation !== 0 && (
-                        <span className="flex items-center gap-0.5 text-amber-600 dark:text-amber-400">
+                        <span className="flex items-center gap-0.5 text-warning">
                           <RotateCw className="size-2.5" />
                           {page.rotation}°
                         </span>

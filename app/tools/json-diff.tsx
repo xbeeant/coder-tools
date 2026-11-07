@@ -63,10 +63,10 @@ const KIND_LABEL: Record<ChangeKind, string> = {
 };
 
 const KIND_TONE: Record<ChangeKind, string> = {
-  added: 'text-emerald-700 dark:text-emerald-300',
-  removed: 'text-red-700 line-through decoration-red-500/60 dark:text-red-300',
-  type: 'text-amber-700 dark:text-amber-300',
-  changed: 'text-amber-700 dark:text-amber-300',
+  added: 'text-success',
+  removed: 'text-danger line-through decoration-danger/60',
+  type: 'text-warning',
+  changed: 'text-warning',
 };
 
 const KIND_SIGN: Record<ChangeKind, string> = { added: '+', removed: '-', type: '~', changed: '~' };
@@ -314,7 +314,7 @@ export default function JsonDiff() {
 
         <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
           {result?.identical === true && (
-            <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+            <span className="inline-flex items-center gap-1 text-success">
               <CheckCircle2 className="size-3.5" />
               两侧完全一致
             </span>
@@ -325,9 +325,7 @@ export default function JsonDiff() {
               {result.ignored > 0 && ` · 已忽略 ${result.ignored} 个字段`}
             </span>
           )}
-          {result?.truncated === true && (
-            <span className="text-amber-600 dark:text-amber-400">嵌套过深，结果已截断</span>
-          )}
+          {result?.truncated === true && <span className="text-warning">嵌套过深，结果已截断</span>}
         </div>
       </div>
 
@@ -368,7 +366,7 @@ export default function JsonDiff() {
                     <span className="shrink-0 text-[10px] text-muted-foreground">{KIND_LABEL[item.kind]}</span>
                   </div>
                   {item.kind !== 'added' && (
-                    <div className="ml-4.5 break-words text-red-700 dark:text-red-300">
+                    <div className="ml-4.5 break-words text-danger">
                       <span className="mr-1 opacity-60">-</span>
                       {item.left}
                     </div>
@@ -476,7 +474,7 @@ function SideBox({
           ) : value.trim() === '' ? (
             <Info className="size-3.5" />
           ) : (
-            <CheckCircle2 className="size-3.5 text-emerald-600" />
+            <CheckCircle2 className="size-3.5 text-success" />
           )}
           {error !== null ? '解析失败' : value.trim() === '' ? '等待输入' : formatBytes(bytes)}
         </span>
@@ -508,23 +506,23 @@ function sortKeys(node: unknown): unknown {
 
 const INLINE_ROW: Record<DiffRow['kind'], string> = {
   equal: '',
-  add: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-  del: 'bg-red-500/10 text-red-700 line-through decoration-red-500/60 dark:text-red-300',
-  modify: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
+  add: 'bg-success/10 text-success',
+  del: 'bg-danger/10 text-danger line-through decoration-danger/60',
+  modify: 'bg-warning/10 text-warning',
 };
 
 const SIGN_TONE: Record<DiffRow['kind'], string> = {
-  equal: 'text-muted-foreground/60',
-  add: 'text-emerald-600 dark:text-emerald-400',
-  del: 'text-red-600 dark:text-red-400',
-  modify: 'text-amber-600 dark:text-amber-400',
+  equal: 'text-muted-foreground',
+  add: 'text-success',
+  del: 'text-danger',
+  modify: 'text-warning',
 };
 
 const ROW_SIGN: Record<DiffRow['kind'], string> = { equal: ' ', add: '+', del: '-', modify: '~' };
 
 function Gutter({ no }: { no: number | null }) {
   return (
-    <span className="w-10 shrink-0 select-none pr-1.5 text-right text-[10px] text-muted-foreground/70 tabular-nums">
+    <span className="w-10 shrink-0 select-none pr-1.5 text-right text-[10px] text-muted-foreground tabular-nums">
       {no ?? ''}
     </span>
   );
@@ -548,11 +546,11 @@ function SplitRow({ row }: { row: DiffRow }) {
     <div
       className={`grid grid-cols-2 ${
         row.kind === 'add'
-          ? 'bg-emerald-500/5'
+          ? 'bg-success/5'
           : row.kind === 'del'
-            ? 'bg-red-500/5'
+            ? 'bg-danger/5'
             : row.kind === 'modify'
-              ? 'bg-amber-500/5'
+              ? 'bg-warning/5'
               : ''
       }`}
     >

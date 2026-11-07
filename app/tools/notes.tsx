@@ -557,7 +557,7 @@ export default function Notes() {
                   )}
                 >
                   <span className="flex items-center gap-1 truncate text-xs font-medium">
-                    {note.pinned && <Star className="size-3 shrink-0 fill-amber-500 text-amber-500" />}
+                    {note.pinned && <Star className="size-3 shrink-0 fill-warning text-warning" />}
                     {stripWikiLinks(note.title)}
                   </span>
                   <span className="truncate text-[10px] text-muted-foreground">
@@ -733,7 +733,7 @@ export default function Notes() {
                               x2={to.x}
                               y2={to.y}
                               strokeWidth={1}
-                              className="text-muted-foreground/50"
+                              className="text-muted-foreground"
                               stroke="currentColor"
                             />
                           );
@@ -768,7 +768,7 @@ export default function Notes() {
                                 node.active
                                   ? 'fill-primary text-primary'
                                   : node.pinned
-                                    ? 'fill-amber-500 text-amber-500'
+                                    ? 'fill-warning text-warning'
                                     : 'fill-muted-foreground/50 text-muted-foreground',
                               )}
                             />

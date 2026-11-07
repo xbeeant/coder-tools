@@ -205,13 +205,13 @@ const OPERATOR_OPTIONS = [
 ];
 
 const TIMING_COLOR: Record<string, string> = {
-  blocked: 'bg-slate-400',
-  dns: 'bg-sky-500',
-  connect: 'bg-indigo-500',
-  ssl: 'bg-violet-500',
-  send: 'bg-amber-500',
-  wait: 'bg-emerald-500',
-  receive: 'bg-teal-500',
+  blocked: 'bg-muted-foreground',
+  dns: 'bg-info',
+  connect: 'bg-syntax-key',
+  ssl: 'bg-syntax-literal',
+  send: 'bg-warning',
+  wait: 'bg-success',
+  receive: 'bg-syntax-string',
 };
 
 let idSeed = 0;
@@ -1195,11 +1195,9 @@ export default function PacketDebug() {
                   {results.map((item) => (
                     <div
                       key={item.rule.id}
-                      className={`flex items-start gap-2 rounded-md border px-2 py-1.5 text-xs ${item.passed ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-red-500/40 bg-red-500/5'}`}
+                      className={`flex items-start gap-2 rounded-md border px-2 py-1.5 text-xs ${item.passed ? 'border-success/40 bg-success/5' : 'border-danger/40 bg-danger/5'}`}
                     >
-                      <span
-                        className={`mt-0.5 font-mono ${item.passed ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}
-                      >
+                      <span className={`mt-0.5 font-mono ${item.passed ? 'text-success' : 'text-danger'}`}>
                         {item.passed ? 'PASS' : 'FAIL'}
                       </span>
                       <span className="min-w-0">
@@ -1474,7 +1472,7 @@ function Distribution({
               </div>
               <span className="mt-0.5 block h-1.5 overflow-hidden rounded bg-muted">
                 <span
-                  className={`block h-full ${tone === 'warn' ? 'bg-amber-500' : 'bg-sky-500'}`}
+                  className={`block h-full ${tone === 'warn' ? 'bg-warning' : 'bg-info'}`}
                   style={{ width: `${(item.count / total) * 100}%` }}
                 />
               </span>

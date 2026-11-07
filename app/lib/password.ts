@@ -174,12 +174,13 @@ export const LEVEL_LABELS: Record<StrengthLevel, string> = {
   'very-strong': '很强',
 };
 
+/** 五个等级只用 danger / warning / success 三色，靠透明度做递进，避免语义色泛滥。 */
 export const LEVEL_COLORS: Record<StrengthLevel, string> = {
-  'very-weak': 'bg-red-500',
-  weak: 'bg-orange-500',
-  fair: 'bg-amber-500',
-  strong: 'bg-lime-500',
-  'very-strong': 'bg-emerald-500',
+  'very-weak': 'bg-danger',
+  weak: 'bg-warning',
+  fair: 'bg-warning/60',
+  strong: 'bg-success/70',
+  'very-strong': 'bg-success',
 };
 
 function scoreLevel(entropy: number, matchCount: number): StrengthLevel {

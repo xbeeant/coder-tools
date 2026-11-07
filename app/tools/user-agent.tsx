@@ -30,8 +30,8 @@ import {
 type Mode = 'single' | 'batch';
 
 const SUPPORT_STYLE: Record<string, string> = {
-  yes: 'text-emerald-600 dark:text-emerald-400',
-  partial: 'text-amber-600 dark:text-amber-400',
+  yes: 'text-success',
+  partial: 'text-warning',
   no: 'text-destructive',
 };
 
@@ -64,7 +64,7 @@ export function ParsedStats({ ua, parsed }: { ua: string; parsed: ParsedUserAgen
         <span
           className={`rounded border px-1.5 py-0.5 text-[10px] ${
             parsed.isBot
-              ? 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300'
+              ? 'border-warning/40 bg-warning/10 text-warning'
               : 'border-border bg-muted text-muted-foreground'
           }`}
         >
@@ -82,7 +82,7 @@ export function ParsedStats({ ua, parsed }: { ua: string; parsed: ParsedUserAgen
           </span>
         )}
         {device.suspicious.detected && (
-          <span className="inline-flex items-center gap-1 rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-700 dark:text-amber-300">
+          <span className="inline-flex items-center gap-1 rounded border border-warning/40 bg-warning/10 px-1.5 py-0.5 text-[10px] text-warning">
             <AlertTriangle className="size-3" />
             桌面版伪装
           </span>

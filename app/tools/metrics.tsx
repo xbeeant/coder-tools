@@ -408,7 +408,7 @@ export default function MetricsTool() {
                       </Button>
                     </div>
                     <p className="mt-0.5 text-[11px] text-muted-foreground">{row.description}</p>
-                    {row.note && <p className="text-[11px] text-amber-600 dark:text-amber-400">{row.note}</p>}
+                    {row.note && <p className="text-[11px] text-warning">{row.note}</p>}
                   </div>
                 ))}
               </div>
@@ -441,7 +441,7 @@ export default function MetricsTool() {
                       className={`rounded px-1.5 py-0.5 text-[10px] ${
                         scenario.severity === 'critical'
                           ? 'bg-destructive/10 text-destructive'
-                          : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                          : 'bg-warning/10 text-warning'
                       }`}
                     >
                       {scenario.severity}

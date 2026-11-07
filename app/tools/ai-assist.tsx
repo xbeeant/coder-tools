@@ -332,9 +332,9 @@ export default function AiAssist() {
                             <span
                               className={
                                 tool.deployment === '本地'
-                                  ? 'text-emerald-600 dark:text-emerald-400'
+                                  ? 'text-success'
                                   : tool.deployment === '混合'
-                                    ? 'text-amber-600 dark:text-amber-400'
+                                    ? 'text-warning'
                                     : 'text-muted-foreground'
                               }
                             >

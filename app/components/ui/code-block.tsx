@@ -493,12 +493,13 @@ interface Token {
   kind: TokenKind;
 }
 
+/** 语法色走语义令牌，两套主题各自校准过对比度，不需要手写 dark: 分支。 */
 const TOKEN_CLASS: Record<TokenKind, string> = {
   plain: '',
-  comment: 'italic text-muted-foreground',
-  string: 'text-emerald-600 dark:text-emerald-400',
-  number: 'text-amber-600 dark:text-amber-400',
-  keyword: 'text-sky-600 dark:text-sky-400',
+  comment: 'italic text-syntax-comment',
+  string: 'text-syntax-string',
+  number: 'text-syntax-number',
+  keyword: 'text-syntax-key',
 };
 
 const IDENT_START = /[A-Za-z_]/;
@@ -652,8 +653,8 @@ export function CodeBlock({
   };
 
   return (
-    <div className={cn('flex min-w-0 flex-col gap-1.5 rounded-md border bg-muted/20', className)}>
-      <div className="flex flex-wrap items-center gap-1.5 border-b px-2 py-1">
+    <div className={cn('flex min-w-0 flex-col rounded-sm border border-border bg-surface-2/40', className)}>
+      <div className="flex flex-wrap items-center gap-1.5 border-b border-border px-2 py-1">
         <span className="truncate font-mono text-[10px] text-muted-foreground">{title ?? language}</span>
         <div className="ml-auto flex items-center gap-1">
           {actions}
@@ -682,7 +683,7 @@ export function CodeBlock({
       </div>
       <pre
         className={cn(
-          'overflow-auto p-2 font-mono text-[11px] leading-relaxed',
+          'overflow-auto p-2 font-mono text-[11px] leading-relaxed scrollbar-thin',
           maxHeight,
           wrap ? 'whitespace-pre-wrap break-all' : 'whitespace-pre',
         )}
@@ -693,7 +694,7 @@ export function CodeBlock({
               {lineNumbers && (
                 <span
                   aria-hidden
-                  className="mr-3 shrink-0 select-none text-right text-muted-foreground/60 tabular-nums"
+                  className="mr-3 shrink-0 select-none text-right text-muted-foreground tabular-nums"
                   style={{ width: `${Math.max(2, gutterWidth)}ch` }}
                 >
                   {line.number}

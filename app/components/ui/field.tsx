@@ -15,17 +15,17 @@ export function Field({ label, hint, className, children, horizontal }: FieldPro
   return (
     <label className={cn('flex min-w-0 flex-col gap-1 text-xs', className)}>
       {horizontal ? (
-        <div className="flex min-w-0 items-center gap-1">
-          <span className="shrink-0 text-muted-foreground">{label}</span>
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="shrink-0 text-[11px] font-medium text-muted-foreground">{label}</span>
           {children}
         </div>
       ) : (
         <>
-          <span className="text-muted-foreground">{label}</span>
+          <span className="text-[11px] font-medium text-muted-foreground">{label}</span>
           {children}
         </>
       )}
-      {hint && <span className="text-[11px] leading-relaxed text-muted-foreground/80">{hint}</span>}
+      {hint && <span className="text-[11px] leading-relaxed text-muted-foreground">{hint}</span>}
     </label>
   );
 }
@@ -69,7 +69,7 @@ export function TextField({
         readOnly={readOnly}
         spellCheck={spellCheck}
         onChange={(event) => onChange(event.target.value)}
-        className={cn('h-8 font-mono text-xs', inputClassName)}
+        className={cn('font-mono', inputClassName)}
       />
     </Field>
   );
@@ -102,7 +102,7 @@ export function NumberField({
 }: NumberFieldProps) {
   return (
     <Field label={label} hint={hint} className={className}>
-      <span className="flex items-center gap-1">
+      <span className="flex items-center gap-1.5">
         <Input
           type="number"
           value={Number.isFinite(value) ? String(value) : ''}
@@ -111,7 +111,7 @@ export function NumberField({
           step={step}
           disabled={disabled}
           onChange={(event) => onChange(Number(event.target.value))}
-          className="h-8 font-mono text-xs"
+          className="font-mono tabular-nums"
         />
         {suffix && <span className="shrink-0 text-[11px] text-muted-foreground">{suffix}</span>}
       </span>
@@ -141,11 +141,11 @@ export function Checkbox({ label, checked, onChange, hint, title, className, dis
           checked={checked}
           disabled={disabled}
           onChange={(event) => onChange(event.target.checked)}
-          className="size-3.5 accent-primary"
+          className="size-3.5 shrink-0 accent-primary disabled:opacity-50"
         />
         {label}
       </span>
-      <span className="pl-5 text-[11px] leading-relaxed text-muted-foreground/80">{hint}</span>
+      {hint && <span className="pl-5 text-[11px] leading-relaxed text-muted-foreground">{hint}</span>}
     </label>
   );
 }

@@ -463,7 +463,7 @@ export default function JsonFormatter() {
               <span className="flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                 输入
                 {pending ? (
-                  <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                  <span className="inline-flex items-center gap-1 text-warning">
                     <Info className="size-3.5" />
                     已暂停解析
                   </span>
@@ -473,7 +473,7 @@ export default function JsonFormatter() {
                     解析失败
                   </span>
                 ) : hasResult ? (
-                  <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                  <span className="inline-flex items-center gap-1 text-success">
                     <CheckCircle2 className="size-3.5" />
                     {summary ? `${TYPE_LABEL[summary.type]} · ${formatBytes(inputBytes)}` : ''}
                   </span>

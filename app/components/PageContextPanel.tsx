@@ -117,21 +117,21 @@ export function PageContextPanel({ open, onClose, onNotify, containerRef, select
 
   return (
     <div className="fixed inset-0 z-[60] flex items-start justify-center overflow-auto p-4 sm:p-8">
-      <button type="button" aria-label="关闭页面上下文" className="fixed inset-0 bg-black/40" onClick={onClose} />
+      <button type="button" aria-label="关闭页面上下文" className="fixed inset-0 bg-scrim" onClick={onClose} />
       <div
         role="dialog"
         aria-modal="true"
         aria-label="页面上下文"
-        className="relative flex max-h-full w-full max-w-2xl flex-col overflow-hidden rounded-xl border bg-card shadow-2xl"
+        className="relative flex max-h-full w-full max-w-2xl flex-col overflow-hidden rounded-sm border border-border-strong bg-surface shadow-lg"
       >
-        <header className="flex shrink-0 items-center gap-2 border-b px-4 py-3">
-          <ScanSearch className="size-4 text-muted-foreground" />
-          <h2 className="flex-1 text-sm font-semibold">页面上下文</h2>
-          <span className="rounded bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+        <header className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-2.5">
+          <ScanSearch className="size-3.5 text-muted-foreground" />
+          <h2 className="flex-1 font-display text-[13px] font-semibold">页面上下文</h2>
+          <span className="rounded-sm border border-border bg-surface-2 px-2 py-0.5 font-mono text-[11px] tabular-nums text-muted-foreground">
             {data ? `${items.length} 项` : '尚未采集'}
           </span>
           <Button size="icon" variant="ghost" className="size-7" onClick={onClose} aria-label="关闭页面上下文">
-            <X className="size-4" />
+            <X className="size-3.5" />
           </Button>
         </header>
 
@@ -196,13 +196,13 @@ export function PageContextPanel({ open, onClose, onNotify, containerRef, select
             ) : (
               <ul className="max-h-72 space-y-1.5 overflow-auto scrollbar-thin">
                 {visible.map((item) => (
-                  <li key={item.id} className="rounded-md border px-2.5 py-1.5">
+                  <li key={item.id} className="rounded-sm border border-border bg-surface px-2.5 py-1.5">
                     <div className="flex items-center gap-1.5">
-                      <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                      <span className="shrink-0 rounded-sm bg-surface-2 px-1.5 py-0.5 text-[10px] text-muted-foreground">
                         {item.group}
                       </span>
                       <span className="min-w-0 flex-1 truncate text-[11px] font-medium">{item.label}</span>
-                      {item.sensitive && <ShieldAlert className="size-3 shrink-0 text-amber-600" />}
+                      {item.sensitive && <ShieldAlert className="size-3 shrink-0 text-warning" />}
                     </div>
                     <p className="mt-1 truncate font-mono text-[11px] text-muted-foreground">{displayValue(item)}</p>
                     <div className="mt-1.5 flex gap-1.5">
@@ -237,7 +237,7 @@ export function PageContextPanel({ open, onClose, onNotify, containerRef, select
           </Section>
         </div>
 
-        <footer className="flex shrink-0 items-center justify-between gap-2 border-t px-4 py-2">
+        <footer className="flex shrink-0 items-center justify-between gap-2 border-t border-border px-4 py-2">
           <span className="text-[11px] text-muted-foreground">快捷键：Esc 关闭</span>
           <Button size="sm" variant="ghost" onClick={onClose}>
             关闭

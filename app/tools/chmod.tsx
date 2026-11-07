@@ -39,7 +39,7 @@ type MainTab = 'calc' | 'batch' | 'reverse' | 'umask';
 
 const RISK_TONE: Record<RiskItem['level'], string> = {
   danger: 'border-destructive/60 bg-destructive/5',
-  warn: 'border-amber-500/60 bg-amber-500/5',
+  warn: 'border-warning/60 bg-warning/5',
   info: 'border-primary/60 bg-primary/5',
 };
 
@@ -361,9 +361,7 @@ export default function ChmodTool() {
                         {preset.useCase}
                       </span>
                       {preset.risk && (
-                        <span className="mt-0.5 block text-[11px] leading-relaxed text-amber-600 dark:text-amber-400">
-                          ⚠ {preset.risk}
-                        </span>
+                        <span className="mt-0.5 block text-[11px] leading-relaxed text-warning">⚠ {preset.risk}</span>
                       )}
                     </button>
                   );

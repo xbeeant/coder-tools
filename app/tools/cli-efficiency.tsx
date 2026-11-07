@@ -914,7 +914,7 @@ function highlightSpans(segments: HighlightSegment[]): React.ReactNode {
     const key = `${offset}-${segment.text.length}`;
     offset += segment.text.length;
     return (
-      <span key={key} className={segment.hit ? 'rounded bg-amber-400/40 font-semibold text-foreground' : ''}>
+      <span key={key} className={segment.hit ? 'rounded bg-warning/40 font-semibold text-foreground' : ''}>
         {segment.text}
       </span>
     );
@@ -928,7 +928,7 @@ function highlightLine(line: string, ranges: [number, number][]) {
   for (const [start, end] of ranges) {
     if (start > cursor) nodes.push(line.slice(cursor, start));
     nodes.push(
-      <mark key={`${start}-${end}`} className="rounded bg-amber-400/40 text-foreground">
+      <mark key={`${start}-${end}`} className="rounded bg-warning/40 text-foreground">
         {line.slice(start, end)}
       </mark>,
     );
@@ -1129,12 +1129,12 @@ function Sparkline({ metric, points }: { metric: MetricSeries; points: number[] 
           <stop offset="100%" stopColor="currentColor" stopOpacity="0.02" />
         </linearGradient>
       </defs>
-      <rect x="0" y={warnY} width={width} height={height - warnY} className="fill-amber-400/10" />
+      <rect x="0" y={warnY} width={width} height={height - warnY} className="fill-warning/10" />
       <rect x="0" y={criticalY} width={width} height={warnY - criticalY} className="fill-destructive/10" />
       <line x1="0" y1={criticalY} x2={width} y2={criticalY} className="stroke-destructive/50" strokeDasharray="4 3" />
-      <line x1="0" y1={warnY} x2={width} y2={warnY} className="stroke-amber-500/50" strokeDasharray="4 3" />
-      <path d={area} fill={`url(#grad-${metric.id})`} className="text-sky-500" />
-      <path d={path} fill="none" className="stroke-sky-500" strokeWidth="1.5" />
+      <line x1="0" y1={warnY} x2={width} y2={warnY} className="stroke-warning/50" strokeDasharray="4 3" />
+      <path d={area} fill={`url(#grad-${metric.id})`} className="text-info" />
+      <path d={path} fill="none" className="stroke-info" strokeWidth="1.5" />
     </svg>
   );
 }
@@ -1186,16 +1186,16 @@ function MonitorPanel() {
           />
         }
       >
-        <div className="text-sky-500">
+        <div className="text-info">
           <Sparkline metric={metric} points={points} />
         </div>
         <div className="flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground">
           <span className="inline-flex items-center gap-1">
-            <span className="size-2.5 rounded-sm bg-sky-500/70" />
+            <span className="size-2.5 rounded-sm bg-info/70" />
             正常区间
           </span>
           <span className="inline-flex items-center gap-1">
-            <span className="size-2.5 rounded-sm bg-amber-400/40" />
+            <span className="size-2.5 rounded-sm bg-warning/40" />
             超过 {metric.warn}
             {metric.unit} 预警
           </span>

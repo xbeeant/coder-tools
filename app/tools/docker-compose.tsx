@@ -390,11 +390,7 @@ export default function DockerComposeTool() {
                             />
                             <code className="font-mono">{target}</code>
                             {hint !== undefined && (
-                              <span
-                                className={
-                                  hint.confident ? 'text-muted-foreground' : 'text-amber-600 dark:text-amber-400'
-                                }
-                              >
+                              <span className={hint.confident ? 'text-muted-foreground' : 'text-warning'}>
                                 {hint.confident ? `（${hint.reason}）` : `（不确定：${hint.reason}）`}
                               </span>
                             )}

@@ -139,11 +139,30 @@ Web 版会自动隐藏入口并给出说明：
 - **纯函数单测**：`tests/` 覆盖配额估算与写入预检、工作区备份校验、HTTP 请求编译、编码互逆、
   cURL / HAR / diff 等纯逻辑，`bun run test` 零依赖运行。
 
+## 界面设计
+
+采用「工业精密 · 仪器面板」设计系统，浅色为设计基准，深色独立调校。完整设计上下文见
+`.impeccable.md`，令牌集中在 `app/globals.css`（OKLCH 语义变量 + Tailwind v4 `@theme inline`）。
+
+- **密度优先**：全局只有一条顶栏；工具名与描述只在工具面板出现一次；前进 / 后退上移到顶栏，
+  原二级标题栏被移除。
+- **层级来自细线**：2–3px 微圆角、发丝规则线、极淡工程网格纹理，不用阴影堆叠与「万物皆卡片」。
+- **配色**：暖灰纸感中性底色 + 墨蓝主色 + 单一琥珀信号色（只标注「当前 / 聚焦 / 需注意」）。
+  数字统一 tabular-nums，等宽字体只用于真实数据与标识符。
+- **双主题与可访问性**：正文对比度 ≥ 4.5:1、交互边界 ≥ 3:1，两套主题分别由
+  `tests/design-tokens.test.ts` 实算 OKLCH → OKLab → 线性 sRGB → WCAG 对比度校验；
+  全局 `:focus-visible` 焦点环、跳至主内容链接、`prefers-reduced-motion` 支持齐全。
+- **全量语义化**：85 个工具页都通过 `ToolPanel` 与 `components/ui/` 继承样式；页面内的
+  340 处默认调色板类名已全部替换为 `text-warning` / `bg-success` / `border-danger` 等语义类，
+  不再依赖兼容别名，配色随主题自动切换。新增工具请直接使用语义类。
+- **离线约束**：只用系统字体栈，无远程字体 / CDN 外链，扩展版完全离线可用。
+
 ## 目录结构
 
 ```
 app/
-  AppShell.tsx                      主界面：导航、搜索、设置、快捷键、工具容器
+  globals.css                       设计令牌、语义色、字体阶与自定义 utilities
+  AppShell.tsx                      主界面：顶栏、导航、搜索、设置、快捷键、工具容器
   components/ui/                    共享 UI 套件（Card / Field / Select / CodeBlock / JsonTree …）
   components/SettingsDialog.tsx      设置与数据管理面板
   components/PageContextPanel.tsx    页面上下文面板（扩展专属）
@@ -155,11 +174,12 @@ app/
   lib/quota.ts                      本地存储配额估算与带预检的写入
   lib/                              纯逻辑：编码、格式转换、生成器、工作区快照等
   tools/                            85 个工具页面
-tests/                               Bun 单测（纯函数与本地存储替身）
+tests/                               Bun 单测（纯函数、本地存储替身、设计令牌对比度）
 index.html                           Web 版入口（Vite root = 项目根）
 entrypoints/                         扩展专属入口（background.ts 后台脚本、index.html）
 vite.web.config.ts                   Web 独立构建配置
 wxt.config.ts                        扩展构建配置
+.impeccable.md                       设计上下文、美学方向与实现约束
 TODO.md                              功能清单、状态与完善记录
 ```
 

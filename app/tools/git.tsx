@@ -136,7 +136,7 @@ function CommandText({ command, className = '' }: { command: string; className?:
       {segments.map((segment) => {
         if (segment.kind === 'placeholder') {
           return (
-            <span key={segment.id} className="rounded bg-amber-500/20 px-0.5 text-amber-700 dark:text-amber-300">
+            <span key={segment.id} className="rounded bg-warning/20 px-0.5 text-warning">
               {segment.text}
             </span>
           );
@@ -202,7 +202,7 @@ function CommandCard({ item }: { item: GitCommand }) {
             )}
           </dl>
           {item.risk && (
-            <p className="flex items-start gap-1.5 rounded border border-amber-500/50 bg-amber-500/10 px-2 py-1 text-[11px] leading-relaxed text-amber-700 dark:text-amber-300">
+            <p className="flex items-start gap-1.5 rounded border border-warning/50 bg-warning/10 px-2 py-1 text-[11px] leading-relaxed text-warning">
               <AlertTriangle className="mt-px size-3 shrink-0" />
               <span>{item.risk}</span>
             </p>
@@ -719,7 +719,7 @@ export default function GitCheatsheet() {
                   <DslSvg graph={dsl} />
                 )}
                 {dsl.warnings.map((warning) => (
-                  <p key={warning} className="text-[11px] text-amber-600 dark:text-amber-400">
+                  <p key={warning} className="text-[11px] text-warning">
                     {warning}
                   </p>
                 ))}

@@ -467,7 +467,7 @@ export default function CharsetConvert() {
                       复制
                     </Button>
                   </div>
-                  <div className="min-h-24 overflow-auto whitespace-pre-wrap rounded-md border bg-emerald-500/20 p-2.5 font-mono text-xs scrollbar-thin">
+                  <div className="min-h-24 overflow-auto whitespace-pre-wrap rounded-md border bg-success/20 p-2.5 font-mono text-xs scrollbar-thin">
                     {adopted}
                   </div>
                 </div>
@@ -511,12 +511,12 @@ export default function CharsetConvert() {
                       </td>
                       <td className="px-2 py-1 font-sans">{info.description}</td>
                       <td
-                        className={`px-2 py-1 font-sans ${info.decode === 'none' ? 'text-muted-foreground' : info.decode === 'native' ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}
+                        className={`px-2 py-1 font-sans ${info.decode === 'none' ? 'text-muted-foreground' : info.decode === 'native' ? 'text-warning' : 'text-success'}`}
                       >
                         {decodeLabel(info)}
                       </td>
                       <td
-                        className={`px-2 py-1 font-sans ${info.encode === 'none' ? 'text-muted-foreground' : 'text-emerald-600 dark:text-emerald-400'}`}
+                        className={`px-2 py-1 font-sans ${info.encode === 'none' ? 'text-muted-foreground' : 'text-success'}`}
                       >
                         {encodeLabel(info)}
                       </td>
@@ -587,16 +587,16 @@ function CandidateRow({
 }) {
   const badgeTone =
     candidate.confidence === 'high'
-      ? 'text-emerald-600 dark:text-emerald-400'
+      ? 'text-success'
       : candidate.confidence === 'medium'
-        ? 'text-amber-600 dark:text-amber-400'
+        ? 'text-warning'
         : 'text-muted-foreground';
   return (
     <div className="flex min-w-0 flex-col gap-1.5 rounded-md border px-3 py-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="flex min-w-0 items-center gap-1.5">
           {candidate.ok ? (
-            <Wrench className="size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+            <Wrench className="size-3.5 shrink-0 text-success" />
           ) : (
             <AlertTriangle className="size-3.5 shrink-0 text-muted-foreground" />
           )}

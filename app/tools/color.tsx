@@ -704,9 +704,7 @@ function PassRow({ label, pass }: { label: string; pass: boolean }) {
   return (
     <div className="flex items-center justify-between gap-2 rounded border px-2 py-1">
       <span>{label}</span>
-      <span className={pass ? 'font-medium text-emerald-600 dark:text-emerald-400' : 'text-destructive'}>
-        {pass ? '通过' : '不通过'}
-      </span>
+      <span className={pass ? 'font-medium text-success' : 'text-destructive'}>{pass ? '通过' : '不通过'}</span>
     </div>
   );
 }

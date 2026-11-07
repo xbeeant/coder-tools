@@ -22,14 +22,12 @@ const Tabs = React.forwardRef<HTMLDivElement, TabsProps>(({ className, value, on
 ));
 Tabs.displayName = 'Tabs';
 
+/** 刻度式标签条：底部一条发丝规则线，激活项由琥珀下划线标记。 */
 const TabsList = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn(
-        'inline-flex h-8 items-center justify-center rounded-lg bg-muted p-0.5 text-muted-foreground',
-        className,
-      )}
+      className={cn('inline-flex h-8 w-full items-stretch border-b border-border', className)}
       {...props}
     />
   ),
@@ -67,8 +65,9 @@ const TabsTrigger = React.forwardRef<HTMLButtonElement, TabsTriggerProps>(
         data-state={isActive ? 'active' : 'inactive'}
         onClick={handleClick}
         className={cn(
-          'inline-flex items-center justify-center whitespace-nowrap rounded-md px-2.5 py-0.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50',
-          isActive ? 'bg-background text-foreground shadow-sm' : 'hover:bg-background/50',
+          'inline-flex items-center justify-center whitespace-nowrap border-b-2 border-transparent px-2.5 text-xs font-medium',
+          'transition-colors duration-150 ease-out-quart disabled:pointer-events-none disabled:opacity-45',
+          isActive ? 'border-signal text-foreground' : 'text-muted-foreground hover:text-foreground',
           className,
         )}
         {...props}

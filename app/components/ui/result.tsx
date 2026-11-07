@@ -32,9 +32,9 @@ export function ResultBox({
   return (
     <div className={cn('flex min-h-0 flex-col gap-1.5', fill && 'flex-1')}>
       <div className="flex shrink-0 items-center justify-between gap-2">
-        <span className="min-w-0 text-xs text-muted-foreground">
+        <span className="min-w-0 text-[11px] font-medium text-muted-foreground">
           {label}
-          {error && <span className="ml-1.5 break-all text-destructive">{error}</span>}
+          {error && <span className="ml-1.5 break-all text-danger">{error}</span>}
         </span>
         {onCopy && (
           <Button size="sm" variant="ghost" disabled={!value} onClick={onCopy}>
@@ -47,7 +47,8 @@ export function ResultBox({
         value={error ? '' : value}
         readOnly
         spellCheck={false}
-        className={cn('resize-none font-mono text-xs', fill && 'flex-1', rows, className)}
+        aria-invalid={Boolean(error) || undefined}
+        className={cn('resize-none font-mono', fill && 'flex-1', rows, className)}
       />
     </div>
   );

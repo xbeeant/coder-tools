@@ -35,16 +35,16 @@ const PLACEHOLDER_OPTIONS: { value: PlaceholderStyle; label: string }[] = [
   { value: 'at', label: '@p1 （SQL Server）' },
 ];
 
-/** 高亮配色：深浅色各一套，保证在两种主题下都清晰。 */
+/** 高亮配色与 CodeBlock / JsonTree 共用语义语法色，两套主题自动适配。 */
 const TOKEN_CLASS: Record<SqlTokenKind, string> = {
-  keyword: 'text-sky-700 dark:text-sky-300',
-  function: 'text-violet-700 dark:text-violet-300',
-  string: 'text-emerald-700 dark:text-emerald-300',
-  number: 'text-amber-700 dark:text-amber-300',
-  comment: 'text-muted-foreground italic',
-  operator: 'text-rose-700 dark:text-rose-300',
+  keyword: 'text-syntax-key',
+  function: 'text-syntax-literal',
+  string: 'text-syntax-string',
+  number: 'text-syntax-number',
+  comment: 'text-syntax-comment italic',
+  operator: 'text-danger',
   identifier: 'text-foreground',
-  plain: 'text-muted-foreground/70',
+  plain: 'text-muted-foreground',
 };
 
 const EXAMPLES: { label: string; sql: string }[] = [
@@ -91,7 +91,7 @@ function Chips({ items, empty = '无' }: { items: string[]; empty?: string }) {
   return (
     <span className="flex flex-wrap gap-1">
       {items.slice(0, 40).map((item) => (
-        <span key={item} className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-foreground/80">
+        <span key={item} className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-foreground">
           {item}
         </span>
       ))}

@@ -955,7 +955,7 @@ export default function ScreenshotAnnotate() {
               )}
               {cropRect && !showCrop && (
                 <div
-                  className="pointer-events-none absolute border-2 border-emerald-500"
+                  className="pointer-events-none absolute border-2 border-success"
                   style={{
                     left: cropRect.x * zoom,
                     top: cropRect.y * zoom,

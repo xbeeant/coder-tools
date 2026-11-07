@@ -34,7 +34,7 @@ type Tab = 'decode' | 'inspect' | 'verify' | 'build' | 'reference';
 
 const LEVEL_STYLE: Record<JwtStructureIssue['level'], { cls: string; Icon: typeof CheckCircle2; text: string }> = {
   error: { cls: 'text-destructive', Icon: XCircle, text: '错误' },
-  warn: { cls: 'text-amber-600 dark:text-amber-400', Icon: AlertTriangle, text: '警告' },
+  warn: { cls: 'text-warning', Icon: AlertTriangle, text: '警告' },
   info: { cls: 'text-muted-foreground', Icon: ShieldAlert, text: '提示' },
 };
 
@@ -381,9 +381,7 @@ export default function JwtTool() {
                               <tr key={claim.key} className="border-b last:border-b-0 align-top">
                                 <td className="w-28 px-2 py-1 font-mono">{claim.key}</td>
                                 <td className="px-2 py-1 font-mono break-all">
-                                  <span
-                                    className={isSensitivePath(claim.key) ? 'text-amber-600 dark:text-amber-400' : ''}
-                                  >
+                                  <span className={isSensitivePath(claim.key) ? 'text-warning' : ''}>
                                     {claim.value}
                                   </span>
                                 </td>
@@ -421,9 +419,7 @@ export default function JwtTool() {
                             style={{ paddingLeft: 8 + claim.depth * 10 }}
                           >
                             {claim.path}
-                            {claim.sensitive && (
-                              <span className="ml-1 text-[9px] text-amber-600 dark:text-amber-400">敏感</span>
-                            )}
+                            {claim.sensitive && <span className="ml-1 text-[9px] text-warning">敏感</span>}
                           </td>
                           <td className="px-2 py-1 text-[10px] text-muted-foreground">{claim.type}</td>
                           <td className="px-2 py-1 font-mono break-all">{claim.value}</td>
@@ -502,9 +498,7 @@ export default function JwtTool() {
                     <div key={segment.name} className="rounded-md border px-2.5 py-2">
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-mono text-[11px]">{segment.name}</span>
-                        <span
-                          className={`text-[10px] ${segment.valid ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'}`}
-                        >
+                        <span className={`text-[10px] ${segment.valid ? 'text-success' : 'text-destructive'}`}>
                           {segment.valid ? '解码正常' : `解码失败：${segment.error}`}
                         </span>
                       </div>
@@ -802,7 +796,7 @@ export default function JwtTool() {
                         <td className="px-2 py-1 font-mono">{doc.hash}</td>
                         <td className="px-2 py-1 font-mono">{doc.signatureBytes} B</td>
                         <td
-                          className={`px-2 py-1 ${doc.risk === '高' ? 'text-destructive' : doc.risk === '中' ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}
+                          className={`px-2 py-1 ${doc.risk === '高' ? 'text-destructive' : doc.risk === '中' ? 'text-warning' : 'text-success'}`}
                         >
                           {doc.risk}
                         </td>

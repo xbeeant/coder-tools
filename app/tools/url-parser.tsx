@@ -29,14 +29,14 @@ import {
 } from '../lib/url-parser';
 
 const SEGMENT_STYLE: Record<UrlSegmentKind, string> = {
-  scheme: 'text-emerald-600 dark:text-emerald-400',
+  scheme: 'text-success',
   text: 'text-muted-foreground',
-  userinfo: 'text-amber-600 dark:text-amber-400',
-  host: 'text-sky-600 dark:text-sky-400',
-  port: 'text-violet-600 dark:text-violet-400',
+  userinfo: 'text-warning',
+  host: 'text-info',
+  port: 'text-syntax-literal',
   path: 'text-foreground',
-  query: 'text-blue-600 dark:text-blue-400',
-  hash: 'text-rose-600 dark:text-rose-400',
+  query: 'text-info',
+  hash: 'text-danger',
 };
 
 const SEGMENT_HINT: Record<UrlSegmentKind, string> = {

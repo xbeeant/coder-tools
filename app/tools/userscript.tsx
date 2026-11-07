@@ -380,9 +380,7 @@ export default function UserscriptTool() {
                       <td className="px-2 py-1">
                         <span
                           className={`rounded px-1.5 py-0.5 text-[10px] ${
-                            result.matched
-                              ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                              : 'bg-destructive/10 text-destructive'
+                            result.matched ? 'bg-success/15 text-success' : 'bg-destructive/10 text-destructive'
                           }`}
                         >
                           {result.matched ? '命中' : '未命中'}

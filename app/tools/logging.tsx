@@ -376,7 +376,7 @@ LIMIT 100;`;
                       </Button>
                     </div>
                     <p className="mt-0.5 text-[11px] text-muted-foreground">{row.description}</p>
-                    {row.note && <p className="text-[11px] text-amber-600 dark:text-amber-400">{row.note}</p>}
+                    {row.note && <p className="text-[11px] text-warning">{row.note}</p>}
                   </div>
                 ))}
               </div>

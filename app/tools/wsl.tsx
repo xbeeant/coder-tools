@@ -602,9 +602,7 @@ export default function WslTool() {
                             </span>
                           )}
                           {row.risk === 'warn' && (
-                            <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-600 dark:text-amber-400">
-                              注意
-                            </span>
+                            <span className="rounded bg-warning/10 px-1.5 py-0.5 text-[10px] text-warning">注意</span>
                           )}
                         </div>
                         <p className="mt-0.5 text-[11px] text-muted-foreground">{row.description}</p>

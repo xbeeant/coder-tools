@@ -385,9 +385,9 @@ export default function Punycode() {
                       <td className="px-2 py-1 tabular-nums">{signed(row.byteDelta)} B</td>
                       <td className="px-2 py-1 font-sans">
                         {row.issues.length === 0 ? (
-                          <span className="text-emerald-600 dark:text-emerald-400">正常</span>
+                          <span className="text-success">正常</span>
                         ) : (
-                          <ul className="space-y-0.5 text-amber-600 dark:text-amber-400">
+                          <ul className="space-y-0.5 text-warning">
                             {row.issues.map((issue) => (
                               <li key={issue}>· {issue}</li>
                             ))}
