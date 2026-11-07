@@ -2,11 +2,11 @@ import { Dices, Wand2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { v1 as uuidv1, v4 as uuidv4, v7 as uuidv7 } from 'uuid';
 import { Button } from '../components/ui/button';
-import { Select } from '../components/ui/select';
 import { Checkbox } from '../components/ui/field';
 import { Input } from '../components/ui/input';
 import { ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText } from '../components/ui/result';
+import { Select } from '../components/ui/select';
 
 type Version = 'v4' | 'v7' | 'v1';
 

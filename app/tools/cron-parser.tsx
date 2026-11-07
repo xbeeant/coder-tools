@@ -3,11 +3,11 @@ import cronstrue from 'cronstrue/dist/cronstrue-i18n';
 import { CalendarClock, Copy, Eraser, ListTree, Wand2 } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Select } from '../components/ui/select';
 import { TextField } from '../components/ui/field';
 import { Input } from '../components/ui/input';
 import { EmptyHint, Hint, Note, Section, ToolPanel } from '../components/ui/panel';
 import { copyText } from '../components/ui/result';
+import { Select } from '../components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import {
   buildCronExpr,
@@ -131,6 +131,14 @@ function matchesField(value: number, field: string, max: number): boolean {
   return false;
 }
 
+/**
+ * Vixie cron 把「日」「周」两字段是否以星号开头作为「未受限」标记：
+ * 单独的星号与「星号 + 斜杠 + 步长」都算未受限（crontab 中同样会置 DOM_STAR / DOW_STAR）。
+ */
+function isUnrestricted(field: string): boolean {
+  return field.trim().startsWith('*');
+}
+
 function nextRuns(cron: string, count: number): Date[] {
   const normalized = normalizeCron(cron);
   if (!normalized) return [];
@@ -146,19 +154,27 @@ function nextRuns(cron: string, count: number): Date[] {
   // -1 rolls back one second so the first candidate is always :00 of the current minute.
   cursor.setSeconds(hasSeconds ? -1 : 0, 0);
 
+  // 标准 Vixie cron：日、周都受限时用 OR（任一命中即执行）；
+  // 只要有一个字段未受限（* 或 */step），就退化为 AND，由受限的那个字段决定。
+  const dayStar = isUnrestricted(day);
+  const weekdayStar = isUnrestricted(weekday);
+  const dayIsOr = !dayStar && !weekdayStar;
+
   const results: Date[] = [];
   const start = Date.now();
   const limit = 366 * 24 * 60 * (hasSeconds ? 60 : 1);
   for (let step = 0; step < limit && results.length < count; step++) {
     cursor.setSeconds(cursor.getSeconds() + stepSeconds);
     if (cursor.getTime() <= start) continue;
+    const dayMatches = matchesField(cursor.getDate(), day, 31);
+    const weekdayMatches = matchesField(cursor.getDay(), weekday, 6);
+    const dayOk = dayIsOr ? dayMatches || weekdayMatches : dayMatches && weekdayMatches;
     if (
       matchesField(cursor.getSeconds(), second, 59) &&
       matchesField(cursor.getMinutes(), minute, 59) &&
       matchesField(cursor.getHours(), hour, 23) &&
-      matchesField(cursor.getDate(), day, 31) &&
       matchesField(cursor.getMonth() + 1, month, 12) &&
-      matchesField(cursor.getDay(), weekday, 6)
+      dayOk
     ) {
       results.push(new Date(cursor));
     }

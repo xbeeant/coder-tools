@@ -1,5 +1,5 @@
 import { Copy, Fingerprint, Network, RefreshCw, ShieldCheck } from 'lucide-react';
-import { useMemo, useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { Checkbox, NumberField, TextField } from '../components/ui/field';
 import { Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';

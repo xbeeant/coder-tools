@@ -2,10 +2,10 @@
 import { ArrowDown, ArrowUp, Copy, Download, Eraser, FolderOpen, Save, Trash2, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Select } from '../components/ui/select';
 import { Checkbox, NumberField, TextField } from '../components/ui/field';
 import { EmptyHint, Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
+import { Select } from '../components/ui/select';
 import { Textarea } from '../components/ui/textarea';
 import { visualizeInvisible } from '../lib/bytes';
 import { downloadText, exportName } from '../lib/file';
@@ -687,6 +687,9 @@ export default function TextClean() {
           <Button size="sm" variant="outline" onClick={() => setShowDuplicates((value) => !value)}>
             {showDuplicates ? '隐藏' : '查看'}重复内容列表（{duplicates.length} 条）
           </Button>
+          {showDuplicates && duplicates.length > 200 && (
+            <Hint>仅显示前 200 条，共 {duplicates.length} 条重复内容。</Hint>
+          )}
           {showDuplicates &&
             (duplicates.length === 0 ? (
               <EmptyHint>没有重复项</EmptyHint>

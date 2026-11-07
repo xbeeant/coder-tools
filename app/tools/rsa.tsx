@@ -1,9 +1,9 @@
 import { Copy, KeyRound, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Select } from '../components/ui/select';
 import { ToolPanel } from '../components/ui/panel';
 import { copyText } from '../components/ui/result';
+import { Select } from '../components/ui/select';
 
 const KEY_SIZES = [1024, 2048, 3072, 4096] as const;
 

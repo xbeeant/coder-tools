@@ -1,5 +1,5 @@
 import { ArrowRight, Code2, Copy, Eraser, Flag, Gauge, Replace } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { TextField } from '../components/ui/field';
 import { Input } from '../components/ui/input';
@@ -24,37 +24,122 @@ type Tab = 'test' | 'cheat' | 'preset';
 
 const FLAG_CHARS = ['g', 'i', 'm', 's', 'u', 'y', 'd', 'v'] as const;
 
+/** 单次参与匹配的文本上限；超长文本截断，避免同步匹配卡住主线程。 */
+const MAX_TEXT_LENGTH = 20_000;
+/** 结果列表最多展示的条数。 */
+const MAX_MATCHES = 500;
+/** 输入防抖时长，避免每敲一个键都跑一遍正则。 */
+const DEBOUNCE_MS = 200;
+
+/** 把转义序列与字符类换成占位符，避免把 \+ / [+] 之类误判成量词。 */
+function simplifyRegexSource(source: string): string {
+  let out = '';
+  for (let i = 0; i < source.length; i += 1) {
+    const ch = source[i];
+    if (ch === '\\' && i + 1 < source.length) {
+      out += '\u0001';
+      i += 1;
+    } else if (ch === '[') {
+      const end = source.indexOf(']', i + 1);
+      if (end === -1) {
+        out += ch;
+      } else {
+        out += '\u0001';
+        i = end;
+      }
+    } else {
+      out += ch;
+    }
+  }
+  return out;
+}
+
+/** 命中则返回拦截原因；null 表示未发现灾难性回溯结构。 */
+function detectReDoS(pattern: string): string | null {
+  const source = simplifyRegexSource(pattern);
+  // 关注「( ... ) + 无界量词」结构；组内不含嵌套括号已覆盖绝大多数实际写法。
+  const quantifiedGroup = /\(([^()]*)\)([+*]|\{\d+,\d*\})/g;
+  let found: RegExpExecArray | null;
+  while ((found = quantifiedGroup.exec(source)) !== null) {
+    const body = found[1] ?? '';
+    if (!body) continue;
+    // 组内自带量词：如 (a+)+、(\w+)+、(a*)*、(.*)*
+    if (/[+*]|\{\d+,\d*\}/.test(body)) {
+      return '检测到嵌套量词（如 (a+)+、(\\w+)+、(a*)*）：组内可重复的子表达式又被外层量词反复匹配，可能触发灾难性回溯并冻结页面，已拒绝执行。请改写为不含嵌套量词的写法后再测试。';
+    }
+    // 组内交替且分支重叠：如 (a|a)*、(a|aa)+
+    if (body.includes('|')) {
+      const branches = body
+        .split('|')
+        .map((branch) => branch.trim())
+        .filter(Boolean);
+      const seen = new Set<string>();
+      for (const branch of branches) {
+        if (seen.has(branch)) {
+          return '检测到重叠的交替分支（如 (a|a)*）：外层量词会让同一输入产生大量回溯路径，已拒绝执行。请合并重复分支或改写正则。';
+        }
+        seen.add(branch);
+        if (branches.some((other) => other !== branch && other.startsWith(branch))) {
+          return '检测到前缀重叠的交替分支（如 (a|aa)*）：外层量词会放大回溯，已拒绝执行。请改写为互斥分支。';
+        }
+      }
+    }
+  }
+  return null;
+}
+
 export default function RegexTester() {
   const [tab, setTab] = useState<Tab>('test');
   const [pattern, setPattern] = useState('');
   const [flags, setFlags] = useState<Set<string>>(() => new Set(['g']));
   const [text, setText] = useState('');
+  const [textTruncated, setTextTruncated] = useState(false);
   const [replacement, setReplacement] = useState('');
 
   const flagString = useMemo(() => FLAG_CHARS.filter((f) => flags.has(f)).join(''), [flags]);
 
-  const compiled = useMemo(() => compileRegex(pattern, flagString), [pattern, flagString]);
+  // 匹配、替换、计时都基于防抖后的输入，避免每敲一个键就同步跑一遍正则。
+  const [debounced, setDebounced] = useState({ pattern: '', text: '', flags: 'g', replacement: '' });
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced({ pattern, text, flags: flagString, replacement }), DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [pattern, text, flagString, replacement]);
 
-  const matches = useMemo(() => {
-    if (!compiled.ok || pattern === '') return [];
-    return findMatches(compiled.re, text);
-  }, [compiled, pattern, text]);
+  const risk = useMemo(() => (debounced.pattern === '' ? null : detectReDoS(debounced.pattern)), [debounced.pattern]);
+  const blocked = risk !== null;
+  const effectiveText = useMemo(() => debounced.text.slice(0, MAX_TEXT_LENGTH), [debounced.text]);
 
-  const highlightHtml = useMemo(() => buildHighlightHtml(matches, text), [matches, text]);
-
-  const replaceResult = useMemo(
-    () => (pattern === '' ? '' : applyReplacement(text, pattern, flagString, replacement)),
-    [flagString, pattern, replacement, text],
+  const compiled = useMemo(
+    () => compileRegex(debounced.pattern, debounced.flags),
+    [debounced.pattern, debounced.flags],
   );
 
-  const groupNames = useMemo(() => (compiled.ok ? namedGroupNames(compiled.re) : []), [compiled]);
+  // 多取一条用于判断结果是否被「仅显示前 N 条」截断。
+  const allMatches = useMemo(() => {
+    if (blocked || !compiled.ok || debounced.pattern === '') return [];
+    return findMatches(compiled.re, effectiveText, MAX_MATCHES + 1);
+  }, [blocked, compiled, debounced.pattern, effectiveText]);
+  const matchesTruncated = allMatches.length > MAX_MATCHES;
+  const matches = useMemo(() => allMatches.slice(0, MAX_MATCHES), [allMatches]);
+
+  const highlightHtml = useMemo(() => buildHighlightHtml(matches, effectiveText), [matches, effectiveText]);
+
+  const replaceResult = useMemo(
+    () =>
+      blocked || debounced.pattern === '' || debounced.replacement === ''
+        ? ''
+        : applyReplacement(effectiveText, debounced.pattern, debounced.flags, debounced.replacement),
+    [blocked, debounced.pattern, debounced.flags, debounced.replacement, effectiveText],
+  );
+
+  const groupNames = useMemo(() => (blocked || !compiled.ok ? [] : namedGroupNames(compiled.re)), [blocked, compiled]);
 
   const timing = useMemo(() => {
-    if (!compiled.ok || pattern === '' || text === '') return null;
+    if (blocked || !compiled.ok || debounced.pattern === '' || effectiveText === '') return null;
     const started = performance.now();
-    const total = countMatches(compiled.re, text);
+    const total = countMatches(compiled.re, effectiveText);
     return { ms: performance.now() - started, total };
-  }, [compiled, pattern, text]);
+  }, [blocked, compiled, debounced.pattern, effectiveText]);
 
   const toggleFlag = useCallback((flag: string) => {
     setFlags((prev) => {
@@ -68,6 +153,7 @@ export default function RegexTester() {
   const handleClear = useCallback(() => {
     setPattern('');
     setText('');
+    setTextTruncated(false);
     setReplacement('');
   }, []);
 
@@ -75,6 +161,7 @@ export default function RegexTester() {
     setPattern(presetPattern);
     setFlags(new Set(presetFlags.split('')));
     setText(sample);
+    setTextTruncated(false);
     setTab('test');
   }, []);
 
@@ -139,17 +226,32 @@ export default function RegexTester() {
             </div>
           </div>
 
+          {blocked && (
+            <Note tone="danger" title="已拒绝执行该正则">
+              {risk}
+            </Note>
+          )}
+          {textTruncated && (
+            <Note tone="warn" title="测试文本已截断">
+              仅保留前 {MAX_TEXT_LENGTH.toLocaleString('zh-CN')} 个字符参与匹配，避免超长文本在实时匹配时卡住页面。
+            </Note>
+          )}
+
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
-            <span className={compiled.ok ? 'text-muted-foreground' : 'text-destructive'}>
-              {compiled.ok ? `匹配 ${matches.length} 处` : compiled.error}
+            <span className={blocked || !compiled.ok ? 'text-destructive' : 'text-muted-foreground'}>
+              {blocked
+                ? '已阻止执行危险正则'
+                : compiled.ok
+                  ? `匹配 ${matches.length} 处${matchesTruncated ? `（仅显示前 ${MAX_MATCHES} 条）` : ''}`
+                  : compiled.error}
             </span>
-            {timing && (
+            {!blocked && timing && (
               <span className="inline-flex items-center gap-1 text-muted-foreground">
                 <Gauge className="size-3" />
                 {timing.ms.toFixed(2)} ms
               </span>
             )}
-            {compiled.ok && groupNames.length > 0 && (
+            {!blocked && compiled.ok && groupNames.length > 0 && (
               <span className="text-muted-foreground">命名分组：{groupNames.join(', ')}</span>
             )}
           </div>
@@ -159,7 +261,11 @@ export default function RegexTester() {
               <span className="text-xs text-muted-foreground">测试文本</span>
               <Textarea
                 value={text}
-                onChange={(event) => setText(event.target.value)}
+                onChange={(event) => {
+                  const next = event.target.value;
+                  setText(next.slice(0, MAX_TEXT_LENGTH));
+                  setTextTruncated(next.length > MAX_TEXT_LENGTH);
+                }}
                 placeholder="在此粘贴待匹配文本…"
                 spellCheck={false}
                 aria-label="测试文本"
@@ -169,9 +275,13 @@ export default function RegexTester() {
             <div className="flex flex-col gap-1.5">
               <span className="text-xs text-muted-foreground">匹配预览</span>
               <div className="min-h-40 flex-1 overflow-auto whitespace-pre-wrap rounded-md border bg-muted/30 p-3 font-mono text-xs leading-relaxed scrollbar-thin">
-                {text ? (
-                  // biome-ignore lint/security/noDangerouslySetInnerHtml: 内容已由 escapeRegexHtml 转义，仅额外包裹 <mark>
-                  <span dangerouslySetInnerHTML={{ __html: compiled.ok ? highlightHtml : '' }} />
+                {effectiveText ? (
+                  blocked || !compiled.ok ? (
+                    <span>{effectiveText}</span>
+                  ) : (
+                    // biome-ignore lint/security/noDangerouslySetInnerHtml: 内容已由 escapeRegexHtml 转义，仅额外包裹 <mark>
+                    <span dangerouslySetInnerHTML={{ __html: highlightHtml }} />
+                  )
                 ) : (
                   <span className="text-muted-foreground">匹配结果会高亮显示在这里</span>
                 )}
@@ -179,6 +289,11 @@ export default function RegexTester() {
             </div>
           </div>
 
+          {matchesTruncated && (
+            <Hint>
+              匹配结果超过 {MAX_MATCHES} 条，仅显示前 {MAX_MATCHES} 条，请缩小测试文本或收紧正则。
+            </Hint>
+          )}
           {matches.length > 0 && (
             <div className="max-h-32 overflow-auto rounded-md border p-2 font-mono text-[11px] leading-relaxed scrollbar-thin">
               {matches.map((match, index) => (
@@ -210,7 +325,7 @@ export default function RegexTester() {
                 <Hint>用 $1、$2 引用捕获组，$& 代表整个匹配，$$ 为字面量 $。</Hint>
               </div>
             </div>
-            {replacement !== '' && (
+            {replacement !== '' && !blocked && (
               <ResultBox
                 label="替换结果"
                 value={replaceResult}
@@ -218,6 +333,7 @@ export default function RegexTester() {
                 rows="min-h-20"
               />
             )}
+            {blocked && replacement !== '' && <Hint>该正则已被拦截，替换预览已停用；改写正则后会自动恢复。</Hint>}
           </div>
 
           {matches.length > 0 && matches[0] && matches[0].groups.length > 1 && (

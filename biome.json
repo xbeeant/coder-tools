@@ -6,7 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!**/node_modules", "!**/.output", "!**/.wxt"]
+    "includes": ["**", "!**/node_modules", "!**/.output", "!**/.output-verify", "!**/.wxt", "!**/dist", "!**/dist-web"]
   },
   "formatter": {
     "enabled": true,

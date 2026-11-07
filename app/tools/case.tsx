@@ -2,10 +2,10 @@
 import { Copy, Download, Layers } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Select } from '../components/ui/select';
 import { Checkbox, TextField } from '../components/ui/field';
 import { EmptyHint, Hint, Note, Section, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
+import { Select } from '../components/ui/select';
 import { Textarea } from '../components/ui/textarea';
 import { CASE_STYLES, type CaseStyle, convertCase, splitWords } from '../lib/case';
 import { downloadText, exportName } from '../lib/file';

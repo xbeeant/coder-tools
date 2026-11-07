@@ -2,7 +2,6 @@ import { Container, FileCode, Search, ShieldCheck, TriangleAlert, Wrench } from 
 import { useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { CodeBlock } from '../components/ui/code-block';
-import { Select } from '../components/ui/select';
 import { Checkbox, TextField } from '../components/ui/field';
 import { Input } from '../components/ui/input';
 import {
@@ -17,6 +16,7 @@ import {
   ToolPanel,
 } from '../components/ui/panel';
 import { copyText } from '../components/ui/result';
+import { Select } from '../components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { downloadText, exportName } from '../lib/file';
 

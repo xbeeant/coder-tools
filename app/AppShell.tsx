@@ -7,19 +7,42 @@ import {
   ChevronsUpDown,
   Clock3,
   Command,
+  Link2,
   Moon,
+  ScanSearch,
   Search,
+  Settings2,
   Star,
   Sun,
   Trash2,
   X,
 } from 'lucide-react';
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { PageContextPanel } from './components/PageContextPanel';
+import { SettingsDialog, type ShortcutDef } from './components/SettingsDialog';
+import { ToolErrorBoundary } from './components/ToolErrorBoundary';
 import { Button } from './components/ui/button';
 import { Input } from './components/ui/input';
+import { copyText } from './components/ui/result';
 import { Tabs, TabsList, TabsTrigger } from './components/ui/tabs';
 import { cn } from './components/ui/utils';
-import { useFavorites, useRecent, useTheme } from './hooks/storage';
+import {
+  readLastTool,
+  readSidebarOpen,
+  useFavorites,
+  useRecent,
+  useResolvedTheme,
+  useSettings,
+  writeLastTool,
+  writeSidebarOpen,
+} from './hooks/storage';
+import { useInputSnapshot } from './hooks/use-input-snapshot';
+import {
+  canUseExtensionFeatures,
+  onContextPush,
+  type SelectionPayload,
+  takePendingSelection,
+} from './lib/page-context';
 import {
   ancestorGroupIds,
   DEFAULT_TOOL_ID,
@@ -30,10 +53,26 @@ import {
   resolveTool,
   searchTools,
   TOOL_TREE,
+  TOOLS,
   type Tool,
   TREE_TOOL_IDS,
   toolCategoryLabel,
 } from './lib/registry';
+import { RUNTIME_LABEL, shareableUrl } from './lib/runtime';
+
+const SHORTCUTS: ShortcutDef[] = [
+  { keys: '⌘/Ctrl + K', label: '打开工具搜索' },
+  { keys: '/', label: '在非输入状态下打开搜索' },
+  { keys: '⌘/Ctrl + B', label: '显示 / 隐藏侧边栏' },
+  { keys: 'Alt + ↑/↓', label: '按分类顺序切换工具' },
+  { keys: '⌘/Ctrl + [ / ]', label: '后退 / 前进到历史工具' },
+  { keys: '⌘/Ctrl + ,', label: '打开设置' },
+  { keys: '⌘/Ctrl + ⇧ + F', label: '收藏 / 取消收藏当前工具' },
+  { keys: '⌘/Ctrl + ⇧ + T', label: '切换明暗主题' },
+  { keys: '⌘/Ctrl + ⇧ + C', label: '复制当前工具链接' },
+  { keys: '⌘/Ctrl + ⇧ + P', label: '打开页面上下文（仅扩展版）' },
+  { keys: 'Esc', label: '关闭搜索 / 设置 / 上下文' },
+];
 
 const ALL_GROUP_IDS = collectGroupIds(TOOL_TREE);
 
@@ -67,20 +106,109 @@ function readToolFromLocation(): string | null {
   return id && findTool(id) ? id : null;
 }
 
+/** 优先地址栏，其次（若开启）上次使用的工具，最后默认工具。 */
+function initialToolId(restoreLast: boolean): string {
+  const fromUrl = readToolFromLocation();
+  if (fromUrl) return fromUrl;
+  if (restoreLast) {
+    const last = readLastTool();
+    if (last && findTool(last)) return last;
+  }
+  return DEFAULT_TOOL_ID;
+}
+
 export default function AppShell() {
-  const [activeId, setActiveId] = useState<string>(() => readToolFromLocation() ?? DEFAULT_TOOL_ID);
+  const { settings, update: updateSettings, reset: resetSettings } = useSettings();
+  const theme = useResolvedTheme(settings.theme);
+  const [activeId, setActiveId] = useState<string>(() => initialToolId(settings.restoreLastTool));
   const [query, setQuery] = useState('');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => (settings.rememberSidebar ? readSidebarOpen() : true));
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>(readSidebarTab);
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerIndex, setPickerIndex] = useState(0);
   const [altKey, setAltKey] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [contextOpen, setContextOpen] = useState(false);
+  const [contextSelection, setContextSelection] = useState<SelectionPayload | null>(null);
+  const [toast, setToast] = useState<{ message: string; tone: 'success' | 'error' } | null>(null);
+  const [history, setHistory] = useState<{ stack: string[]; index: number }>({ stack: [activeId], index: 0 });
   const searchRef = useRef<HTMLInputElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const stepRef = useRef<(delta: number) => void>(() => {});
-  const { theme, toggle: toggleTheme } = useTheme();
+  const toastTimer = useRef<number | undefined>(undefined);
   const { favorites, toggleFav } = useFavorites();
   const { recent, addRecent, clearRecent } = useRecent();
+  const notify = useCallback((message: string, tone: 'success' | 'error' = 'success') => {
+    setToast({ message, tone });
+    window.clearTimeout(toastTimer.current);
+    toastTimer.current = window.setTimeout(() => setToast(null), 2600);
+  }, []);
+
+  const { flush: flushInputs } = useInputSnapshot({
+    toolId: activeId,
+    containerRef: contentRef,
+    enabled: settings.autoSaveInputs,
+    onError: (message) => notify(message, 'error'),
+  });
+
+  const toggleTheme = useCallback(() => {
+    updateSettings({ theme: theme === 'dark' ? 'light' : 'dark' });
+  }, [theme, updateSettings]);
+
+  const goTo = useCallback(
+    (id: string) => {
+      if (!findTool(id)) return;
+      flushInputs();
+      setHistory((prev) => {
+        if (prev.stack[prev.index] === id) return prev;
+        const stack = [...prev.stack.slice(0, prev.index + 1), id].slice(-50);
+        return { stack, index: stack.length - 1 };
+      });
+      setActiveId(id);
+      setPickerOpen(false);
+      setQuery('');
+    },
+    [flushInputs],
+  );
+
+  const travel = useCallback(
+    (delta: number) => {
+      const target = history.index + delta;
+      const id = history.stack[target];
+      if (!id) return;
+      flushInputs();
+      setHistory((prev) => ({ ...prev, index: target }));
+      setActiveId(id);
+    },
+    [history, flushInputs],
+  );
+
+  const extensionFeatures = useMemo(() => canUseExtensionFeatures(), []);
+
+  /** 右键菜单送达的选中文本：切到目标工具并打开上下文面板。 */
+  const acceptSelection = useCallback(
+    (payload: SelectionPayload) => {
+      if (!payload.text) return;
+      if (findTool(payload.toolId)) goTo(payload.toolId);
+      setContextSelection(payload);
+      setContextOpen(true);
+    },
+    [goTo],
+  );
+
+  // 工具页刚打开时取走 background 暂存的选中文本；之后由 background 主动推送。
+  useEffect(() => {
+    let active = true;
+    void takePendingSelection().then((payload) => {
+      if (active && payload) acceptSelection(payload);
+    });
+    return () => {
+      active = false;
+    };
+  }, [acceptSelection]);
+
+  useEffect(() => onContextPush(acceptSelection), [acceptSelection]);
 
   const searching = query.trim().length > 0;
   const matches = useMemo(() => new Set(searchTools(query).map((tool) => tool.meta.id)), [query]);
@@ -108,8 +236,13 @@ export default function AppShell() {
 
   useEffect(() => {
     addRecent(activeTool.meta.id);
+    writeLastTool(activeTool.meta.id);
     expandTool(activeTool.meta.id);
   }, [activeTool, addRecent, expandTool]);
+
+  useEffect(() => {
+    if (settings.rememberSidebar) writeSidebarOpen(sidebarOpen);
+  }, [sidebarOpen, settings.rememberSidebar]);
 
   useEffect(() => {
     try {
@@ -146,45 +279,94 @@ export default function AppShell() {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const mod = event.metaKey || event.ctrlKey;
-      if (mod && event.key.toLowerCase() === 'k') {
+      const key = event.key.toLowerCase();
+
+      if (mod && key === ',') {
+        event.preventDefault();
+        setSettingsOpen((open) => !open);
+        return;
+      }
+      if (mod && key === 'k') {
         event.preventDefault();
         setPickerOpen(true);
         return;
       }
-      if (mod && event.key === 'b') {
+      if (mod && key === 'b') {
         event.preventDefault();
         setSidebarOpen((open) => !open);
         return;
       }
-      if (event.key === '/' && !pickerOpen && !isTypingTarget(event.target)) {
+      if (mod && !event.shiftKey && event.key === '[') {
+        event.preventDefault();
+        travel(-1);
+        return;
+      }
+      if (mod && !event.shiftKey && event.key === ']') {
+        event.preventDefault();
+        travel(1);
+        return;
+      }
+      if (mod && event.shiftKey && key === 'f') {
+        event.preventDefault();
+        toggleFav(activeTool.meta.id);
+        notify(favorites.includes(activeTool.meta.id) ? '已取消收藏' : '已收藏当前工具');
+        return;
+      }
+      if (mod && event.shiftKey && key === 't') {
+        event.preventDefault();
+        toggleTheme();
+        return;
+      }
+      if (mod && event.shiftKey && key === 'c') {
+        event.preventDefault();
+        copyText(shareableUrl(activeTool.meta.id));
+        notify('已复制当前工具链接');
+        return;
+      }
+      if (mod && event.shiftKey && key === 'p' && extensionFeatures) {
+        event.preventDefault();
+        setContextOpen(true);
+        return;
+      }
+      if (event.key === '/' && !pickerOpen && !settingsOpen && !contextOpen && !isTypingTarget(event.target)) {
         event.preventDefault();
         setPickerOpen(true);
         return;
       }
-      if (altKey && (event.key === 'ArrowDown' || event.key === 'ArrowRight')) {
+      if (altKey && !settingsOpen && !contextOpen && (event.key === 'ArrowDown' || event.key === 'ArrowRight')) {
         event.preventDefault();
         stepRef.current(1);
         return;
       }
-      if (altKey && (event.key === 'ArrowUp' || event.key === 'ArrowLeft')) {
+      if (altKey && !settingsOpen && !contextOpen && (event.key === 'ArrowUp' || event.key === 'ArrowLeft')) {
         event.preventDefault();
         stepRef.current(-1);
         return;
       }
       if (event.key === 'Escape') {
         setPickerOpen(false);
+        setSettingsOpen(false);
+        setContextOpen(false);
         setQuery('');
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [altKey, pickerOpen]);
+  }, [
+    altKey,
+    pickerOpen,
+    settingsOpen,
+    contextOpen,
+    extensionFeatures,
+    travel,
+    toggleTheme,
+    toggleFav,
+    favorites,
+    activeTool.meta.id,
+    notify,
+  ]);
 
-  const openTool = useCallback((id: string) => {
-    setActiveId(id);
-    setPickerOpen(false);
-    setQuery('');
-  }, []);
+  const openTool = useCallback((id: string) => goTo(id), [goTo]);
 
   // Alt+方向键按树的视觉顺序切换工具，而非按搜索结果顺序。
   const step = (delta: number) => {
@@ -192,7 +374,7 @@ export default function AppShell() {
     const current = TREE_TOOL_IDS.indexOf(activeId);
     const next = (Math.max(current, 0) + delta + TREE_TOOL_IDS.length) % TREE_TOOL_IDS.length;
     const toolId = TREE_TOOL_IDS[next];
-    if (toolId) setActiveId(toolId);
+    if (toolId) goTo(toolId);
   };
   stepRef.current = step;
 
@@ -248,17 +430,66 @@ export default function AppShell() {
           <kbd className="shrink-0 rounded border px-1 font-sans text-[10px]">⌘K</kbd>
         </button>
         <div className="flex shrink-0 items-center gap-0.5">
+          <button
+            type="button"
+            onClick={() => {
+              copyText(shareableUrl(activeTool.meta.id));
+              notify('已复制当前工具链接');
+            }}
+            title="点击复制当前工具链接"
+            className="hidden rounded border px-1.5 py-1 text-[10px] text-muted-foreground transition-colors hover:bg-accent lg:inline-flex"
+          >
+            {RUNTIME_LABEL}
+          </button>
+          {extensionFeatures && (
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => setContextOpen(true)}
+              title="页面上下文 (⌘⇧P)"
+              aria-label="打开页面上下文"
+            >
+              <ScanSearch className="size-4" />
+            </Button>
+          )}
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => {
+              copyText(shareableUrl(activeTool.meta.id));
+              notify('已复制当前工具链接');
+            }}
+            title="复制当前工具链接 (⌘⇧C)"
+            aria-label="复制当前工具链接"
+          >
+            <Link2 className="size-4" />
+          </Button>
           <Button
             size="icon"
             variant="ghost"
             onClick={() => toggleFav(activeTool.meta.id)}
-            title={isFavorite ? '取消收藏' : '收藏'}
+            title={isFavorite ? '取消收藏 (⌘⇧F)' : '收藏 (⌘⇧F)'}
             aria-label="收藏当前工具"
           >
             <Star className={cn('size-4', isFavorite && 'fill-current text-amber-500')} />
           </Button>
-          <Button size="icon" variant="ghost" onClick={toggleTheme} title="切换明暗主题" aria-label="切换明暗主题">
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={toggleTheme}
+            title="切换明暗主题 (⌘⇧T)"
+            aria-label="切换明暗主题"
+          >
             {theme === 'dark' ? <Sun className="size-4" /> : <Moon className="size-4" />}
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => setSettingsOpen(true)}
+            title="设置 (⌘,)"
+            aria-label="打开设置"
+          >
+            <Settings2 className="size-4" />
           </Button>
         </div>
       </header>
@@ -391,7 +622,29 @@ export default function AppShell() {
                 <p className="truncate text-xs text-muted-foreground">{activeTool.meta.description}</p>
               </div>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex shrink-0 items-center gap-1.5">
+              <Button
+                size="icon"
+                variant="ghost"
+                className="size-7"
+                disabled={history.index <= 0}
+                onClick={() => travel(-1)}
+                title="后退 (⌘[)"
+                aria-label="后退到上一个工具"
+              >
+                <ChevronLeft className="size-3.5" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="size-7"
+                disabled={history.index >= history.stack.length - 1}
+                onClick={() => travel(1)}
+                title="前进 (⌘])"
+                aria-label="前进到下一个工具"
+              >
+                <ChevronRight className="size-3.5" />
+              </Button>
               {altKey && (
                 <span className="rounded-md bg-primary px-2 py-1 text-[11px] text-primary-foreground">
                   Alt + ↑/↓ 切换工具
@@ -403,17 +656,19 @@ export default function AppShell() {
             </div>
           </div>
 
-          <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden p-4">
-            <Suspense
-              fallback={
-                <div className="flex flex-1 items-center justify-center text-xs text-muted-foreground">
-                  <Clock3 className="mr-1.5 size-3.5 animate-spin" />
-                  加载中
-                </div>
-              }
-            >
-              <activeTool.component />
-            </Suspense>
+          <div ref={contentRef} className="flex min-h-0 w-full flex-1 flex-col overflow-hidden p-4">
+            <ToolErrorBoundary key={activeId} toolId={activeId}>
+              <Suspense
+                fallback={
+                  <div className="flex flex-1 items-center justify-center text-xs text-muted-foreground">
+                    <Clock3 className="mr-1.5 size-3.5 animate-spin" />
+                    加载中
+                  </div>
+                }
+              >
+                <activeTool.component />
+              </Suspense>
+            </ToolErrorBoundary>
           </div>
         </main>
       </div>
@@ -496,6 +751,40 @@ export default function AppShell() {
               )}
             </ul>
           </div>
+        </div>
+      )}
+
+      <SettingsDialog
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        settings={settings}
+        onUpdate={updateSettings}
+        onReset={resetSettings}
+        onNotify={notify}
+        shortcuts={SHORTCUTS}
+        activeToolId={activeTool.meta.id}
+        toolCount={TOOLS.length}
+      />
+
+      <PageContextPanel
+        open={contextOpen}
+        onClose={() => setContextOpen(false)}
+        onNotify={notify}
+        containerRef={contentRef}
+        selection={contextSelection}
+      />
+
+      {toast && (
+        <div
+          role="status"
+          className={cn(
+            'fixed bottom-4 left-1/2 z-[80] -translate-x-1/2 rounded-md border px-3 py-2 text-xs shadow-lg',
+            toast.tone === 'error'
+              ? 'border-destructive/60 bg-destructive/10 text-destructive'
+              : 'bg-card text-foreground',
+          )}
+        >
+          {toast.message}
         </div>
       )}
     </div>

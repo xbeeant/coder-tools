@@ -1,10 +1,10 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { CodeBlock } from '../components/ui/code-block';
-import { Select } from '../components/ui/select';
 import { Checkbox, Field, TextField } from '../components/ui/field';
 import { Hint, type LinkItem, LinkList, Note, Section, ToolPanel } from '../components/ui/panel';
 import { copyText } from '../components/ui/result';
+import { Select } from '../components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Textarea } from '../components/ui/textarea';
 import { downloadText, exportName } from '../lib/file';

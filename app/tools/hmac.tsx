@@ -1,10 +1,10 @@
 import { Signature } from 'lucide-react';
-import { useMemo, useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Select } from '../components/ui/select';
 import { Input } from '../components/ui/input';
 import { Note, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
+import { Select } from '../components/ui/select';
 import { Textarea } from '../components/ui/textarea';
 
 const HMAC_ALGS: { name: string; hash: 'SHA-1' | 'SHA-256' | 'SHA-384' | 'SHA-512' }[] = [

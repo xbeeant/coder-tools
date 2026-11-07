@@ -29,13 +29,30 @@ const JS_ESCAPES: Record<string, string> = {
   '\\': '\\\\',
 };
 
-/** 输入 \uXXXX / \xXX / \0 转义序列时，按码点还原为字符。 */
+/** 短转义（\n、\t、\\ 等）与编码端 JS_ESCAPES 保持互逆。 */
+const SHORT_ESCAPES: Record<string, string> = {
+  b: '\b',
+  t: '\t',
+  n: '\n',
+  v: '\v',
+  f: '\f',
+  r: '\r',
+  '"': '"',
+  "'": "'",
+  '\\': '\\',
+};
+
+/**
+ * 还原转义序列：\uXXXX / \u{十六进制} / \c{十进制} / \xXX / 短转义 / 八进制 / HTML 实体。
+ * 覆盖本工具四种编码风格的全部产物，保证「字符 → 转义 → 字符」可往返。
+ */
 function decodeEscapes(input: string): string {
   return input.replace(
-    /\\(?:u\{([0-9a-fA-F]+)\}|u([0-9a-fA-F]{4})|x([0-9a-fA-F]{2})|[0-7]{1,3})/g,
-    (match, brace, uni, hex, octal) => {
-      const raw = brace ?? uni ?? hex ?? octal;
-      const radix = brace !== undefined || uni !== undefined ? 16 : hex !== undefined ? 16 : 8;
+    /\\(?:u\{([0-9a-fA-F]+)\}|c\{([0-9]+)\}|u([0-9a-fA-F]{4})|x([0-9a-fA-F]{2})|([btnvfr"'\\])|([0-7]{1,3}))|&#(?:x([0-9a-fA-F]+)|([0-9]+));/g,
+    (match, brace, decimal, uni, hex, short, octal, htmlHex, htmlDec) => {
+      if (short !== undefined) return SHORT_ESCAPES[short] ?? match;
+      const raw = brace ?? decimal ?? uni ?? hex ?? octal ?? htmlHex ?? htmlDec;
+      const radix = decimal !== undefined || htmlDec !== undefined ? 10 : octal !== undefined ? 8 : 16;
       const code = Number.parseInt(raw, radix);
       if (!Number.isFinite(code) || code > 0x10ffff) return match;
       if (code === 0) return '\0';
@@ -66,9 +83,13 @@ export default function UnicodeTool() {
             ? (JS_ESCAPES[char] ??
               (code > 0xffff ? `\\u{${code.toString(16)}}` : `\\u${code.toString(16).padStart(4, '0')}`))
             : style === 'hex'
-              ? `\\x${code.toString(16).padStart(4, '0')}`
+              ? // \x 解码器只认 2 位十六进制，> 0xFF 的码点改用可被识别的 \u{十六进制}。
+                code <= 0xff
+                ? `\\x${code.toString(16).padStart(2, '0')}`
+                : `\\u{${code.toString(16)}}`
               : style === 'dec'
-                ? `\\u{${code}}`
+                ? // \u{...} 按十六进制解析，十进制码点改用解码器新增的 \c{十进制} 分支。
+                  `\\c{${code}}`
                 : code > 0xffff
                   ? `&#x${code.toString(16)};`
                   : `&#${code};`,
@@ -138,7 +159,9 @@ export default function UnicodeTool() {
       }
     >
       <Note tone="info" title="说明">
-        解码支持 JS 转义序列（\u、\u&#123;&#123;&#125;&#125;、\x、八进制），未知序列将原样保留。
+        解码支持 JS 转义序列（\u、\u&#123;十六进制&#125;、\x、\c&#123;十进制&#125;、短转义、八进制）与 HTML
+        实体（&amp;#x…; / &amp;#…;），未知序列原样保留；四种编码风格的产物都能被本工具还原。十六进制风格仅对 0xFF
+        以内的码点使用 \x，更大码点自动改用 \u&#123;…&#125;。
       </Note>
       <div className="flex flex-1 flex-col gap-2">
         <Textarea

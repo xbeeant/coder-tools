@@ -11,11 +11,11 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Select } from '../components/ui/select';
 import { Checkbox, NumberField, TextField } from '../components/ui/field';
 import { Input } from '../components/ui/input';
 import { EmptyHint, Hint, LinkList, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
+import { Select } from '../components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { downloadText, exportName, pickFiles, readAsText } from '../lib/file';
 import {

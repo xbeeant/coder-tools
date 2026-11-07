@@ -1,10 +1,10 @@
 import { AlertTriangle, Copy, MapPin } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Select } from '../components/ui/select';
 import { TextField } from '../components/ui/field';
 import { EmptyHint, Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
+import { Select } from '../components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Textarea } from '../components/ui/textarea';
 import {
@@ -712,8 +712,8 @@ export default function GeohashTool() {
                               row.center
                             )}
                           </td>
-                          <td className="px-2 py-1 font-mono">'geohash' in row ? row.geohash : '-'</td>
-                          <td className="px-2 py-1 font-mono">'plus' in row ? row.plus : '-'</td>
+                          <td className="px-2 py-1 font-mono">{'geohash' in row ? row.geohash : '-'}</td>
+                          <td className="px-2 py-1 font-mono">{'plus' in row ? row.plus : '-'}</td>
                         </tr>
                       ))}
                     </tbody>

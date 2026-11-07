@@ -136,11 +136,9 @@ function aggregateCidrs(input: string): Aggregation | { error: string } {
   }
 
   const sizes = pool.map((item) => 2 ** (32 - item.prefix));
-  const smallestPrefix = sizes.reduce((max, size, index) => {
-    const item = pool[index];
-    return item && size > 2 ** (32 - max) ? item.prefix : max;
-  }, 0);
-  const smallestItem = pool.find((item) => item.prefix === smallestPrefix);
+  // 「最小超网」= 覆盖全部输入的最粗网段 = 前缀长度最小的那一项。
+  const smallestPrefix = pool.length > 0 ? Math.min(...pool.map((item) => item.prefix)) : null;
+  const smallestItem = smallestPrefix === null ? undefined : pool.find((item) => item.prefix === smallestPrefix);
   const totalInput = parsed.reduce((sum, item) => sum + 2 ** (32 - item.prefix), 0);
   const totalOutput = sizes.reduce((sum, size) => sum + size, 0);
 

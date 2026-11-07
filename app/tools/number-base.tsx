@@ -1,5 +1,6 @@
-import { Binary } from 'lucide-react';
+import { Binary, Copy, Eraser, Sparkles } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { ToolPanel } from '../components/ui/panel';
 import { copyText, ResultBox } from '../components/ui/result';
@@ -80,6 +81,18 @@ export default function NumberBase() {
         </span>
       }
       description="在二进制、八进制、十进制、十六进制之间转换，支持 0x/0b/0o 前缀"
+      actions={
+        <div className="flex items-center gap-1">
+          <Button size="sm" variant="ghost" onClick={() => setInput('')} disabled={!input}>
+            <Eraser className="size-3.5" />
+            清空
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setInput('0xFF')}>
+            <Sparkles className="size-3.5" />
+            示例
+          </Button>
+        </div>
+      }
     >
       <div className="flex flex-1 flex-col gap-2 overflow-auto scrollbar-thin">
         <label className="text-xs text-muted-foreground">
@@ -102,6 +115,16 @@ export default function NumberBase() {
               <span className="w-12 shrink-0 text-xs font-medium">{out.label}</span>
               <Input value={out.value} readOnly spellCheck={false} className="h-8 flex-1 font-mono text-xs" />
               <span className="w-8 shrink-0 text-[10px] text-muted-foreground">{out.radix}</span>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => copyText(out.value)}
+                disabled={!out.value}
+                title={`复制${out.label}`}
+                aria-label={`复制${out.label}`}
+              >
+                <Copy className="size-3.5" />
+              </Button>
             </div>
           ))}
         </div>

@@ -1,11 +1,11 @@
 import { ArrowLeftRight, Download, RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Select } from '../components/ui/select';
 import { Checkbox, Field } from '../components/ui/field';
 import { Input } from '../components/ui/input';
 import { EmptyHint, Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { copyText, ResultBox } from '../components/ui/result';
+import { Select } from '../components/ui/select';
 import { downloadText, exportName } from '../lib/file';
 import {
   CATEGORY_BY_ID,

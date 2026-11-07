@@ -9,10 +9,17 @@ import { cn } from '../components/ui/utils';
 const MS_THRESHOLD = 10_000_000_000;
 
 export function fromTimestamp(value: string): { date: Date; assumedMs: boolean } | null {
-  const numeric = Number(value.trim());
-  if (!value.trim() || Number.isNaN(numeric)) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const numeric = Number(trimmed);
+  // NaN 会被 Number.isNaN 拦下，但 Infinity / 1e309 这类非有限值不会，必须显式排除，
+  // 否则 new Date() 得到 Invalid Date，后续 toISOString() 会抛 RangeError。
+  if (!Number.isFinite(numeric)) return null;
   const assumedMs = Math.abs(numeric) >= MS_THRESHOLD;
-  return { date: new Date(assumedMs ? numeric : numeric * 1000), assumedMs };
+  const date = new Date(assumedMs ? numeric : numeric * 1000);
+  // 数值虽有限，但秒→毫秒换算或绝对值仍可能超出 Date 的 ±8.64e15 毫秒范围。
+  if (Number.isNaN(date.getTime())) return null;
+  return { date, assumedMs };
 }
 
 function toLocalInput(date: Date): string {
@@ -55,6 +62,14 @@ export default function TimestampTool() {
   }, []);
 
   const parsed = useMemo(() => fromTimestamp(timestamp), [timestamp]);
+
+  const inputError = useMemo(() => {
+    if (parsed || !timestamp.trim()) return '';
+    if (!Number.isFinite(Number(timestamp.trim()))) {
+      return '无效时间戳：请输入有限数字（不支持 Infinity、1e309 等超大值）';
+    }
+    return '无效时间戳：数值超出 JavaScript Date 可表示的范围（约 ±8.64×10¹⁵ 毫秒）';
+  }, [parsed, timestamp]);
 
   const formats = useMemo(() => {
     if (!parsed) return [];
@@ -119,8 +134,11 @@ export default function TimestampTool() {
             spellCheck={false}
             className="h-8 font-mono text-xs"
           />
-          <div className={cn('text-[11px]', parsed ? 'text-muted-foreground' : 'text-destructive')} role="alert">
-            {parsed ? `已按${parsed.assumedMs ? '毫秒' : '秒'}解析` : timestamp.trim() && '请输入有效数字'}
+          <div
+            className={cn('text-[11px]', !parsed && timestamp.trim() ? 'text-destructive' : 'text-muted-foreground')}
+            role="alert"
+          >
+            {parsed ? `已按${parsed.assumedMs ? '毫秒' : '秒'}解析` : inputError}
           </div>
           <div className="grid grid-cols-1 gap-1.5">
             {formats.map((item) => (

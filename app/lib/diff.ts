@@ -376,16 +376,14 @@ export function computeStats(rows: DiffRow[]): DiffStats {
     const right = lineCount(row.right);
     leftLines += left;
     rightLines += right;
+    // 相似度只统计真正相同的行。删除行与修改行都算「变化」，
+    // 否则把一行删掉后 similarity 仍会显示 100%，指标失去意义。
     if (row.kind === 'add') {
       added += right;
-      deleted += left;
-      unchanged += left;
     } else if (row.kind === 'del') {
       deleted += left;
-      unchanged += left;
     } else if (row.kind === 'modify') {
       modified += Math.max(left, right);
-      unchanged += Math.min(left, right);
     } else {
       unchanged += left;
     }

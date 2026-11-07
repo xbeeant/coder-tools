@@ -2,9 +2,9 @@ import { Download, QrCode } from 'lucide-react';
 import { QRCodeCanvas, QRCodeSVG } from 'qrcode.react';
 import { useCallback, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Select } from '../components/ui/select';
 import { Input } from '../components/ui/input';
 import { Section, ToolPanel } from '../components/ui/panel';
+import { Select } from '../components/ui/select';
 import { Textarea } from '../components/ui/textarea';
 
 type Level = 'L' | 'M' | 'Q' | 'H';

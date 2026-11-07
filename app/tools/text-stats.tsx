@@ -2,10 +2,10 @@
 import { Copy, Download, FileUp } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Select } from '../components/ui/select';
 import { Checkbox, NumberField } from '../components/ui/field';
 import { EmptyHint, Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
+import { Select } from '../components/ui/select';
 import { Textarea } from '../components/ui/textarea';
 import { downloadText, exportName, pickFile, readAsText } from '../lib/file';
 import {

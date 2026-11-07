@@ -1,10 +1,10 @@
 import { Copy, Dices, Download, Image as ImageIcon, RefreshCw, Wand2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Select } from '../components/ui/select';
 import { Checkbox, NumberField, TextField } from '../components/ui/field';
 import { EmptyHint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { copyText } from '../components/ui/result';
+import { Select } from '../components/ui/select';
 import { Textarea } from '../components/ui/textarea';
 import { downloadDataUrl, downloadText, pickFiles } from '../lib/file';
 import { canvasToBlob, rasterizeSvg } from '../lib/image';

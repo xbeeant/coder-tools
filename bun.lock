@@ -32,6 +32,7 @@
         "@types/bcryptjs": "^3.0.0",
         "@types/react": "^19.2.14",
         "@types/react-dom": "^19.2.3",
+        "@vitejs/plugin-react": "^6.1.1",
         "@wxt-dev/module-react": "^1.1.5",
         "ngeohash": "^0.6.4",
         "tailwindcss": "^4.1.14",

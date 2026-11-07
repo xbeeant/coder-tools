@@ -2,11 +2,11 @@ import { Download, ShieldAlert, Wifi } from 'lucide-react';
 import { QRCodeCanvas, QRCodeSVG } from 'qrcode.react';
 import { useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Select } from '../components/ui/select';
 import { Checkbox, NumberField, TextField } from '../components/ui/field';
 import { Input } from '../components/ui/input';
 import { Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { copyText, ResultBox } from '../components/ui/result';
+import { Select } from '../components/ui/select';
 
 type Level = 'L' | 'M' | 'Q' | 'H';
 type Security = 'WPA' | 'WPA2' | 'WPA3' | 'WEP' | 'nopass';

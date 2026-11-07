@@ -1,10 +1,10 @@
 import { ArrowLeftRight, BookOpen, DatabaseZap, Download, FileText, LinkIcon, RefreshCw } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Select } from '../components/ui/select';
 import { Checkbox, NumberField, TextField } from '../components/ui/field';
 import { LinkList, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { copyText, ResultBox } from '../components/ui/result';
+import { Select } from '../components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Textarea } from '../components/ui/textarea';
 import {
@@ -303,7 +303,7 @@ function ModelTab() {
           <div className="flex flex-row gap-1">
             <Select
               label="语言"
-              layout={"horizontal"}
+              layout={'horizontal'}
               value={dialect}
               onChange={(value) => setDialect(value as SqlDialect)}
               options={DIALECT_OPTIONS}

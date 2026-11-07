@@ -1,14 +1,13 @@
 import { Blocks, Download, FileCode2, Keyboard, Package2, Puzzle, Table2, Wand2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Select } from '../components/ui/select';
 import { Checkbox, NumberField, TextField } from '../components/ui/field';
-import { LinkList, Note, Section, ToolPanel } from '../components/ui/panel';
-import { ResultBox } from '../components/ui/result';
+import { Hint, LinkList, Note, Section, ToolPanel } from '../components/ui/panel';
+import { copyText, ResultBox } from '../components/ui/result';
+import { Select } from '../components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import {
   buildEditorconfig,
-  buildVscodeExtensions,
   buildVscodeLaunch,
   buildVscodeSettings,
   buildVscodeTasks,
@@ -31,6 +30,7 @@ import {
   type VscodeSettingsOptions,
 } from '../lib/cheatsheet';
 import { downloadText, exportName } from '../lib/file';
+import { ALL_EXTENSION_IDS, buildExtensionsJson, DEFAULT_EXTENSION_IDS, EXTENSION_GROUPS } from '../lib/ide-config';
 
 type MainTab = 'generate' | 'plugins' | 'capability';
 
@@ -282,6 +282,7 @@ export default function Ide() {
   const [settings, setSettings] = useState<VscodeSettingsOptions>(DEFAULT_SETTINGS);
   const [editorConfig, setEditorConfig] = useState<EditorConfigOptions>(DEFAULT_EDITORCONFIG);
   const [picked, setPicked] = useState<string>('settings.json');
+  const [extensionIds, setExtensionIds] = useState<string[]>(() => [...DEFAULT_EXTENSION_IDS]);
 
   const current = editorById(editor);
   const isVscode = current.family === 'vscode';
@@ -293,7 +294,7 @@ export default function Ide() {
         { name: '.vscode/settings.json', content: buildVscodeSettings(settings) },
         { name: '.vscode/launch.json', content: buildVscodeLaunch() },
         { name: '.vscode/tasks.json', content: buildVscodeTasks() },
-        { name: '.vscode/extensions.json', content: buildVscodeExtensions() },
+        { name: '.vscode/extensions.json', content: buildExtensionsJson(extensionIds) },
         editorconfig,
       ];
     }
@@ -322,7 +323,7 @@ export default function Ide() {
       ];
     }
     return [editorconfig];
-  }, [current, editorConfig, isVscode, settings]);
+  }, [current, editorConfig, extensionIds, isVscode, settings]);
 
   const activeFile = files.find((file) => file.name === picked) ?? files[0];
 
@@ -365,6 +366,50 @@ export default function Ide() {
                 hint={current.note}
               />
               {isVscode && <VscodeForm value={settings} onChange={setSettings} />}
+              {isVscode && (
+                <Section
+                  title="工作区推荐插件"
+                  description="勾选后生成 .vscode/extensions.json，复用本工具已有的 VS Code 推荐扩展清单数据"
+                  actions={
+                    <>
+                      <Button size="sm" variant="ghost" onClick={() => setExtensionIds([...ALL_EXTENSION_IDS])}>
+                        全选
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setExtensionIds([])}>
+                        清空
+                      </Button>
+                    </>
+                  }
+                >
+                  <div className="max-h-40 overflow-auto rounded-md border p-2 scrollbar-thin">
+                    <div className="flex flex-col gap-2">
+                      {EXTENSION_GROUPS.map((group) => (
+                        <div key={group.label}>
+                          <p className="mb-1 text-[11px] font-medium">{group.label}</p>
+                          <div className="grid gap-x-3 gap-y-1 sm:grid-cols-2">
+                            {group.ids.map((id) => (
+                              <Checkbox
+                                key={id}
+                                label={<span className="font-mono text-[10px]">{id}</span>}
+                                checked={extensionIds.includes(id)}
+                                onChange={(checked) =>
+                                  setExtensionIds((prev) =>
+                                    checked ? [...prev, id] : prev.filter((item) => item !== id),
+                                  )
+                                }
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <Hint>
+                    已选 {extensionIds.length} / {ALL_EXTENSION_IDS.length}；extensions.json 只有工作区级，放在{' '}
+                    <code>.vscode/extensions.json</code>，随仓库共享。
+                  </Hint>
+                </Section>
+              )}
               {!isVscode && current.family !== 'vim' && (
                 <Note tone="info" title="配置方式">
                   {current.family === 'jetbrains'
@@ -409,7 +454,13 @@ export default function Ide() {
                   下载
                 </Button>
               </div>
-              <ResultBox label={activeFile?.name ?? '配置'} value={activeFile?.content ?? ''} rows="min-h-72" fill />
+              <ResultBox
+                label={activeFile?.name ?? '配置'}
+                value={activeFile?.content ?? ''}
+                rows="min-h-72"
+                fill
+                onCopy={() => copyText(activeFile?.content ?? '')}
+              />
               <div className="flex flex-wrap items-center gap-1.5">
                 <a
                   href={current.site}

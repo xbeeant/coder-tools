@@ -1,9 +1,7 @@
 import { Copy, Download, FileSearch, Gauge, ListFilter, ScrollText, Search, Timer, Zap } from 'lucide-react';
 import { useDeferredValue, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Select } from '../components/ui/select';
 import { Checkbox, TextField } from '../components/ui/field';
-
 import {
   EmptyHint,
   Hint,
@@ -16,6 +14,7 @@ import {
   ToolPanel,
 } from '../components/ui/panel';
 import { copyText } from '../components/ui/result';
+import { Select } from '../components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Textarea } from '../components/ui/textarea';
 import { downloadText, exportName } from '../lib/file';

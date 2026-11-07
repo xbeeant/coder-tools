@@ -19,10 +19,10 @@ import {
 } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Select } from '../components/ui/select';
 import { TextField } from '../components/ui/field';
 import { EmptyHint, Hint, LinkList, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { copyText, ResultBox } from '../components/ui/result';
+import { Select } from '../components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Textarea } from '../components/ui/textarea';
 import { formatBytes } from '../lib/bytes';

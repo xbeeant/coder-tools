@@ -1,10 +1,10 @@
 import { FileSearch, FolderOpen, Plus, ShieldAlert, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Select } from '../components/ui/select';
 import { Field, TextField } from '../components/ui/field';
 import { EmptyHint, Hint, LinkList, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText } from '../components/ui/result';
+import { Select } from '../components/ui/select';
 import { Textarea } from '../components/ui/textarea';
 import { downloadText, pickFiles, readAsText } from '../lib/file';
 import {

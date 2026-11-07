@@ -95,15 +95,13 @@ function TreeNode({ path, depth, value, keyName, kind, collapsed, onToggle, onSe
   const collapsible = isContainer && size > 0;
   const open = !collapsed.has(path);
 
-  const keyColon = keyName !== null && (
-    <>
-      {kind === 'array' ? (
-        <span className="text-muted-foreground">{String(keyName)}</span>
-      ) : (
-        <span className="text-fuchsia-600 dark:text-fuchsia-400">{JSON.stringify(String(keyName))}</span>
-      )}
-    </>
-  );
+  const keyColon =
+    keyName !== null &&
+    (kind === 'array' ? (
+      <span className="text-muted-foreground">{String(keyName)}</span>
+    ) : (
+      <span className="text-fuchsia-600 dark:text-fuchsia-400">{JSON.stringify(String(keyName))}</span>
+    ));
 
   const rowContent = (
     <>
@@ -152,9 +150,16 @@ function TreeNode({ path, depth, value, keyName, kind, collapsed, onToggle, onSe
       {rowContent}
     </button>
   ) : (
-    <div className={rowClass} data-path={path} style={{ paddingLeft: pad }} onClick={() => onSelect(path)}>
+    <button
+      type="button"
+      aria-label="选中此节点"
+      onClick={() => onSelect(path)}
+      data-path={path}
+      style={{ paddingLeft: pad }}
+      className={cn(rowClass, 'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring')}
+    >
       {rowContent}
-    </div>
+    </button>
   );
 
   // 标量（含字符串）必须在此处短路，否则对字符串执行 Object.entries 会按字符

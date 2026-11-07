@@ -1,11 +1,11 @@
 /** 文本差异对比：逐行/逐词/逐字符对比，输出 unified diff 与 sed 替换脚本。 */
 import { ArrowDown, ArrowUp, Download, FileDiff } from 'lucide-react';
-import { useCallback, Fragment, useMemo, useState } from 'react';
+import { Fragment, useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Select } from '../components/ui/select';
 import { Checkbox, NumberField } from '../components/ui/field';
 import { EmptyHint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
+import { Select } from '../components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Textarea } from '../components/ui/textarea';
 import { cn } from '../components/ui/utils';

@@ -19,6 +19,7 @@ import {
   FlaskConical,
   Gauge,
   GitBranch,
+  Globe,
   Image,
   KeyRound,
   Languages,
@@ -525,7 +526,7 @@ export const TOOLS: [Tool, ...Tool[]] = [
     meta: {
       id: 'security-scan',
       name: '安全扫描工具',
-      description: '依赖漏洞、危险用法与密钥泄漏的本地静态检查',
+      description: '危险用法、密钥泄漏与依赖漏洞的本地静态检查（CVE 为离线快照）',
       icon: ShieldAlert,
       keywords: ['security', 'audit', 'sca', 'dependency', 'cve', 'secrets', '安全', '扫描', '漏洞'],
     },
@@ -625,7 +626,7 @@ export const TOOLS: [Tool, ...Tool[]] = [
     meta: {
       id: 'packet-debug',
       name: '抓包调试工具',
-      description: 'HAR 解析、cURL 互转、请求构造与 Mock 服务',
+      description: 'HAR 解析、cURL 互转、请求构造与 Mock 规则（离线转换，不发起请求）',
       icon: Bug,
       keywords: ['har', 'curl', 'packet', 'mock', '抓包', '调试'],
     },
@@ -645,7 +646,7 @@ export const TOOLS: [Tool, ...Tool[]] = [
     meta: {
       id: 'api-debug',
       name: '接口调试工具',
-      description: '请求构造、cURL 互转、断言校验与 Mock 服务',
+      description: '请求构造、cURL 互转、断言校验与 Mock 规则（离线转换，不发起请求）',
       icon: Zap,
       keywords: ['api', 'curl', 'http', 'request', 'mock', '接口', '调试'],
     },
@@ -653,9 +654,19 @@ export const TOOLS: [Tool, ...Tool[]] = [
   },
   {
     meta: {
+      id: 'http-client',
+      name: 'HTTP 客户端',
+      description: '真实发送 HTTP 请求并查看响应；扩展版可在当前网页上下文带 Cookie 发同源请求',
+      icon: Globe,
+      keywords: ['http', 'https', 'request', 'fetch', 'postman', 'api', '请求', '联调', 'curl'],
+    },
+    component: lazy(() => import('../tools/http-client')),
+  },
+  {
+    meta: {
       id: 'test-framework',
       name: '测试框架',
-      description: '浏览器内用例运行器与外部测试框架导航',
+      description: '测试用例生成、断言表达式沙盒与框架速查',
       icon: FlaskConical,
       keywords: ['test', 'jest', 'vitest', 'pytest', '测试', '用例'],
     },
@@ -685,7 +696,7 @@ export const TOOLS: [Tool, ...Tool[]] = [
     meta: {
       id: 'ide',
       name: '代码编辑器 / IDE',
-      description: 'IDE 选型、配置生成与插件推荐',
+      description: 'VS Code 配置生成、IDE 选型与插件推荐',
       icon: Code2,
       keywords: ['ide', 'vscode', 'jetbrains', 'vim', '编辑器', '配置'],
     },
@@ -745,7 +756,7 @@ export const TOOLS: [Tool, ...Tool[]] = [
     meta: {
       id: 'pdf',
       name: 'PDF 处理',
-      description: '合并、拆分、旋转、加密与文本提取',
+      description: '合并、拆分、旋转与文本提取（不支持写入打开密码）',
       icon: FileText,
       keywords: ['pdf', 'merge', 'split', '合并', '拆分'],
     },
@@ -755,7 +766,7 @@ export const TOOLS: [Tool, ...Tool[]] = [
     meta: {
       id: 'screenshot',
       name: '截图标注工具',
-      description: '屏幕截取、贴图固定、箭头与文字标注',
+      description: '屏幕截取、箭头与文字标注、导出',
       icon: Camera,
       keywords: ['screenshot', 'annotate', 'capture', '截图', '标注'],
     },
@@ -1045,6 +1056,7 @@ export const TOOL_TREE: NavGroup[] = [
       { type: 'tool', toolId: 'git' },
       { type: 'tool', toolId: 'docker-compose' },
       { type: 'tool', toolId: 'api-debug' },
+      { type: 'tool', toolId: 'http-client' },
       { type: 'tool', toolId: 'test-framework' },
       { type: 'tool', toolId: 'static-analysis' },
       { type: 'tool', toolId: 'project-mgmt' },

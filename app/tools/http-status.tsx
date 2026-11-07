@@ -1,11 +1,11 @@
 import { AlertTriangle, Compass, Copy, Eraser, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Select } from '../components/ui/select';
 import { TextField } from '../components/ui/field';
 import { Input } from '../components/ui/input';
 import { EmptyHint, Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { copyText } from '../components/ui/result';
+import { Select } from '../components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import {
   filterStatuses,
@@ -235,8 +235,6 @@ export default function HttpStatusTool() {
         </div>
       }
     >
-
-
       <Note tone="info" title="语义筛选说明">
         <StatGrid className="grid-cols-1 sm:grid-cols-3">
           <Stat label="可重试" value="500 / 502 / 503 / 504 / 429" hint="配指数退避与幂等键" tone="success" />
