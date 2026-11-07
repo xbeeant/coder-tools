@@ -409,4 +409,6 @@ meta 还停留在「83 项工具」。设计目标定为「工业精密 · 仪�
 两张回归截图，确认差异红绿区分、语法色生效、深色无白底残留、无掉色。截图归档在
 `.workbuddy/ui-qa/05-cleanup-light.png` 与 `06-cleanup-dark.png`。
 
-**状态**：本批 UI 重设计 + 技术债清理的改动尚未提交；上一提交仍是 `af3ca0c`，未 push。
+**状态**：本批 UI 重设计 + 技术债清理已在 `f902b8c` 提交（67 文件，+1289 / −544，
+新建 `.impeccable.md` 与 `tests/design-tokens.test.ts`）；本地 `master` 领先
+`origin/master` 2 个提交，尚未 push。
