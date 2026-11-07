@@ -410,5 +410,5 @@ meta 还停留在「83 项工具」。设计目标定为「工业精密 · 仪�
 `.workbuddy/ui-qa/05-cleanup-light.png` 与 `06-cleanup-dark.png`。
 
 **状态**：本批 UI 重设计 + 技术债清理已在 `f902b8c` 提交（67 文件，+1289 / −544，
-新建 `.impeccable.md` 与 `tests/design-tokens.test.ts`）；本地 `master` 领先
-`origin/master` 2 个提交，尚未 push。
+新建 `.impeccable.md` 与 `tests/design-tokens.test.ts`）；含此前 `af3ca0c` 在内，
+本地 `master` 的提交尚未 push 到 `origin/master`。
