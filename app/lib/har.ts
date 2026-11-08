@@ -964,6 +964,80 @@ export function parseResponseText(text: string): MockResponse {
   return { status, headers, body, time: timeHeader ? Number(timeHeader) || 0 : 0 };
 }
 
+/** api-debug「导入真实响应」的默认断言规则：覆盖状态码、响应头、JSON 字段与耗时。 */
+export const DEFAULT_ASSERTION_RULES: AssertionRule[] = [
+  { id: 'as-default-1', type: 'status', field: '', operator: 'lt', expected: '400', enabled: true },
+  { id: 'as-default-2', type: 'header', field: 'content-type', operator: 'exists', expected: '', enabled: true },
+  { id: 'as-default-3', type: 'jsonPath', field: '$.data', operator: 'exists', expected: '', enabled: true },
+  { id: 'as-default-4', type: 'time', field: '', operator: 'lt', expected: '500', enabled: true },
+];
+
+export interface AssertionRunReport {
+  response: MockResponse;
+  results: AssertionResult[];
+  total: number;
+  passed: number;
+  failed: number;
+}
+
+/** 解析真实响应文本并执行断言规则：复用 parseResponseText / evaluateAssertions，纯本地、不联网。 */
+export function runAssertions(text: string, rules: AssertionRule[]): AssertionRunReport {
+  const response = parseResponseText(text);
+  const results = evaluateAssertions(rules, response);
+  const passed = results.filter((item) => item.passed).length;
+  return { response, results, total: results.length, passed, failed: results.length - passed };
+}
+
+/** http-client 本地历史的共享键名（与 app/tools/http-client.tsx 的 HISTORY_KEY 保持同一取值）。 */
+export const HTTP_HISTORY_KEY = 'coder-tools:http-history';
+
+export interface HttpHistoryRecord {
+  status?: number;
+  url?: string;
+  at?: number;
+  durationMs?: number;
+  transport?: string;
+}
+
+/** 把历史字段里的换行去掉，避免拼接报文时破坏结构。 */
+function oneLine(value: string): string {
+  return value.replace(/[\r\n]+/g, ' ').slice(0, 300);
+}
+
+/**
+ * 把 http-client 本地历史里「最近一条」还原成可粘贴的 HTTP 响应文本，供断言解析。
+ *
+ * 能力边界（如实说明）：http-client 的历史只保存状态码与脱敏 cURL，不保存响应体 / 响应头，
+ * 因此这里只重建状态行与少量元信息头，body 留空并显式标注；
+ * 要校验 body / JSON 字段请直接粘贴完整 HTTP 响应报文。
+ * 入参是 localStorage 的原始字符串，便于作为纯函数测试，不直接读浏览器存储。
+ */
+export function lastHistoryResponseText(raw: string | null): string | null {
+  if (!raw) return null;
+  let data: unknown;
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (!Array.isArray(data) || data.length === 0) return null;
+  const first: unknown = data[0];
+  if (typeof first !== 'object' || first === null) return null;
+  const entry = first as HttpHistoryRecord;
+  const status = typeof entry.status === 'number' && entry.status > 0 ? Math.trunc(entry.status) : 0;
+  const url = oneLine(typeof entry.url === 'string' ? entry.url : '');
+  const duration = typeof entry.durationMs === 'number' && Number.isFinite(entry.durationMs) ? entry.durationMs : 0;
+  const transport = oneLine(typeof entry.transport === 'string' ? entry.transport : 'direct');
+  const lines = [
+    `HTTP/1.1 ${status} ${status >= 200 && status < 400 ? 'OK' : 'Unknown'}`,
+    'x-source: coder-tools:http-history',
+    `x-recorded-url: ${url}`,
+    `x-response-time: ${duration}`,
+    `x-transport: ${transport}`,
+  ];
+  return `${lines.join('\n')}\n\n（本条来自 http-client 本地历史：只保存了状态码与脱敏 cURL，不含响应体。如需校验 body / JSON 字段，请粘贴完整 HTTP 响应报文。）`;
+}
+
 /* ── Mock ──────────────────────────────────────────────────────── */
 
 const FIRST_NAMES = ['张伟', '李娜', '王芳', '刘洋', '陈静', '赵磊', '周敏', '吴昊'];

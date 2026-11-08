@@ -1,4 +1,12 @@
-@import "tailwindcss";
+/*
+ * 关闭 Tailwind 的自动源码扫描，改为显式声明。
+ * Web 构建使用 emptyOutDir:false，dist-web 会累积历史 JS/CSS；自动扫描会把历史产物里
+ * 的旧类名（如 text-amber-600）重新收进新 CSS，造成「源码已清理、产物却回退」的假回归。
+ */
+@import "tailwindcss" source(none);
+@source "../app";
+@source "../index.html";
+@source "../entrypoints/index.html";
 
 @custom-variant dark (&:where(.dark, .dark *));
 

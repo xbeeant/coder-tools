@@ -5,9 +5,11 @@ import {
   Download,
   Eraser,
   FileJson,
+  History,
   Import,
   KeyRound,
   ListPlus,
+  Play,
   Plus,
   ScrollText,
   ShieldAlert,
@@ -19,7 +21,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { Checkbox, Field, TextField } from '../components/ui/field';
 import { Input } from '../components/ui/input';
-import { Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
+import { EmptyHint, Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { copyText, ResultBox } from '../components/ui/result';
 import { Select } from '../components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -48,6 +50,7 @@ import {
   makeHeader,
   makePair,
   mockBodyFor,
+  nextId,
   type PairEntry,
   parseCurl,
   pathOf,
@@ -56,8 +59,16 @@ import {
   suggestHeaders,
 } from '../lib/curl';
 import { downloadText, exportName } from '../lib/file';
+import {
+  type AssertionRule,
+  type AssertionRunReport,
+  DEFAULT_ASSERTION_RULES,
+  HTTP_HISTORY_KEY,
+  lastHistoryResponseText,
+  runAssertions,
+} from '../lib/har';
 
-type OutputTab = 'curl' | 'code' | 'mock' | 'notes';
+type OutputTab = 'curl' | 'code' | 'mock' | 'notes' | 'response';
 
 const METHOD_OPTIONS = HTTP_METHODS.map((method) => ({ value: method, label: method }));
 
@@ -75,6 +86,134 @@ const BODY_OPTIONS = [
   { value: 'form', label: '表单 / multipart' },
   { value: 'raw', label: '原始文本' },
 ];
+
+const ASSERTION_TYPE_OPTIONS: { value: AssertionRule['type']; label: string }[] = [
+  { value: 'status', label: '状态码' },
+  { value: 'header', label: '响应头' },
+  { value: 'jsonPath', label: 'JSON 路径' },
+  { value: 'regex', label: '正则匹配' },
+  { value: 'time', label: '响应耗时' },
+  { value: 'bodyContains', label: '响应体包含' },
+];
+
+const OPERATOR_OPTIONS: { value: AssertionRule['operator']; label: string }[] = [
+  { value: 'equals', label: '等于' },
+  { value: 'contains', label: '包含' },
+  { value: 'notContains', label: '不包含' },
+  { value: 'matches', label: '匹配' },
+  { value: 'lt', label: '小于' },
+  { value: 'gt', label: '大于' },
+  { value: 'exists', label: '存在' },
+];
+
+/** 导入框示例：一条能通过多数默认规则、仅耗时断言失败的真实格式响应。 */
+const RESPONSE_PRESET = `HTTP/1.1 200 OK
+content-type: application/json; charset=utf-8
+x-response-time: 642
+x-trace-id: trace-demo-0001
+
+{"code":"OK","data":{"id":9001,"state":"created"},"items":[{"sku":"A-1","qty":2}]}`;
+
+function assertionNeedsField(type: AssertionRule['type']): boolean {
+  return type === 'header' || type === 'jsonPath' || type === 'regex';
+}
+
+function assertionFieldPlaceholder(type: AssertionRule['type']): string {
+  switch (type) {
+    case 'header':
+      return '响应头名，如 content-type';
+    case 'jsonPath':
+      return 'JSON 路径，如 $.data.id';
+    case 'regex':
+      return '正则表达式';
+    default:
+      return '此类型无需字段';
+  }
+}
+
+/** 结果列表里用一行文字复述规则，便于对照。 */
+function describeRule(rule: AssertionRule): string {
+  const typeLabel = ASSERTION_TYPE_OPTIONS.find((item) => item.value === rule.type)?.label ?? rule.type;
+  const opLabel = OPERATOR_OPTIONS.find((item) => item.value === rule.operator)?.label ?? rule.operator;
+  const field = rule.field.trim() !== '' ? ` ${rule.field}` : '';
+  return `${typeLabel}${field} ${opLabel} ${rule.expected || '（空）'}`;
+}
+
+/** 断言规则编辑器：与 PairEditor 同构，复用共享 Input / Select / Button。 */
+function AssertionEditor({ rules, onChange }: { rules: AssertionRule[]; onChange: (next: AssertionRule[]) => void }) {
+  const patch = (id: string, delta: Partial<AssertionRule>) =>
+    onChange(rules.map((item) => (item.id === id ? { ...item, ...delta } : item)));
+  return (
+    <div className="flex flex-col gap-1.5">
+      {rules.length === 0 && <p className="text-[11px] text-muted-foreground">暂无规则，点下方按钮添加</p>}
+      {rules.map((rule) => (
+        <div key={rule.id} className="flex flex-col gap-1.5 rounded-sm border border-border bg-surface-2/40 p-2">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <input
+              type="checkbox"
+              className="size-3.5 shrink-0 accent-primary"
+              checked={rule.enabled}
+              aria-label="启用该断言"
+              onChange={(event) => patch(rule.id, { enabled: event.target.checked })}
+            />
+            <Select
+              ariaLabel="断言类型"
+              value={rule.type}
+              options={ASSERTION_TYPE_OPTIONS}
+              onChange={(value) => patch(rule.id, { type: value as AssertionRule['type'] })}
+              className="w-28 shrink-0"
+            />
+            <Select
+              ariaLabel="比较方式"
+              value={rule.operator}
+              options={OPERATOR_OPTIONS}
+              onChange={(value) => patch(rule.id, { operator: value as AssertionRule['operator'] })}
+              className="w-24 shrink-0"
+            />
+            <Input
+              value={rule.expected}
+              placeholder="期望值"
+              aria-label="期望值"
+              className="h-7 min-w-0 flex-1 font-mono text-[11px]"
+              onChange={(event) => patch(rule.id, { expected: event.target.value })}
+            />
+            <Button
+              size="icon"
+              variant="ghost"
+              aria-label="删除该断言"
+              onClick={() => onChange(rules.filter((item) => item.id !== rule.id))}
+            >
+              <Trash2 className="size-3.5" />
+            </Button>
+          </div>
+          {assertionNeedsField(rule.type) && (
+            <Input
+              value={rule.field}
+              placeholder={assertionFieldPlaceholder(rule.type)}
+              aria-label="字段名 / 路径"
+              className="h-7 font-mono text-[11px]"
+              onChange={(event) => patch(rule.id, { field: event.target.value })}
+            />
+          )}
+        </div>
+      ))}
+      <Button
+        size="sm"
+        variant="outline"
+        className="self-start"
+        onClick={() =>
+          onChange([
+            ...rules,
+            { id: nextId('as'), type: 'status', field: '', operator: 'equals', expected: '200', enabled: true },
+          ])
+        }
+      >
+        <Plus className="size-3.5" />
+        添加规则
+      </Button>
+    </div>
+  );
+}
 
 /** 可编辑的 key/value 行列表：查询参数、请求头、Cookie、表单字段共用。 */
 function PairEditor({
@@ -165,6 +304,12 @@ export default function ApiDebugTool() {
   const [mockDelay, setMockDelay] = useState('80');
   const [mockType, setMockType] = useState(MOCK_CONTENT_TYPES[0]?.value ?? 'application/json');
   const [mockBody, setMockBody] = useState('');
+  const [responseText, setResponseText] = useState('');
+  const [responseError, setResponseError] = useState<string | null>(null);
+  const [assertionRules, setAssertionRules] = useState<AssertionRule[]>(() =>
+    DEFAULT_ASSERTION_RULES.map((rule) => ({ ...rule })),
+  );
+  const [assertionRun, setAssertionRun] = useState<AssertionRunReport | null>(null);
 
   const update = useCallback((delta: Partial<RequestState>) => setState((prev) => ({ ...prev, ...delta })), []);
 
@@ -220,11 +365,58 @@ export default function ApiDebugTool() {
     setImportText('');
   }, []);
 
+  const runAssertionsHandler = useCallback(() => {
+    if (responseText.trim() === '') {
+      setResponseError('请先粘贴 HTTP 响应文本，或从 http-client 历史读取一条记录');
+      setAssertionRun(null);
+      return;
+    }
+    const next = runAssertions(responseText, assertionRules);
+    setAssertionRun(next);
+    setResponseError(next.total === 0 ? '没有启用的断言规则，请至少启用一条' : null);
+  }, [responseText, assertionRules]);
+
+  const loadFromHistory = useCallback(() => {
+    let raw: string | null = null;
+    try {
+      raw = localStorage.getItem(HTTP_HISTORY_KEY);
+    } catch {
+      raw = null;
+    }
+    const text = lastHistoryResponseText(raw);
+    if (text === null) {
+      setResponseError('没有可用的 http-client 本地历史，或历史数据无法解析；也可以直接粘贴完整响应报文。');
+      setResponseText('');
+      setAssertionRun(null);
+      return;
+    }
+    setResponseError(null);
+    setResponseText(text);
+    setAssertionRun(null);
+  }, []);
+
+  const fillResponsePreset = useCallback(() => {
+    setResponseText(RESPONSE_PRESET);
+    setResponseError(null);
+    setAssertionRun(null);
+  }, []);
+
+  const clearResponse = useCallback(() => {
+    setResponseText('');
+    setResponseError(null);
+    setAssertionRun(null);
+  }, []);
+
   const suggestions = useMemo(() => suggestHeaders(state), [state]);
   const jsonError = useMemo(() => {
     if (state.body.kind !== 'json' || state.body.raw.trim() === '') return null;
     return prettyJson(state.body.raw) === null ? '这段内容不是合法 JSON，导出时会原样发送' : null;
   }, [state.body.kind, state.body.raw]);
+
+  const responseBody = useMemo(
+    () => (assertionRun ? (prettyJson(assertionRun.response.body) ?? assertionRun.response.body) : ''),
+    [assertionRun],
+  );
 
   return (
     <ToolPanel
@@ -279,6 +471,12 @@ export default function ApiDebugTool() {
             <span className="inline-flex items-center gap-1">
               <ShieldAlert className="size-3.5" />
               联调说明
+            </span>
+          </TabsTrigger>
+          <TabsTrigger value="response" active={tab === 'response'}>
+            <span className="inline-flex items-center gap-1">
+              <FileJson className="size-3.5" />
+              真实响应
             </span>
           </TabsTrigger>
         </TabsList>
@@ -750,6 +948,119 @@ export default function ApiDebugTool() {
                 label="更多示例命令"
                 value={CURL_PRESETS.map((item) => `# ${item.name}｜${item.note}\n${item.command}`).join('\n\n')}
                 onCopy={() => copyText(CURL_PRESETS.map((item) => item.command).join('\n'))}
+              />
+            </div>
+          )}
+
+          {tab === 'response' && (
+            <div className="flex flex-col gap-2">
+              <Note tone="info" title="对真实响应执行断言">
+                粘贴一次真实的 HTTP 响应（状态行 + 响应头 + 空行 + body），或从 http-client 的本地历史读取最近一条记录，
+                点「运行断言」后逐条给出通过 / 失败与实际值。解析与比对都在本地完成，不发起任何请求。
+              </Note>
+              <Note tone="warn" title="从历史读取的能力边界">
+                http-client 的本地历史只保存状态码与脱敏 cURL，不含响应体 /
+                响应头；从历史读取时只能还原状态行与少量元信息头。 要校验 body / JSON 字段，请直接粘贴完整 HTTP
+                响应报文。
+              </Note>
+
+              <Section title="导入真实响应" description="状态行 + 头 + 空行 + body">
+                <Textarea
+                  value={responseText}
+                  onChange={(event) => setResponseText(event.target.value)}
+                  placeholder={RESPONSE_PRESET}
+                  spellCheck={false}
+                  aria-label="待导入的 HTTP 响应文本"
+                  className="min-h-32 resize-none font-mono text-[11px]"
+                />
+                <div className="flex flex-wrap gap-1.5">
+                  <Button size="sm" disabled={responseText.trim() === ''} onClick={runAssertionsHandler}>
+                    <Play className="size-3.5" />
+                    运行断言
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={loadFromHistory}>
+                    <History className="size-3.5" />从 http-client 历史读取
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={fillResponsePreset}>
+                    填入示例
+                  </Button>
+                  <Button size="sm" variant="ghost" disabled={responseText === ''} onClick={clearResponse}>
+                    清空
+                  </Button>
+                </div>
+                {responseError !== null && (
+                  <Note tone="danger" title="无法执行">
+                    {responseError}
+                  </Note>
+                )}
+              </Section>
+
+              <Section
+                title="断言规则"
+                description={`默认 ${DEFAULT_ASSERTION_RULES.length} 条，可增删 / 停用后重新运行`}
+              >
+                <AssertionEditor rules={assertionRules} onChange={setAssertionRules} />
+              </Section>
+
+              <Section title="执行结果" description="逐条列出通过 / 失败、期望与实际值">
+                {assertionRun === null ? (
+                  <EmptyHint>粘贴响应并点击「运行断言」，结果会显示在这里</EmptyHint>
+                ) : (
+                  <>
+                    <StatGrid>
+                      <Stat label="规则数" value={assertionRun.total} />
+                      <Stat label="通过" value={assertionRun.passed} tone="success" />
+                      <Stat
+                        label="失败"
+                        value={assertionRun.failed}
+                        tone={assertionRun.failed > 0 ? 'danger' : 'info'}
+                      />
+                      <Stat label="响应状态" value={assertionRun.response.status} />
+                    </StatGrid>
+                    {assertionRun.results.length === 0 ? (
+                      <EmptyHint className="py-3">没有启用的断言规则</EmptyHint>
+                    ) : (
+                      <ul className="flex flex-col gap-1.5">
+                        {assertionRun.results.map((result) => (
+                          <li
+                            key={result.rule.id}
+                            className={`rounded-sm border px-2 py-1.5 text-[11px] ${
+                              result.passed ? 'border-success/40 bg-success/5' : 'border-danger/40 bg-danger/5'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`shrink-0 font-medium ${result.passed ? 'text-success' : 'text-danger'}`}
+                              >
+                                {result.passed ? '通过' : '失败'}
+                              </span>
+                              <span className="min-w-0 flex-1 truncate font-mono text-foreground">
+                                {describeRule(result.rule)}
+                              </span>
+                            </div>
+                            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-muted-foreground">
+                              <span>
+                                期望：
+                                <code className="font-mono text-foreground">{result.rule.expected || '（空）'}</code>
+                              </span>
+                              <span>
+                                实际值：<code className="font-mono text-foreground">{result.actual || '（空）'}</code>
+                              </span>
+                            </div>
+                            <p className="mt-0.5 leading-relaxed text-muted-foreground">{result.message}</p>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </>
+                )}
+              </Section>
+
+              <ResultBox
+                label="解析出的响应体（JSON 自动美化）"
+                value={responseBody}
+                onCopy={() => copyText(responseBody)}
+                rows="min-h-24"
               />
             </div>
           )}

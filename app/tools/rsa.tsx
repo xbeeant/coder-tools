@@ -2,7 +2,7 @@ import { Copy, KeyRound, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '../components/ui/button';
 import { ToolPanel } from '../components/ui/panel';
-import { copyText } from '../components/ui/result';
+import { ClearButton, copyText } from '../components/ui/result';
 import { Select } from '../components/ui/select';
 
 const KEY_SIZES = [1024, 2048, 3072, 4096] as const;
@@ -75,7 +75,8 @@ export default function RsaTool() {
         fingerprint: await jwkThumbprint(publicJwk),
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      const detail = err instanceof Error ? err.message : String(err);
+      setError(`密钥生成失败：浏览器 Web Crypto 未能生成密钥对，请尝试更低的密钥长度或更换浏览器（${detail}）`);
     } finally {
       setBusy(false);
     }
@@ -103,6 +104,13 @@ export default function RsaTool() {
             <ShieldCheck className="size-3.5" />
             {busy ? '生成中…' : '生成密钥对'}
           </Button>
+          <ClearButton
+            onClick={() => {
+              setKeys(null);
+              setError(null);
+            }}
+            disabled={!keys && !error}
+          />
         </div>
       }
     >

@@ -1,6 +1,6 @@
 /** JWT 解码：解析 Header、Payload 与有效期，并提供结构校验、扁平化、敏感字段遮蔽与 HMAC 验签。 */
 
-import { base64ToBytes, bytesToBase64Url, bytesToHex, randomBytes, utf8ToBytes } from './bytes';
+import { base64ToBytes, bytesToBase64Url, bytesToHex, randomBytes, toBytes, utf8ToBytes } from './bytes';
 
 export interface JwtHeader {
   alg?: string;
@@ -1026,4 +1026,335 @@ export function jwtSampleTokens(): { label: string; token: string; description: 
       description: '含 permissions 数组、profile 对象与 refresh_token',
     },
   ];
+}
+
+/* ------------------------------------------------------------------ *
+ * 统一签发与验签：HS256/384/512 与 RS256/384/512
+ *
+ * - 全部基于 Web Crypto（globalThis.crypto.subtle），不引入依赖、不联网、纯本地。
+ * - RS* 使用 PEM：私钥 PKCS#8（BEGIN PRIVATE KEY），公钥 SPKI（BEGIN PUBLIC KEY）。
+ * - 验签同时校验签名有效性与 exp / nbf / iat 时间语义，给出明确中文原因；
+ *   任何畸形输入都安全降级为结构化失败结果，不抛异常。
+ * ------------------------------------------------------------------ */
+
+export type JwtSignAlgorithm = 'HS256' | 'HS384' | 'HS512' | 'RS256' | 'RS384' | 'RS512';
+
+/** 本工具可签发 / 验签的算法（按 UI 展示顺序）。 */
+export const JWT_SIGN_ALGORITHMS: JwtSignAlgorithm[] = ['HS256', 'HS384', 'HS512', 'RS256', 'RS384', 'RS512'];
+
+const RSA_HASH: Record<string, string> = {
+  RS256: 'SHA-256',
+  RS384: 'SHA-384',
+  RS512: 'SHA-512',
+};
+
+/** 把 PEM 文本（带或不带 -----BEGIN/END----- 头尾）解析为 DER 字节。 */
+function pemToDer(pem: string, kind: '私钥' | '公钥') {
+  const text = pem.trim();
+  if (text === '') throw new Error(`${kind} PEM 为空`);
+  if (kind === '私钥' && /BEGIN RSA PRIVATE KEY/.test(text)) {
+    throw new Error(
+      '检测到 PKCS#1 私钥（BEGIN RSA PRIVATE KEY），本工具需要 PKCS#8（BEGIN PRIVATE KEY）；可用 openssl pkcs8 -topk8 -nocrypt 转换',
+    );
+  }
+  const body = text
+    .replace(/-----BEGIN [^-]*-----/g, '')
+    .replace(/-----END [^-]*-----/g, '')
+    .replace(/\s+/g, '');
+  if (body === '') throw new Error(`${kind} PEM 缺少 Base64 主体，请粘贴完整的 PEM 文本`);
+  try {
+    return base64ToBytes(body);
+  } catch {
+    throw new Error(`${kind} PEM 不是合法的 Base64 内容，请确认是 PKCS#8 / SPKI 格式`);
+  }
+}
+
+function importRsaPrivateKey(pem: string, hash: string): Promise<CryptoKey> {
+  const der = pemToDer(pem, '私钥');
+  return globalThis.crypto.subtle.importKey('pkcs8', toBytes(der), { name: 'RSASSA-PKCS1-v1_5', hash }, false, [
+    'sign',
+  ]);
+}
+
+function importRsaPublicKey(pem: string, hash: string): Promise<CryptoKey> {
+  const der = pemToDer(pem, '公钥');
+  return globalThis.crypto.subtle.importKey('spki', toBytes(der), { name: 'RSASSA-PKCS1-v1_5', hash }, false, [
+    'verify',
+  ]);
+}
+
+export interface SignJwtRsaOptions {
+  alg?: string;
+  /** PKCS#8 格式的 RSA 私钥 PEM 文本。 */
+  privateKeyPem: string;
+  header?: JwtHeader;
+  payload: JwtPayload;
+}
+
+/** 用 RSA 私钥（PKCS#8 PEM）签发 RS256/384/512 token。 */
+export async function signJwtRsa(options: SignJwtRsaOptions): Promise<string> {
+  const alg = options.alg ?? 'RS256';
+  const hash = RSA_HASH[alg];
+  if (!hash) throw new Error(`本工具仅支持 ${Object.keys(RSA_HASH).join(' / ')} RSA 签名，收到的是 ${alg}`);
+  const header: JwtHeader = { alg, typ: 'JWT', ...options.header };
+  const signingInput = `${encodeJwtSegment(header)}.${encodeJwtSegment(options.payload)}`;
+  let key: CryptoKey;
+  try {
+    key = await importRsaPrivateKey(options.privateKeyPem, hash);
+  } catch (error) {
+    throw new Error(`PEM 私钥导入失败：${error instanceof Error ? error.message : String(error)}`);
+  }
+  const signature = new Uint8Array(
+    await globalThis.crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, toBytes(utf8ToBytes(signingInput))),
+  );
+  return `${signingInput}.${bytesToBase64Url(signature)}`;
+}
+
+export interface SignJwtOptions {
+  alg: JwtSignAlgorithm;
+  /** HS* 使用的共享密钥。 */
+  secret?: string;
+  /** RS* 使用的 PKCS#8 格式 PEM 私钥。 */
+  privateKeyPem?: string;
+  header?: JwtHeader;
+  payload: JwtPayload;
+}
+
+/** 统一签发入口：按 alg 自动选择 HMAC 共享密钥或 RSA 私钥。 */
+export async function signJwt(options: SignJwtOptions): Promise<string> {
+  const { alg } = options;
+  if (HMAC_ALGS[alg]) {
+    if (!options.secret) throw new Error(`${alg} 签发需要提供共享密钥 secret`);
+    return signJwtHmac({ alg, secret: options.secret, header: options.header, payload: options.payload });
+  }
+  if (RSA_HASH[alg]) {
+    if (!options.privateKeyPem?.trim()) throw new Error(`${alg} 签发需要提供 PKCS#8 格式 PEM 私钥`);
+    return signJwtRsa({ alg, privateKeyPem: options.privateKeyPem, header: options.header, payload: options.payload });
+  }
+  throw new Error(`不支持的签名算法：${alg}`);
+}
+
+export interface JwtTimeClaimCheck {
+  claim: 'exp' | 'nbf' | 'iat';
+  ok: boolean;
+  /** 中文校验结论或失败原因。 */
+  message: string;
+}
+
+export interface JwtVerifyResult {
+  /** 签名有效且全部时间声明校验通过。 */
+  ok: boolean;
+  signatureValid: boolean;
+  algorithm: string;
+  /** 顶层中文结论 / 错误原因。 */
+  message: string;
+  checks: JwtTimeClaimCheck[];
+  header: JwtHeader;
+  payload: JwtPayload;
+}
+
+export interface VerifyJwtOptions {
+  token: string;
+  /** HS* 验签用的共享密钥。 */
+  secret?: string;
+  /** RS* 验签用的 SPKI 格式 PEM 公钥。 */
+  publicKeyPem?: string;
+  /** 允许的时钟偏移（秒），默认 0；对 exp / nbf / iat 的判定放宽该秒数。 */
+  clockToleranceSeconds?: number;
+  /** 校验使用的当前时间（Unix 秒），默认取系统时间；便于确定性测试。 */
+  nowSeconds?: number;
+  /** 可选算法白名单：header.alg 不在其中时直接拒绝，防止算法混淆。 */
+  allowedAlgorithms?: JwtSignAlgorithm[];
+}
+
+/** 校验 exp / nbf / iat 时间语义，逐条给出中文结论。 */
+function checkTimeClaims(payload: JwtPayload, toleranceSeconds: number, nowSeconds?: number): JwtTimeClaimCheck[] {
+  const now = nowSeconds ?? Math.floor(Date.now() / 1000);
+  const tolerance = Math.max(0, Math.floor(toleranceSeconds));
+  const checks: JwtTimeClaimCheck[] = [];
+
+  if (payload.exp !== undefined) {
+    if (typeof payload.exp !== 'number' || !Number.isFinite(payload.exp)) {
+      checks.push({ claim: 'exp', ok: false, message: 'exp 不是合法的数字时间戳' });
+    } else if (now - tolerance >= payload.exp) {
+      checks.push({
+        claim: 'exp',
+        ok: false,
+        message: `token 已过期：exp=${payload.exp}（${formatTimestamp(payload.exp)}），当前时间 ${now}，已超过允许的 ${tolerance} 秒时钟偏移`,
+      });
+    } else {
+      checks.push({
+        claim: 'exp',
+        ok: true,
+        message: `exp 有效：将于 ${formatTimestamp(payload.exp)} 过期，剩余 ${describeDuration((payload.exp - now) * 1000)}`,
+      });
+    }
+  }
+
+  if (payload.nbf !== undefined) {
+    if (typeof payload.nbf !== 'number' || !Number.isFinite(payload.nbf)) {
+      checks.push({ claim: 'nbf', ok: false, message: 'nbf 不是合法的数字时间戳' });
+    } else if (now + tolerance < payload.nbf) {
+      checks.push({
+        claim: 'nbf',
+        ok: false,
+        message: `token 尚未生效：nbf=${payload.nbf}（${formatTimestamp(payload.nbf)}），当前时间 ${now}，需再等 ${describeDuration((payload.nbf - now) * 1000)}`,
+      });
+    } else {
+      checks.push({ claim: 'nbf', ok: true, message: `nbf 已生效：${formatTimestamp(payload.nbf)}` });
+    }
+  }
+
+  if (payload.iat !== undefined) {
+    if (typeof payload.iat !== 'number' || !Number.isFinite(payload.iat)) {
+      checks.push({ claim: 'iat', ok: false, message: 'iat 不是合法的数字时间戳' });
+    } else if (payload.iat > now + tolerance) {
+      checks.push({
+        claim: 'iat',
+        ok: false,
+        message: `iat 在未来：iat=${payload.iat} 晚于当前时间 ${now}（允许时钟偏移 ${tolerance} 秒），可能是伪造或时钟异常`,
+      });
+    } else {
+      checks.push({ claim: 'iat', ok: true, message: `iat 有效：签发于 ${formatTimestamp(payload.iat)}` });
+    }
+  }
+
+  return checks;
+}
+
+/** 按 alg 选择密钥类型并调用 Web Crypto 校验签名，密钥/算法问题抛出中文原因。 */
+async function verifySignature(
+  alg: string,
+  data: Uint8Array,
+  signature: Uint8Array,
+  secret: string | undefined,
+  publicKeyPem: string | undefined,
+): Promise<boolean> {
+  const hmac = HMAC_ALGS[alg];
+  if (hmac) {
+    if (!secret) throw new Error(`${alg} 验签需要提供共享密钥 secret`);
+    const key = await globalThis.crypto.subtle.importKey(
+      'raw',
+      toBytes(utf8ToBytes(secret)),
+      { name: 'HMAC', hash: hmac.hash },
+      false,
+      ['verify'],
+    );
+    return globalThis.crypto.subtle.verify('HMAC', key, toBytes(signature), toBytes(data));
+  }
+  const hash = RSA_HASH[alg];
+  if (hash) {
+    if (!publicKeyPem?.trim()) throw new Error(`${alg} 验签需要提供 SPKI 格式（BEGIN PUBLIC KEY）PEM 公钥`);
+    let key: CryptoKey;
+    try {
+      key = await importRsaPublicKey(publicKeyPem, hash);
+    } catch (error) {
+      throw new Error(`PEM 公钥导入失败：${error instanceof Error ? error.message : String(error)}`);
+    }
+    return globalThis.crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, toBytes(signature), toBytes(data));
+  }
+  if (alg.toLowerCase() === 'none') throw new Error('alg=none 未签名，不提供完整性保证，拒绝校验');
+  throw new Error(`不支持的验签算法 alg=${alg}，本工具仅支持 ${JWT_SIGN_ALGORITHMS.join(' / ')}`);
+}
+
+/**
+ * 统一验签：校验签名有效性 + exp / nbf / iat 时间语义，返回明确中文原因。
+ * 对空串、段数错误、非法 Base64URL/JSON、未知算法、缺密钥等一律安全降级，不抛异常。
+ */
+export async function verifyJwt(options: VerifyJwtOptions): Promise<JwtVerifyResult> {
+  const fail = (message: string, extra: Partial<JwtVerifyResult> = {}): JwtVerifyResult => ({
+    ok: false,
+    signatureValid: false,
+    algorithm: '',
+    message,
+    checks: [],
+    header: {},
+    payload: {},
+    ...extra,
+  });
+
+  const trimmed = options.token.trim().replace(/^Bearer\s+/i, '');
+  if (trimmed === '') return fail('token 为空，请输入待校验的 JWT');
+
+  const parts = trimmed.split('.');
+  if (parts.length !== 3) {
+    return fail(`JWT 应为三段式（header.payload.signature），实际为 ${parts.length} 段`);
+  }
+
+  let header: JwtHeader;
+  let payload: JwtPayload;
+  try {
+    header = decodeJson<JwtHeader>(parts[0] ?? '', 'Header');
+    payload = decodeJson<JwtPayload>(parts[1] ?? '', 'Payload');
+  } catch (error) {
+    return fail(`无法解析 Header / Payload：${error instanceof Error ? error.message : String(error)}`);
+  }
+  if (header === null || typeof header !== 'object' || Array.isArray(header)) {
+    return fail('Header 必须是 JSON 对象');
+  }
+  if (payload === null || typeof payload !== 'object' || Array.isArray(payload)) {
+    return fail('Payload 必须是 JSON 对象');
+  }
+
+  const alg = typeof header.alg === 'string' ? header.alg : '';
+  const context: Partial<JwtVerifyResult> = { algorithm: alg, header, payload };
+  if (!alg) return fail('Header 缺少 alg 声明，无法确定验签算法', context);
+  if (options.allowedAlgorithms && !options.allowedAlgorithms.includes(alg as JwtSignAlgorithm)) {
+    return fail(`alg=${alg} 不在允许的算法白名单内，可能是算法混淆攻击，已拒绝`, context);
+  }
+  if (alg.toLowerCase() === 'none') {
+    return fail('alg=none 未签名，任何人都能篡改 payload，不提供完整性保证，已拒绝', context);
+  }
+
+  let signature: Uint8Array;
+  try {
+    signature = base64ToBytes(parts[2] ?? '');
+  } catch {
+    return fail('签名段不是合法 Base64URL 文本，无法校验签名', context);
+  }
+  const signingInput = utf8ToBytes(`${parts[0]}.${parts[1]}`);
+
+  let signatureValid: boolean;
+  try {
+    signatureValid = await verifySignature(alg, signingInput, signature, options.secret, options.publicKeyPem);
+  } catch (error) {
+    return fail(`验签失败：${error instanceof Error ? error.message : String(error)}`, context);
+  }
+  if (!signatureValid) {
+    return {
+      ok: false,
+      signatureValid: false,
+      algorithm: alg,
+      header,
+      payload,
+      checks: [],
+      message: `签名无效：与提供的密钥不匹配，token 可能被篡改，或密钥 / 算法（${alg}）与签发方不一致`,
+    };
+  }
+
+  const checks = checkTimeClaims(payload, options.clockToleranceSeconds ?? 0, options.nowSeconds);
+  const failed = checks.filter((check) => !check.ok);
+  if (failed.length > 0) {
+    return {
+      ok: false,
+      signatureValid: true,
+      algorithm: alg,
+      header,
+      payload,
+      checks,
+      message: `签名有效，但时间声明校验未通过：${failed.map((check) => check.message).join('；')}`,
+    };
+  }
+  return {
+    ok: true,
+    signatureValid: true,
+    algorithm: alg,
+    header,
+    payload,
+    checks,
+    message:
+      checks.length > 0
+        ? `签名有效（${alg}），且 exp / nbf / iat 时间声明校验全部通过`
+        : `签名有效（${alg}）；token 未携带 exp / nbf / iat 时间声明，未做有效期校验`,
+  };
 }

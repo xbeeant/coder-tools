@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Section, ToolPanel } from '../components/ui/panel';
+import { ClearButton } from '../components/ui/result';
 import { Select } from '../components/ui/select';
 import { Textarea } from '../components/ui/textarea';
 
@@ -58,6 +59,7 @@ export default function QrGenerator() {
             <Download className="size-3.5" />
             SVG
           </Button>
+          <ClearButton onClick={() => setText('')} disabled={!text} />
         </div>
       }
     >
@@ -68,6 +70,7 @@ export default function QrGenerator() {
             onChange={(event) => setText(event.target.value)}
             placeholder="URL、文本、WiFi 配置等"
             spellCheck={false}
+            aria-label="二维码内容"
             className="min-h-20 resize-none font-mono text-xs"
           />
           <Section title="配置">

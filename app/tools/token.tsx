@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { Checkbox } from '../components/ui/field';
 import { Input } from '../components/ui/input';
-import { Note, ToolPanel } from '../components/ui/panel';
+import { EmptyHint, Note, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText } from '../components/ui/result';
 
 const CHARSETS = {
@@ -57,6 +57,7 @@ export default function TokenGenerator() {
   });
   const [seed, setSeed] = useState(0);
   const [requireEach, setRequireEach] = useState(true);
+  const [cleared, setCleared] = useState(false);
 
   const pool = useMemo(
     () =>
@@ -88,12 +89,20 @@ export default function TokenGenerator() {
     return Array.from({ length: count }, generateOne);
   }, [pool, enabled, length, count, requireEach, seed]);
 
-  const output = list.join('\n');
+  const output = cleared ? '' : list.join('\n');
   const entropyPerChar = pool.length > 0 ? Math.log2(pool.length) : 0;
   const totalEntropy = entropyPerChar * length;
   const bitsText = totalEntropy >= 100 ? (totalEntropy / 1000).toFixed(2) : totalEntropy.toFixed(1);
 
-  const toggle = (key: CharsetKey) => setEnabled((prev) => ({ ...prev, [key]: !prev[key] }));
+  const regenerate = () => {
+    setCleared(false);
+    setSeed((n) => n + 1);
+  };
+
+  const toggle = (key: CharsetKey) => {
+    setEnabled((prev) => ({ ...prev, [key]: !prev[key] }));
+    setCleared(false);
+  };
 
   return (
     <ToolPanel
@@ -106,14 +115,14 @@ export default function TokenGenerator() {
       description="安全地生成随机 Token，支持自定义字符集与熵计算"
       actions={
         <div className="flex flex-row gap-1">
-          <Button size="sm" variant="outline" onClick={() => setSeed((n) => n + 1)} disabled={pool.length === 0}>
+          <Button size="sm" variant="outline" onClick={regenerate} disabled={pool.length === 0}>
             <Dices className="size-3.5" />
             重新生成
           </Button>
           <Button size="sm" variant="ghost" onClick={() => copyText(output)} disabled={!output}>
             复制
           </Button>
-          <ClearButton onClick={() => setSeed((n) => n + 1)} disabled={pool.length === 0 && !output} />
+          <ClearButton onClick={() => setCleared(true)} disabled={cleared || !output} />
         </div>
       }
     >
@@ -126,7 +135,10 @@ export default function TokenGenerator() {
               min={1}
               max={4096}
               value={length}
-              onChange={(event) => setLength(Math.min(4096, Math.max(1, Number(event.target.value) || 1)))}
+              onChange={(event) => {
+                setLength(Math.min(4096, Math.max(1, Number(event.target.value) || 1)));
+                setCleared(false);
+              }}
               className="h-7 w-20 text-xs"
             />
           </label>
@@ -137,14 +149,20 @@ export default function TokenGenerator() {
               min={1}
               max={100}
               value={count}
-              onChange={(event) => setCount(Math.min(100, Math.max(1, Number(event.target.value) || 1)))}
+              onChange={(event) => {
+                setCount(Math.min(100, Math.max(1, Number(event.target.value) || 1)));
+                setCleared(false);
+              }}
               className="h-7 w-16 text-xs"
             />
           </label>
           <Checkbox
             label="覆盖所有字符集"
             checked={requireEach}
-            onChange={setRequireEach}
+            onChange={(value) => {
+              setRequireEach(value);
+              setCleared(false);
+            }}
             hint="保证每个已勾选字符集至少出现一次"
           />
         </div>
@@ -156,13 +174,14 @@ export default function TokenGenerator() {
               size="sm"
               variant="outline"
               className="h-6 text-[11px]"
-              onClick={() =>
+              onClick={() => {
                 setEnabled(
                   Object.fromEntries(
                     Object.keys(CHARSETS).map((k) => [k, preset.keys.includes(k as CharsetKey)]),
                   ) as Record<CharsetKey, boolean>,
-                )
-              }
+                );
+                setCleared(false);
+              }}
             >
               {preset.label}
             </Button>
@@ -174,6 +193,7 @@ export default function TokenGenerator() {
             <button
               key={key}
               type="button"
+              aria-pressed={enabled[key]}
               onClick={() => toggle(key)}
               className={`rounded-md border px-2 py-1 font-mono text-[11px] transition-colors ${
                 enabled[key] ? 'border-primary bg-primary/10 text-foreground' : 'text-muted-foreground hover:bg-muted'
@@ -189,8 +209,14 @@ export default function TokenGenerator() {
           字符集大小 {pool.length} · 每个 Token 约 {bitsText} bits 熵
         </div>
 
-        <div className="flex-1 overflow-auto rounded-md border bg-muted/30 whitespace-pre-wrap p-3 font-mono text-xs leading-relaxed break-all scrollbar-thin">
-          {pool.length === 0 ? <span className="text-muted-foreground">请至少启用一个字符集</span> : output}
+        <div className="flex-1 overflow-auto rounded-sm border bg-muted/30 whitespace-pre-wrap p-3 font-mono text-xs leading-relaxed break-all scrollbar-thin">
+          {pool.length === 0 ? (
+            <span className="text-muted-foreground">请至少启用一个字符集</span>
+          ) : cleared ? (
+            <EmptyHint>已清空，点击「重新生成」或调整配置后恢复</EmptyHint>
+          ) : (
+            output
+          )}
         </div>
       </div>
       <Note tone="info" title="说明">

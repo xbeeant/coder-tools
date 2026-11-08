@@ -13,10 +13,12 @@ import {
   Star,
   Sun,
   Trash2,
+  Workflow,
   X,
 } from 'lucide-react';
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PageContextPanel } from './components/PageContextPanel';
+import { PipelinePanel } from './components/PipelinePanel';
 import { SettingsDialog, type ShortcutDef } from './components/SettingsDialog';
 import { ToolErrorBoundary } from './components/ToolErrorBoundary';
 import { Button } from './components/ui/button';
@@ -69,7 +71,8 @@ const SHORTCUTS: ShortcutDef[] = [
   { keys: '⌘/Ctrl + ⇧ + T', label: '切换明暗主题' },
   { keys: '⌘/Ctrl + ⇧ + C', label: '复制当前工具链接' },
   { keys: '⌘/Ctrl + ⇧ + P', label: '打开页面上下文（仅扩展版）' },
-  { keys: 'Esc', label: '关闭搜索 / 设置 / 上下文' },
+  { keys: '⌘/Ctrl + ⇧ + E', label: '打开工具编排流水线' },
+  { keys: 'Esc', label: '关闭搜索 / 设置 / 上下文 / 流水线' },
 ];
 
 const ALL_GROUP_IDS = collectGroupIds(TOOL_TREE);
@@ -127,6 +130,7 @@ export default function AppShell() {
   const [pickerIndex, setPickerIndex] = useState(0);
   const [altKey, setAltKey] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [pipelineOpen, setPipelineOpen] = useState(false);
   const [contextOpen, setContextOpen] = useState(false);
   const [contextSelection, setContextSelection] = useState<SelectionPayload | null>(null);
   const [toast, setToast] = useState<{ message: string; tone: 'success' | 'error' } | null>(null);
@@ -326,17 +330,41 @@ export default function AppShell() {
         setContextOpen(true);
         return;
       }
-      if (event.key === '/' && !pickerOpen && !settingsOpen && !contextOpen && !isTypingTarget(event.target)) {
+      if (mod && event.shiftKey && key === 'e') {
+        event.preventDefault();
+        setPipelineOpen(true);
+        return;
+      }
+      if (
+        event.key === '/' &&
+        !pickerOpen &&
+        !settingsOpen &&
+        !contextOpen &&
+        !pipelineOpen &&
+        !isTypingTarget(event.target)
+      ) {
         event.preventDefault();
         setPickerOpen(true);
         return;
       }
-      if (altKey && !settingsOpen && !contextOpen && (event.key === 'ArrowDown' || event.key === 'ArrowRight')) {
+      if (
+        altKey &&
+        !settingsOpen &&
+        !contextOpen &&
+        !pipelineOpen &&
+        (event.key === 'ArrowDown' || event.key === 'ArrowRight')
+      ) {
         event.preventDefault();
         stepRef.current(1);
         return;
       }
-      if (altKey && !settingsOpen && !contextOpen && (event.key === 'ArrowUp' || event.key === 'ArrowLeft')) {
+      if (
+        altKey &&
+        !settingsOpen &&
+        !contextOpen &&
+        !pipelineOpen &&
+        (event.key === 'ArrowUp' || event.key === 'ArrowLeft')
+      ) {
         event.preventDefault();
         stepRef.current(-1);
         return;
@@ -345,6 +373,7 @@ export default function AppShell() {
         setPickerOpen(false);
         setSettingsOpen(false);
         setContextOpen(false);
+        setPipelineOpen(false);
         setQuery('');
       }
     };
@@ -355,6 +384,7 @@ export default function AppShell() {
     pickerOpen,
     settingsOpen,
     contextOpen,
+    pipelineOpen,
     extensionFeatures,
     travel,
     toggleTheme,
@@ -521,6 +551,16 @@ export default function AppShell() {
             size="icon"
             variant="ghost"
             className="size-7"
+            onClick={() => setPipelineOpen(true)}
+            title="工具编排流水线 (⌘⇧E)"
+            aria-label="打开工具编排流水线"
+          >
+            <Workflow className="size-3.5" />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="size-7"
             onClick={() => setSettingsOpen(true)}
             title="设置 (⌘,)"
             aria-label="打开设置"
@@ -650,7 +690,11 @@ export default function AppShell() {
         )}
 
         <main id="tool-content" tabIndex={-1} className="flex min-h-0 flex-1 flex-col">
-          <div ref={contentRef} className="flex min-h-0 w-full flex-1 flex-col overflow-hidden p-3">
+          <div
+            ref={contentRef}
+            data-tool-id={activeId}
+            className="flex min-h-0 w-full flex-1 flex-col overflow-hidden p-3"
+          >
             <ToolErrorBoundary key={activeId} toolId={activeId}>
               <Suspense
                 fallback={
@@ -779,6 +823,16 @@ export default function AppShell() {
         onNotify={notify}
         containerRef={contentRef}
         selection={contextSelection}
+      />
+
+      <PipelinePanel
+        open={pipelineOpen}
+        onClose={() => setPipelineOpen(false)}
+        onNotify={notify}
+        containerRef={contentRef}
+        activeToolId={activeTool.meta.id}
+        activeToolName={activeTool.meta.name}
+        goTo={goTo}
       />
 
       {toast && (

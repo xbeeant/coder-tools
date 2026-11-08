@@ -1,4 +1,4 @@
-import { ArrowLeftRight, Code2 } from 'lucide-react';
+import { ArrowLeftRight, ClipboardPaste, Code2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { Note, ToolPanel } from '../components/ui/panel';
@@ -7,6 +7,9 @@ import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Textarea } from '../components/ui/textarea';
 
 type Mode = 'encode' | 'decode';
+
+const SAMPLE_TEXT = '你好, World! 👋';
+const SAMPLE_ESCAPED = '\\u4f60\\u597d, World! \\u{1f44b}';
 
 const ESCAPE_STYLES = [
   { value: 'js', label: 'JS \\u' },
@@ -124,6 +127,10 @@ export default function UnicodeTool() {
       description="字符与 Unicode 转义序列互相转换，支持 JS/十六进制/十进制/HTML 实体格式"
       actions={
         <div className="flex flex-row gap-1">
+          <Button size="sm" variant="ghost" onClick={() => setInput(mode === 'encode' ? SAMPLE_TEXT : SAMPLE_ESCAPED)}>
+            <ClipboardPaste className="size-3.5" />
+            示例
+          </Button>
           {mode === 'encode' && (
             <Tabs value={style} onValueChange={(value) => setStyle(value as EscapeStyle)}>
               <TabsList>
@@ -169,6 +176,7 @@ export default function UnicodeTool() {
           onChange={(event) => setInput(event.target.value)}
           placeholder={mode === 'encode' ? '输入文本，查看每个字符的码点' : '输入 \\u4f60\\u597d 或 \\x4f\\x60'}
           spellCheck={false}
+          aria-label="Unicode 输入"
           className="min-h-24 resize-none font-mono text-xs"
         />
         <ResultBox

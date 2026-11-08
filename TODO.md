@@ -412,3 +412,79 @@ meta 还停留在「83 项工具」。设计目标定为「工业精密 · 仪�
 **状态**：本批 UI 重设计 + 技术债清理已在 `f902b8c` 提交（67 文件，+1289 / −544，
 新建 `.impeccable.md` 与 `tests/design-tokens.test.ts`）；含此前 `af3ca0c` 在内，
 本地 `master` 的提交尚未 push 到 `origin/master`。
+
+## 第六批完善（2026-11-08 · 编排层、能力坐实与全量完善度基线）
+
+**动机**：85 个工具已是 5.3 万行、平均 625 行的成熟实现，继续加第 86 个转换器边际价值趋零。
+真正缺的是「把孤岛连起来」和「把名不副实的能力坐实」，以及一条能守住全量工具质量的基线。
+
+### 编排层：步骤协议与配方重放
+
+- 新建 `app/lib/pipeline.ts`：定义 `PipelineStep` / `PipelineRecipe` / `PipelineVars` 与
+  导入校验；变量引用支持 `{{name}}` 与 JSON 路径 `{{name.a.b}}`，未解析引用保留原文并
+  记入 missing，不静默替换成空串。配方与变量池走 `safeSetItem` 纳入配额治理。
+- 新建 `app/lib/pipeline-dom.ts`：输入复用 `captureInputs` / `fillInputField`，输出采集
+  `textarea[readonly]` / `input[readonly]` / `pre` / `code`，取最长值作为主输出。
+  **85 个工具一行都不用改**；`ToolPanel` 只加了一个 `data-tool-panel` 标记用于判断挂载完成。
+- 新建 `app/lib/pipeline-run.ts`：顺序切换工具 → 等懒加载就绪（最多 8 秒）→ 回填输入 →
+  等待可配置延时 → 采集输出写入变量池；单步失败按 `stop` / `continue` 策略处理，
+  全程不抛异常，所有结果进 `RunSummary` 与执行日志。
+- 新建 `app/components/PipelinePanel.tsx`：配方增删改 / 导入导出、捕获当前工具为步骤、
+  钉住输出为变量、手动变量、步骤排序与逐字段编辑（可写变量引用）、执行与逐条日志。
+- `AppShell.tsx` 加入口按钮、`⌘/Ctrl + ⇧ + E` 快捷键、Esc 关闭、容器 `data-tool-id`，
+  并把流水线纳入快捷键条件判断；`SHORTCUTS` 与设置面板同步。
+
+### 名不副实的能力坐实
+
+- **JWT**：`app/lib/jwt.ts` 用 Web Crypto API 实现 HS256/384/512 与 RS256/384/512 签发验签，
+  RS* 支持 PKCS#8 私钥 / SPKI 公钥 PEM；验签逐条检查 exp / nbf / iat（可配时钟偏移），
+  给出中文结论。零新依赖、不联网；14 个单测。
+- **db-client**：新建 `app/lib/local-query.ts`（891 行），纯 TS 零依赖的 SQL 子集引擎 +
+  CSV 解析；新增「本地查询」tab，导入 CSV / JSON 后在内存里真执行查询、表格展示、导出 CSV。
+  支持单表 SELECT / WHERE（含 LIKE、AND/OR、括号）/ ORDER BY / LIMIT / OFFSET / COUNT(*)，
+  **明确拒绝** JOIN、子查询、多表、事务与写入并给中文原因。25 个单测。
+- **security-scan**：离线 CVE 快照标注 `SNAPSHOT_DATE = 2025-03-31` 与时效性提示；
+  支持粘贴 / 导入外部 advisory（纯本地解析），结果区分「内置静态规则 / 离线 CVE 快照 /
+  用户导入 advisory」三种来源。15 个单测。
+- **api-debug**：新增「真实响应」tab，可粘贴完整 HTTP 响应报文或读取 http-client 历史，
+  逐条跑断言并输出通过 / 失败与实际值。历史只存脱敏 cURL、不含响应体，界面如实标注该边界；
+  读取历史只能跑状态类断言，完整路径请用粘贴。9 个单测。
+- `registry.ts` 四个工具的名称与描述同步到实际能力，不夸大。
+
+### 全量工具完善度基线
+
+- 定义 8 项可感知基线：统一容器、复制、清空 / 重置、空态 / 说明、错误提示、示例、
+  可访问性、纯逻辑拆分。首轮扫描 85 个工具：`ToolPanel` 100%、复制 94%、空态 92%、
+  可访问性 92%、纯逻辑 80%、错误 76%、清空 71%、示例 58%，8 项全满足仅 27 个。
+- 新建 `tests/tool-baseline.test.ts`（4 例）固化「覆盖率不退化」下限，删功能会让 CI 变红；
+  同时守住最低基线（统一容器 + 至少 2 项能力）与语义类零残留。
+- 对体检最薄弱的 9 个小工具做**真实补齐**而非塞占位：`uuid` / `token` 修正 ClearButton
+  语义（原来点「清空」其实是重新生成）并补空态；`hash` / `timestamp` / `url-encode` /
+  `unicode` / `wifi-qr` 补按模式填入的真实示例与中文错误；`rsa` / `qr-generator` 补清空、
+  a11y 与中文异常说明。静态检测误报的项（如二维码工具输出是图片下载、RSA 无文本输入
+  不适用示例）经读码判定后未重复添加。
+- 补齐后覆盖率：清空 71%→75%、空态 92%→96%、示例 58%→65%、可访问性 92%→94%，
+  命中 ≤5 项的工具从 15 个降到 10 个。**剩余 10 个待后续批次**：`dev-nav`（导航类，
+  多数基线项不适用）、`logging`、`package-manager`、`password-strength`、`qr-generator`、
+  `rsa`、`shell-framework`、`token`、`uuid`、`vm`。其中部分缺项也是静态误报，需逐个读码判定。
+
+### 构建污染修复
+
+- Web 构建因 `emptyOutDir: false` 累积历史 chunk，Tailwind 自动扫描会把历史产物里的
+  `text-amber-600` 重新收进新 CSS，造成「源码已全量语义化、产物却回退」的假回归。
+- 试过 `@source not` 排除，副作用是两端都输出 Tailwind 完整默认调色板，已撤销。
+- 最终改为 `@import "tailwindcss" source(none)` + 显式 `@source "../app"` /
+  `../index.html` / `../entrypoints/index.html`。双端 CSS 产物核对：兼容别名 0、
+  旧调色板类规则 0、必需语义类 0 缺失。`@theme inline` 会把 `var(--scrim)` 内联成
+  `.bg-scrim{background-color:var(--scrim)}`，产物里不出现 `--color-scrim` 属正常。
+
+### 验证
+
+`bun run check` 192 文件零诊断（`tsc --noEmit` 通过）、`bun test` 150/150 通过
+（11 个文件，782 个断言）、`build:web` 与扩展构建均通过。
+
+**未覆盖**：配方面板与新增 tab 没有浏览器视觉 QA / E2E 自动化 —— 本轮静态预览服务被取消，
+按约定不重启等价服务；`db-client` / `api-debug` 的文件选择、点击执行等交互也仅由
+`tsc` 与纯函数单测覆盖，未在真实浏览器手工点验。这是下一批最该补的验证项。
+
+**状态**：本批改动尚未提交；上一提交 `0936a91` 已 push，本地工作区有新改动。

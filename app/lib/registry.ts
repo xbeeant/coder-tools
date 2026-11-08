@@ -225,8 +225,8 @@ export const TOOLS: [Tool, ...Tool[]] = [
   {
     meta: {
       id: 'jwt',
-      name: 'JWT 解析',
-      description: '解码 Header、Payload，查看签名与过期时间',
+      name: 'JWT 工具',
+      description: '解码、签发与验签（HS*/RS*），校验签名与 exp/nbf/iat 时间语义',
       icon: Signature,
       keywords: ['jwt', 'token', 'bearer', 'claim', '令牌'],
     },
@@ -526,7 +526,7 @@ export const TOOLS: [Tool, ...Tool[]] = [
     meta: {
       id: 'security-scan',
       name: '安全扫描工具',
-      description: '危险用法、密钥泄漏与依赖漏洞的本地静态检查（CVE 为离线快照）',
+      description: '危险用法、密钥泄漏与依赖漏洞的本地静态检查；离线 CVE 快照截至 2025-03-31，可导入外部 advisory',
       icon: ShieldAlert,
       keywords: ['security', 'audit', 'sca', 'dependency', 'cve', 'secrets', '安全', '扫描', '漏洞'],
     },
@@ -596,7 +596,7 @@ export const TOOLS: [Tool, ...Tool[]] = [
     meta: {
       id: 'db-client',
       name: '数据库客户端',
-      description: '连接配置、数据建模、SQL 生成与数据搬运',
+      description: '连接配置、数据建模、SQL 生成、CSV/JSON 导入与真本地 SQL 查询',
       icon: Database,
       keywords: ['database', 'sql', 'ddl', 'er', 'model', '数据库', '建模'],
     },
@@ -646,7 +646,7 @@ export const TOOLS: [Tool, ...Tool[]] = [
     meta: {
       id: 'api-debug',
       name: '接口调试工具',
-      description: '请求构造、cURL 互转、断言校验与 Mock 规则（离线转换，不发起请求）',
+      description: '请求构造、cURL 互转、Mock 规则与断言校验；可导入真实 HTTP 响应逐条跑断言（本身不发起请求）',
       icon: Zap,
       keywords: ['api', 'curl', 'http', 'request', 'mock', '接口', '调试'],
     },

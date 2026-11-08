@@ -19,6 +19,7 @@ export interface ToolPanelProps {
 export function ToolPanel({ title, description, actions, children, className, bodyClassName }: ToolPanelProps) {
   return (
     <div
+      data-tool-panel=""
       className={cn(
         'flex min-h-0 flex-1 flex-col overflow-hidden rounded-sm border border-l-2 border-border border-l-primary bg-surface',
         className,

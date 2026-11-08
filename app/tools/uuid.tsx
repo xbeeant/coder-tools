@@ -4,7 +4,7 @@ import { v1 as uuidv1, v4 as uuidv4, v7 as uuidv7 } from 'uuid';
 import { Button } from '../components/ui/button';
 import { Checkbox } from '../components/ui/field';
 import { Input } from '../components/ui/input';
-import { ToolPanel } from '../components/ui/panel';
+import { EmptyHint, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText } from '../components/ui/result';
 import { Select } from '../components/ui/select';
 
@@ -22,6 +22,7 @@ export default function UuidTool() {
   const [uppercase, setUppercase] = useState(false);
   const [hyphens, setHyphens] = useState(true);
   const [seed, setSeed] = useState(0);
+  const [cleared, setCleared] = useState(false);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: seed 仅用于触发重新生成
   const list = useMemo(() => {
@@ -33,7 +34,12 @@ export default function UuidTool() {
     });
   }, [version, count, uppercase, hyphens, seed]);
 
-  const output = list.join('\n');
+  const output = cleared ? '' : list.join('\n');
+
+  const regenerate = () => {
+    setCleared(false);
+    setSeed((n) => n + 1);
+  };
 
   return (
     <ToolPanel
@@ -51,7 +57,10 @@ export default function UuidTool() {
             label="版本"
             layout={'horizontal'}
             value={version}
-            onChange={(value) => setVersion(value as Version)}
+            onChange={(value) => {
+              setVersion(value as Version);
+              setCleared(false);
+            }}
             options={[
               { value: 'v4', label: 'v4 随机' },
               { value: 'v7', label: 'v7 时间有序' },
@@ -66,25 +75,42 @@ export default function UuidTool() {
               min={1}
               max={200}
               value={count}
-              onChange={(event) => setCount(Math.min(200, Math.max(1, Number(event.target.value) || 1)))}
+              onChange={(event) => {
+                setCount(Math.min(200, Math.max(1, Number(event.target.value) || 1)));
+                setCleared(false);
+              }}
               className="h-7 w-16 text-xs"
             />
           </label>
-          <Checkbox label="大写" checked={uppercase} onChange={setUppercase} />
-          <Checkbox label="连字符" checked={hyphens} onChange={setHyphens} />
-          <Button size="sm" variant="outline" onClick={() => setSeed((n) => n + 1)}>
+          <Checkbox
+            label="大写"
+            checked={uppercase}
+            onChange={(value) => {
+              setUppercase(value);
+              setCleared(false);
+            }}
+          />
+          <Checkbox
+            label="连字符"
+            checked={hyphens}
+            onChange={(value) => {
+              setHyphens(value);
+              setCleared(false);
+            }}
+          />
+          <Button size="sm" variant="outline" onClick={regenerate}>
             <Dices className="size-3.5" />
             重新生成
           </Button>
           <Button size="sm" variant="ghost" onClick={() => copyText(output)} disabled={!output}>
             复制全部
           </Button>
-          <ClearButton onClick={() => setSeed((n) => n + 1)} disabled={count === 0} />
+          <ClearButton onClick={() => setCleared(true)} disabled={cleared || !output} />
         </div>
       }
     >
-      <div className="flex-1 overflow-auto rounded-md border bg-muted/30 p-3 font-mono text-xs leading-relaxed whitespace-pre-wrap scrollbar-thin">
-        {output}
+      <div className="flex-1 overflow-auto rounded-sm border bg-muted/30 p-3 font-mono text-xs leading-relaxed whitespace-pre-wrap scrollbar-thin">
+        {cleared ? <EmptyHint>已清空，点击「重新生成」或调整参数后恢复</EmptyHint> : output}
       </div>
     </ToolPanel>
   );

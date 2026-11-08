@@ -1,13 +1,15 @@
-import { Copy, Hash } from 'lucide-react';
+import { ClipboardPaste, Copy, Hash } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { ToolPanel } from '../components/ui/panel';
+import { EmptyHint, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText } from '../components/ui/result';
 import { Textarea } from '../components/ui/textarea';
 
 const SHA_ALGS = ['SHA-1', 'SHA-256', 'SHA-384', 'SHA-512'] as const;
 type ShaAlg = (typeof SHA_ALGS)[number];
+
+const SAMPLE_TEXT = 'Hello 世界 👋\ncoder-tools';
 
 function md5(input: string): string {
   const add = (x: number, y: number) => {
@@ -158,21 +160,26 @@ export default function HashTool() {
   const [results, setResults] = useState<Record<ShaAlg | 'MD5', string> | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const compute = useCallback(async () => {
-    if (!input) return;
+  const compute = useCallback(async (text: string) => {
+    if (!text) return;
     setBusy(true);
     try {
       const [sha1, sha256, sha384, sha512] = await Promise.all([
-        sha('SHA-1', input),
-        sha('SHA-256', input),
-        sha('SHA-384', input),
-        sha('SHA-512', input),
+        sha('SHA-1', text),
+        sha('SHA-256', text),
+        sha('SHA-384', text),
+        sha('SHA-512', text),
       ]);
-      setResults({ MD5: md5(input), 'SHA-1': sha1, 'SHA-256': sha256, 'SHA-384': sha384, 'SHA-512': sha512 });
+      setResults({ MD5: md5(text), 'SHA-1': sha1, 'SHA-256': sha256, 'SHA-384': sha384, 'SHA-512': sha512 });
     } finally {
       setBusy(false);
     }
-  }, [input]);
+  }, []);
+
+  const fillSample = () => {
+    setInput(SAMPLE_TEXT);
+    void compute(SAMPLE_TEXT);
+  };
 
   return (
     <ToolPanel
@@ -185,8 +192,12 @@ export default function HashTool() {
       description="计算 MD5、SHA-1、SHA-256、SHA-384、SHA-512 哈希值"
       actions={
         <div className="flex flex-row gap-1">
-          <Button size="sm" onClick={() => void compute()} disabled={!input || busy}>
+          <Button size="sm" onClick={() => void compute(input)} disabled={!input || busy}>
             {busy ? '计算中' : '计算'}
+          </Button>
+          <Button size="sm" variant="ghost" onClick={fillSample} disabled={busy}>
+            <ClipboardPaste className="size-3.5" />
+            示例
           </Button>
           <ClearButton
             onClick={() => {
@@ -207,15 +218,23 @@ export default function HashTool() {
           }}
           placeholder="输入文本后点击计算"
           spellCheck={false}
+          aria-label="待计算文本"
           className="min-h-20 resize-none font-mono text-xs"
         />
+        {!results && <EmptyHint>输入文本后点击「计算」查看各算法哈希值，或点击上方「示例」</EmptyHint>}
         {results && (
           <div className="grid grid-cols-1 gap-1.5">
             {Object.entries(results).map(([label, value]) => (
               <div key={label} className="flex items-center gap-2">
                 <span className="w-16 shrink-0 text-xs font-medium">{label}</span>
-                <Input value={value} readOnly spellCheck={false} className="h-8 flex-1 font-mono text-xs" />
-                <Button size="icon" variant="ghost" onClick={() => copyText(value)}>
+                <Input
+                  value={value}
+                  readOnly
+                  spellCheck={false}
+                  aria-label={`${label} 哈希值`}
+                  className="h-8 flex-1 font-mono text-xs"
+                />
+                <Button size="icon" variant="ghost" onClick={() => copyText(value)} aria-label={`复制 ${label} 哈希值`}>
                   <Copy className="size-3.5" />
                 </Button>
               </div>

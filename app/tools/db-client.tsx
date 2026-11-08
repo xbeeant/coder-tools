@@ -1,8 +1,19 @@
-import { ArrowLeftRight, BookOpen, DatabaseZap, Download, FileText, LinkIcon, RefreshCw } from 'lucide-react';
+import {
+  ArrowLeftRight,
+  BookOpen,
+  DatabaseZap,
+  Download,
+  FileText,
+  FileUp,
+  LinkIcon,
+  Play,
+  RefreshCw,
+  Table2,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { Checkbox, NumberField, TextField } from '../components/ui/field';
-import { LinkList, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
+import { EmptyHint, Hint, LinkList, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { copyText, ResultBox } from '../components/ui/result';
 import { Select } from '../components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -33,7 +44,15 @@ import {
   TYPE_PRESETS,
 } from '../lib/db-studio';
 import { downloadText, exportName, pickFile, readAsText } from '../lib/file';
-import { parseDelimited, type Table } from '../lib/table';
+import {
+  type DataRow,
+  type Dataset,
+  parseCsv,
+  type QueryResult,
+  runLocalQuery,
+  SQL_SUPPORTED_RANGE,
+} from '../lib/local-query';
+import { detectColumnTypes, inferTypes, parseDelimited, type Table, toDelimited } from '../lib/table';
 
 const DB_OPTIONS = DB_PROFILES.map((item) => ({ value: item.value, label: item.label }));
 const DIALECT_OPTIONS: { value: SqlDialect; label: string }[] = [
@@ -45,11 +64,11 @@ const DIALECT_OPTIONS: { value: SqlDialect; label: string }[] = [
 ];
 
 export default function DbClient() {
-  const [tab, setTab] = useState<'connect' | 'model' | 'etl' | 'snippets'>('connect');
+  const [tab, setTab] = useState<'connect' | 'model' | 'etl' | 'snippets' | 'query'>('connect');
   return (
     <ToolPanel
       title="数据库开发工作台"
-      description="生成连接串 / CLI 命令、数据建模（DDL/ER）、JSON/CSV 数据搬运、差异对比与 SQL 速查模板（纯离线工具，不发起真实数据库连接）"
+      description="生成连接串 / CLI 命令、数据建模（DDL/ER）、JSON/CSV 数据搬运、差异对比、SQL 速查模板与本地 SQL 查询（纯离线工具，不发起真实数据库连接）"
     >
       <Tabs className="mb-3 flex w-full flex-wrap items-center gap-1">
         <TabsList className="flex flex-wrap gap-0.5">
@@ -69,16 +88,21 @@ export default function DbClient() {
             <BookOpen className="size-3.5" />
             SQL 速查（{SQL_SNIPPET_COUNT} 条）
           </TabsTrigger>
+          <TabsTrigger value="query" active={tab === 'query'} onClick={() => setTab('query')}>
+            <Table2 className="size-3.5" />
+            本地查询
+          </TabsTrigger>
         </TabsList>
       </Tabs>
-      <Note tone="warn" title="浏览器限制">
-        本工具不具备网络直连数据库的能力，所有操作均在本地完成。建议通过官方客户端（如 DBeaver / Navicat / DataGrip /
-        pgAdmin）或 CLI 建立连接。
+      <Note tone="warn" title="能力边界">
+        本工具不具备网络直连数据库的能力；「本地查询」在浏览器内存中执行受限 SQL 子集，数据不上传、不写入
+        localStorage、刷新即清空。真实连接请通过官方客户端（DBeaver / Navicat / DataGrip / pgAdmin）或 CLI 建立。
       </Note>
       {tab === 'connect' && <ConnectTab />}
       {tab === 'model' && <ModelTab />}
       {tab === 'etl' && <EtlTab />}
       {tab === 'snippets' && <SnippetsTab />}
+      {tab === 'query' && <LocalQueryTab />}
     </ToolPanel>
   );
 }
@@ -877,6 +901,329 @@ function DiffPanel() {
         onCopy={() => copyText(sql.script)}
         rows="min-h-40"
       />
+    </div>
+  );
+}
+
+/* ── Tab 5：本地查询 ────────────────────────────────────────────────── */
+
+type SourceKind = 'csv' | 'json';
+
+interface LoadedData {
+  name: string;
+  format: SourceKind;
+  table: Table;
+  dataset: Dataset;
+}
+
+const DEFAULT_SQL = 'SELECT * FROM data LIMIT 50';
+
+const SOURCE_OPTIONS: { value: SourceKind; label: string }[] = [
+  { value: 'csv', label: 'CSV（逗号分隔）' },
+  { value: 'json', label: 'JSON（对象数组）' },
+];
+
+const TYPE_LABEL: Record<string, string> = {
+  number: '数值',
+  boolean: '布尔',
+  string: '文本',
+  mixed: '混合',
+  empty: '空列',
+};
+
+const TYPE_TONE: Record<string, string> = {
+  number: 'border-info text-info',
+  boolean: 'border-syntax-literal text-syntax-literal',
+  string: 'border-border text-muted-foreground',
+  mixed: 'border-warning text-warning',
+  empty: 'border-warning text-warning',
+};
+
+const RESERVED_DATASET_NAMES = new Set([
+  'SELECT',
+  'FROM',
+  'WHERE',
+  'ORDER',
+  'BY',
+  'GROUP',
+  'HAVING',
+  'LIMIT',
+  'OFFSET',
+  'AS',
+  'AND',
+  'OR',
+  'LIKE',
+  'JOIN',
+  'UNION',
+  'DISTINCT',
+  'COUNT',
+  'ASC',
+  'DESC',
+  'NULL',
+  'TRUE',
+  'FALSE',
+]);
+
+function LocalQueryTab() {
+  const [sourceKind, setSourceKind] = useState<SourceKind>('csv');
+  const [sourceText, setSourceText] = useState('');
+  const [tableName, setTableName] = useState('data');
+  const [sql, setSql] = useState(DEFAULT_SQL);
+  const [loaded, setLoaded] = useState<LoadedData | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [result, setResult] = useState<QueryResult | null>(null);
+
+  const columnTypes = useMemo(() => (loaded === null ? [] : detectColumnTypes(loaded.table)), [loaded]);
+
+  const reset = () => {
+    setSourceText('');
+    setLoaded(null);
+    setLoadError(null);
+    setResult(null);
+  };
+
+  const importFile = async () => {
+    const file = await pickFile();
+    if (file === null) return;
+    setSourceText(await readAsText(file));
+    if (/\.json$/i.test(file.name)) setSourceKind('json');
+    else if (/\.(csv|tsv|txt)$/i.test(file.name)) setSourceKind('csv');
+  };
+
+  const loadDataset = () => {
+    const name = tableName.trim();
+    if (name === '') {
+      setLoadError('数据集名不能为空（SQL 中 FROM 之后使用的名称）');
+      setLoaded(null);
+      setResult(null);
+      return;
+    }
+    if (!/^[A-Za-z_\u4e00-\u9fff][A-Za-z0-9_\u4e00-\u9fff]*$/.test(name)) {
+      setLoadError('数据集名只能包含中文 / 字母 / 数字 / 下划线，且不能以数字开头');
+      setLoaded(null);
+      setResult(null);
+      return;
+    }
+    if (RESERVED_DATASET_NAMES.has(name.toUpperCase())) {
+      setLoadError('数据集名不能是 SQL 关键字（如 SELECT / FROM / ORDER）');
+      setLoaded(null);
+      setResult(null);
+      return;
+    }
+
+    let table: Table;
+    if (sourceKind === 'json') {
+      const parsed = parseJsonRecords(sourceText);
+      if (!parsed.ok) {
+        setLoadError(`JSON 解析失败：${parsed.error}`);
+        setLoaded(null);
+        setResult(null);
+        return;
+      }
+      const columns = [...new Set(parsed.records.flatMap((record) => Object.keys(record)))];
+      if (columns.length === 0) {
+        setLoadError('JSON 中没有可识别的列：请提供对象数组，例如 [{"id":1,"name":"张三"}]');
+        setLoaded(null);
+        setResult(null);
+        return;
+      }
+      table = { columns, rows: parsed.records.map((record) => columns.map((column) => record[column] ?? null)) };
+    } else {
+      const parsed = parseCsv(sourceText);
+      if (parsed.error !== null) {
+        setLoadError(parsed.error);
+        setLoaded(null);
+        setResult(null);
+        return;
+      }
+      table = { columns: parsed.columns, rows: parsed.rows };
+    }
+
+    const typed = inferTypes(table);
+    const dataset: Dataset = {
+      [name]: typed.rows.map((row) => {
+        const record: DataRow = {};
+        typed.columns.forEach((column, index) => {
+          record[column] = row[index] ?? null;
+        });
+        return record;
+      }),
+    };
+    setLoaded({ name, format: sourceKind, table: typed, dataset });
+    setLoadError(null);
+    setResult(null);
+    setSql((prev) => (prev.trim() === '' || prev === DEFAULT_SQL ? `SELECT * FROM ${name} LIMIT 50` : prev));
+  };
+
+  const execute = () => {
+    if (loaded === null) {
+      setResult({ columns: [], rows: [], error: '请先载入数据集' });
+      return;
+    }
+    setResult(runLocalQuery(loaded.dataset, sql));
+  };
+
+  const exportCsv = () => {
+    if (result === null || result.error !== null || result.columns.length === 0) return;
+    const text = toDelimited({ columns: result.columns, rows: result.rows }, ',', { eol: '\r\n' });
+    downloadText(exportName('local-query', 'csv'), text, 'text/csv;charset=utf-8');
+  };
+
+  const canExport = result !== null && result.error === null && result.columns.length > 0;
+
+  return (
+    <div className="flex flex-col gap-3">
+      <Section
+        title="数据源"
+        description="导入 CSV / JSON 文件或粘贴文本，自动识别列名与类型；数据仅存于当前组件内存"
+        actions={
+          <div className="flex flex-wrap gap-1">
+            <Button size="sm" variant="outline" onClick={importFile}>
+              <FileUp className="size-3.5" />
+              读取文件
+            </Button>
+            <Button size="sm" onClick={loadDataset}>
+              载入数据集
+            </Button>
+            <Button size="sm" variant="ghost" onClick={reset}>
+              清空
+            </Button>
+          </div>
+        }
+      >
+        <div className="grid gap-3 md:grid-cols-2">
+          <Textarea
+            value={sourceText}
+            onChange={(event) => setSourceText(event.target.value)}
+            placeholder={'id,name,age\n1,张三,28\n2,李四,35'}
+            className="min-h-40 font-mono text-xs"
+            spellCheck={false}
+            aria-label="待载入的 CSV / JSON 文本"
+          />
+          <div className="flex flex-col gap-2">
+            <Select
+              label="格式"
+              value={sourceKind}
+              onChange={(value) => setSourceKind(value as SourceKind)}
+              options={SOURCE_OPTIONS}
+            />
+            <TextField
+              label="数据集名"
+              value={tableName}
+              onChange={setTableName}
+              placeholder="data"
+              hint="SQL 中 FROM 之后使用；避免 SELECT / FROM / ORDER 等关键字"
+            />
+            {loadError !== null && <p className="text-xs text-danger">{loadError}</p>}
+            {loaded !== null && (
+              <div className="flex flex-col gap-1.5">
+                <Hint>已识别列名与类型：</Hint>
+                <div className="flex flex-wrap gap-1">
+                  {columnTypes.map((info) => (
+                    <span
+                      key={info.column}
+                      className={`rounded-sm border px-1.5 py-0.5 font-mono text-[10px] ${TYPE_TONE[info.type] ?? ''}`}
+                      title={`空值 ${info.nulls} 个 · 最长 ${info.maxLength} 字符`}
+                    >
+                      {info.column} · {TYPE_LABEL[info.type] ?? info.type}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </Section>
+
+      {loaded !== null && (
+        <StatGrid>
+          <Stat label="数据行数" value={loaded.table.rows.length} />
+          <Stat label="列数" value={loaded.table.columns.length} />
+          <Stat label="数据集" value={loaded.name} />
+          <Stat label="载入格式" value={loaded.format === 'csv' ? 'CSV' : 'JSON'} tone="info" />
+        </StatGrid>
+      )}
+
+      <Section
+        title="SQL 查询"
+        description="在内存中真执行 SQL 子集，不联网、不写 localStorage"
+        actions={
+          <div className="flex flex-wrap gap-1">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setSql(`SELECT * FROM ${loaded?.name ?? 'data'} LIMIT 50`)}
+            >
+              全表预览
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setSql(`SELECT COUNT(*) FROM ${loaded?.name ?? 'data'}`)}
+            >
+              计数
+            </Button>
+            <Button size="sm" onClick={execute} disabled={loaded === null}>
+              <Play className="size-3.5" />
+              执行查询
+            </Button>
+          </div>
+        }
+      >
+        <Textarea
+          value={sql}
+          onChange={(event) => setSql(event.target.value)}
+          placeholder={DEFAULT_SQL}
+          className="min-h-24 font-mono text-xs"
+          spellCheck={false}
+          aria-label="本地 SQL 查询语句"
+        />
+        <Note tone="info" title="SQL 子集与边界">
+          {SQL_SUPPORTED_RANGE}
+        </Note>
+        <Hint>
+          字符串用单引号 '...'（内部单引号写两遍 ''）；标识符不区分大小写，支持中文列名与中文值；LIKE 用 %
+          匹配任意字符序列、_ 匹配单个字符且不区分大小写；数值型文本按数值比较，NULL 视为最小值；COUNT(*)
+          为聚合查询，ORDER BY 会被忽略。
+        </Hint>
+      </Section>
+
+      <Section
+        title="查询结果"
+        description="结果表格可直接导出为 CSV（CRLF 行尾）"
+        actions={
+          <Button size="sm" variant="outline" onClick={exportCsv} disabled={!canExport}>
+            <Download className="size-3.5" />
+            导出 CSV
+          </Button>
+        }
+      >
+        {result === null ? (
+          <EmptyHint>载入数据集并执行 SQL 后在此显示结果</EmptyHint>
+        ) : (
+          <div className="flex flex-col gap-2">
+            <StatGrid>
+              <Stat label="返回行数" value={result.rows.length} />
+              <Stat label="列数" value={result.columns.length} />
+              <Stat label="数据集" value={loaded?.name ?? '—'} />
+              <Stat
+                label="状态"
+                value={result.error === null ? '完成' : '错误'}
+                tone={result.error === null ? 'success' : 'danger'}
+              />
+            </StatGrid>
+            {result.error !== null ? (
+              <div className="rounded-sm border border-danger bg-danger/5 px-3 py-2 text-xs text-danger">
+                {result.error}
+              </div>
+            ) : result.columns.length === 0 ? (
+              <EmptyHint>查询成功，但没有可展示的列（数据集为空）</EmptyHint>
+            ) : (
+              <ResultTable table={{ columns: result.columns, rows: result.rows }} />
+            )}
+          </div>
+        )}
+      </Section>
     </div>
   );
 }

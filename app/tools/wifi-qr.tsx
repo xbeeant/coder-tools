@@ -1,11 +1,11 @@
-import { Download, ShieldAlert, Wifi } from 'lucide-react';
+import { ClipboardPaste, Download, ShieldAlert, Wifi } from 'lucide-react';
 import { QRCodeCanvas, QRCodeSVG } from 'qrcode.react';
 import { useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { Checkbox, NumberField, TextField } from '../components/ui/field';
 import { Input } from '../components/ui/input';
 import { Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
-import { copyText, ResultBox } from '../components/ui/result';
+import { ClearButton, copyText, ResultBox } from '../components/ui/result';
 import { Select } from '../components/ui/select';
 
 type Level = 'L' | 'M' | 'Q' | 'H';
@@ -13,6 +13,9 @@ type Security = 'WPA' | 'WPA2' | 'WPA3' | 'WEP' | 'nopass';
 
 /** WiFi 二维码里具有特殊含义的字符，出现在 SSID 或密码中必须转义。 */
 const SPECIALS = /[\\;,:"]/g;
+
+const SAMPLE_SSID = 'Cafe;Guest 5G';
+const SAMPLE_PASSWORD = 'Coffee@2024';
 
 function escapeWifiValue(value: string): string {
   return value.replace(SPECIALS, (char) => `\\${char}`);
@@ -148,12 +151,32 @@ export default function WifiQr() {
     downloadBlobUrl('wifi-qr.svg', blob);
   }, []);
 
+  const fillSample = () => {
+    setSsid(SAMPLE_SSID);
+    setPassword(SAMPLE_PASSWORD);
+    setSecurity('WPA2');
+    setHidden(false);
+    setError(null);
+  };
+
+  const clearAll = () => {
+    setSsid('');
+    setPassword('');
+    setSecurity('WPA2');
+    setHidden(false);
+    setError(null);
+  };
+
   return (
     <ToolPanel
       title="WiFi 二维码生成"
       description="生成扫码即可连网的 WiFi 配置码，全部在本地渲染，不做任何网络请求"
       actions={
         <div className="flex flex-row gap-1">
+          <Button size="sm" variant="ghost" onClick={fillSample}>
+            <ClipboardPaste className="size-3.5" />
+            示例
+          </Button>
           <Button size="sm" variant="outline" disabled={!ready} onClick={downloadPng}>
             <Download className="size-3.5" />
             PNG
@@ -162,6 +185,7 @@ export default function WifiQr() {
             <Download className="size-3.5" />
             SVG
           </Button>
+          <ClearButton onClick={clearAll} disabled={!ssid && !password && !error} />
         </div>
       }
     >

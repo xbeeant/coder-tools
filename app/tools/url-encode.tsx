@@ -1,13 +1,16 @@
-import { ArrowLeftRight, Link2 } from 'lucide-react';
+import { ArrowLeftRight, ClipboardPaste, Link2 } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Section, ToolPanel } from '../components/ui/panel';
+import { Hint, Section, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Textarea } from '../components/ui/textarea';
 
 type Mode = 'encode' | 'decode';
 type Scope = 'component' | 'uri';
+
+const SAMPLE_URL = 'https://example.com/搜索?q=中文&tag=c++&name=张三&redirect=/a b#片段';
+const SAMPLE_ENCODED = '%E4%BD%A0%E5%A5%BD%20World%20%F0%9F%91%8B';
 
 export default function UrlEncode() {
   const [mode, setMode] = useState<Mode>('encode');
@@ -22,7 +25,12 @@ export default function UrlEncode() {
       }
       return { ok: true, output: scope === 'component' ? decodeURIComponent(input) : decodeURI(input) };
     } catch (error) {
-      return { ok: false, error: error instanceof Error ? error.message : String(error) };
+      const detail = error instanceof Error ? error.message : String(error);
+      const reason =
+        mode === 'decode'
+          ? '解码失败：请输入合法的百分号编码（% 后必须跟两位十六进制），不完整的 %XX 序列无法还原'
+          : '编码失败：文本包含不完整的 Unicode 字符（孤立代理项），无法编码';
+      return { ok: false, error: `${reason}（${detail}）` };
     }
   }, [input, mode, scope]);
 
@@ -46,6 +54,10 @@ export default function UrlEncode() {
     setInput(result.output);
     setMode(mode === 'encode' ? 'decode' : 'encode');
   }, [result, mode]);
+
+  const fillSample = () => {
+    setInput(mode === 'encode' ? SAMPLE_URL : SAMPLE_ENCODED);
+  };
 
   return (
     <ToolPanel
@@ -79,6 +91,13 @@ export default function UrlEncode() {
       }
     >
       <div className="flex flex-1 flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button size="sm" variant="ghost" onClick={fillSample}>
+            <ClipboardPaste className="size-3.5" />
+            示例
+          </Button>
+          {!input && <Hint>输入 URL 或编码片段后自动显示结果，或点击左侧「示例」</Hint>}
+        </div>
         <Textarea
           value={input}
           onChange={(event) => setInput(event.target.value)}

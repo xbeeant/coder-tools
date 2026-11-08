@@ -22,15 +22,30 @@ import {
   type JwtHmacResult,
   type JwtInfo,
   type JwtPayload,
+  type JwtSignAlgorithm,
   type JwtStructureIssue,
+  type JwtVerifyResult,
   jwtSampleTokens,
   redactJwtPayload,
-  signJwtHmac,
+  signJwt,
   validateJwtStructure,
+  verifyJwt,
   verifyJwtHmac,
 } from '../lib/jwt';
 
 type Tab = 'decode' | 'inspect' | 'verify' | 'build' | 'reference';
+
+type BuildAlg = JwtSignAlgorithm | 'none';
+
+const SIGN_ALG_OPTIONS: { value: BuildAlg; label: string }[] = [
+  { value: 'HS256', label: 'HS256 · HMAC-SHA256' },
+  { value: 'HS384', label: 'HS384 · HMAC-SHA384' },
+  { value: 'HS512', label: 'HS512 · HMAC-SHA512' },
+  { value: 'RS256', label: 'RS256 · RSA-SHA256' },
+  { value: 'RS384', label: 'RS384 · RSA-SHA384' },
+  { value: 'RS512', label: 'RS512 · RSA-SHA512' },
+  { value: 'none', label: 'none（不签名）' },
+];
 
 const LEVEL_STYLE: Record<JwtStructureIssue['level'], { cls: string; Icon: typeof CheckCircle2; text: string }> = {
   error: { cls: 'text-destructive', Icon: XCircle, text: '错误' },
@@ -58,10 +73,14 @@ export default function JwtTool() {
   const [token, setToken] = useState('');
   const [secret, setSecret] = useState('');
   const [showSecret, setShowSecret] = useState(false);
-  const [hmac, setHmac] = useState<JwtHmacResult | null>(null);
-  const [hmacError, setHmacError] = useState('');
+  const [privateKeyPem, setPrivateKeyPem] = useState('');
+  const [publicKeyPem, setPublicKeyPem] = useState('');
+  const [clockTolerance, setClockTolerance] = useState(0);
+  const [verifyResult, setVerifyResult] = useState<JwtVerifyResult | null>(null);
+  const [verifyError, setVerifyError] = useState('');
+  const [hmacDetail, setHmacDetail] = useState<JwtHmacResult | null>(null);
   const [busy, setBusy] = useState(false);
-  const [buildAlg, setBuildAlg] = useState('HS256');
+  const [buildAlg, setBuildAlg] = useState<BuildAlg>('HS256');
   const [buildHeader, setBuildHeader] = useState('{\n  "kid": "key-2026-01"\n}');
   const [buildPayload, setBuildPayload] = useState(
     '{\n  "iss": "https://auth.example.com",\n  "sub": "user_1024",\n  "aud": ["my-api", "my-web"],\n  "scope": "openid profile",\n  "role": "admin"\n}',
@@ -92,19 +111,26 @@ export default function JwtTool() {
     [decoded, token],
   );
   const spec = useMemo(() => getJwtSignatureSpec(decoded.ok ? (decoded.info.header.alg ?? '') : ''), [decoded]);
+  const currentAlg = decoded.ok ? String(decoded.info.header.alg ?? '') : '';
+  const isRsa = currentAlg.toUpperCase().startsWith('RS');
 
   const runVerify = useCallback(async () => {
     setBusy(true);
-    setHmacError('');
-    setHmac(null);
+    setVerifyError('');
+    setVerifyResult(null);
+    setHmacDetail(null);
     try {
-      setHmac(await verifyJwtHmac(token, secret));
+      const result = await verifyJwt({ token, secret, publicKeyPem, clockToleranceSeconds: clockTolerance });
+      setVerifyResult(result);
+      if (result.algorithm.startsWith('HS') && secret) {
+        setHmacDetail(await verifyJwtHmac(token, secret));
+      }
     } catch (error) {
-      setHmacError(error instanceof Error ? error.message : String(error));
+      setVerifyError(error instanceof Error ? error.message : String(error));
     } finally {
       setBusy(false);
     }
-  }, [token, secret]);
+  }, [token, secret, publicKeyPem, clockTolerance]);
 
   const runSign = useCallback(async () => {
     setBusy(true);
@@ -138,14 +164,14 @@ export default function JwtTool() {
       if (buildAlg === 'none') {
         setSigned(createUnsignedJwt(payload, header));
       } else {
-        setSigned(await signJwtHmac({ alg: buildAlg, secret, header, payload }));
+        setSigned(await signJwt({ alg: buildAlg, secret, privateKeyPem, header, payload }));
       }
     } catch (error) {
       setBuildError(error instanceof Error ? error.message : String(error));
     } finally {
       setBusy(false);
     }
-  }, [secret, buildAlg, buildHeader, buildPayload, buildTtl, addTimeClaims]);
+  }, [secret, privateKeyPem, buildAlg, buildHeader, buildPayload, buildTtl, addTimeClaims]);
 
   const fillTimeClaims = useCallback(() => {
     try {
@@ -159,15 +185,15 @@ export default function JwtTool() {
 
   return (
     <ToolPanel
-      title="JWT 解析与签发"
-      description="本地解析 Header/Payload、结构体检、HMAC 验签与 HS 系列签发，不上传任何数据"
+      title="JWT 解析 · 签发 · 验签"
+      description="本地解析 Header/Payload、结构体检、HS/RS 系列签发与验签（含 exp/nbf/iat 时间校验），密钥不上传、不落盘"
       actions={
         <Tabs value={tab} onValueChange={(value) => setTab(value as Tab)}>
           <TabsList>
             <TabsTrigger value="decode">解析</TabsTrigger>
             <TabsTrigger value="inspect">结构体检</TabsTrigger>
-            <TabsTrigger value="verify">HMAC 验签</TabsTrigger>
-            <TabsTrigger value="build">签发调试</TabsTrigger>
+            <TabsTrigger value="verify">验签</TabsTrigger>
+            <TabsTrigger value="build">签发</TabsTrigger>
             <TabsTrigger value="reference">声明与算法</TabsTrigger>
           </TabsList>
         </Tabs>
@@ -187,8 +213,9 @@ export default function JwtTool() {
                   title={sample.description}
                   onClick={() => {
                     setToken(sample.token);
-                    setHmac(null);
-                    setHmacError('');
+                    setVerifyResult(null);
+                    setVerifyError('');
+                    setHmacDetail(null);
                   }}
                 >
                   <Sparkles className="size-3.5" />
@@ -198,8 +225,9 @@ export default function JwtTool() {
               <ClearButton
                 onClick={() => {
                   setToken('');
-                  setHmac(null);
-                  setHmacError('');
+                  setVerifyResult(null);
+                  setVerifyError('');
+                  setHmacDetail(null);
                 }}
                 disabled={!token}
               />
@@ -210,8 +238,9 @@ export default function JwtTool() {
             value={token}
             onChange={(event) => {
               setToken(event.target.value);
-              setHmac(null);
-              setHmacError('');
+              setVerifyResult(null);
+              setVerifyError('');
+              setHmacDetail(null);
             }}
             placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyXzEwMjQifQ.signature"
             spellCheck={false}
@@ -319,7 +348,7 @@ export default function JwtTool() {
               <Section title="分段信息" description="三段各自的 Base64URL 文本与解码结果">
                 <div className="flex flex-col gap-2">
                   {structure?.segments.map((segment) => (
-                    <div key={segment.name} className="rounded-md border px-2.5 py-2">
+                    <div key={segment.name} className="rounded-sm border px-2.5 py-2">
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-[11px] font-medium">
                           {segment.index === 0 ? '① header' : segment.index === 1 ? '② payload' : '③ signature'}
@@ -374,7 +403,7 @@ export default function JwtTool() {
                   {groupJwtClaims(decoded.info.payload).map((group) => (
                     <div key={group.group}>
                       <p className="text-[10px] text-muted-foreground">{group.group}</p>
-                      <div className="mt-1 overflow-auto rounded-md border">
+                      <div className="mt-1 overflow-auto rounded-sm border">
                         <table className="w-full text-left text-[11px]">
                           <tbody>
                             {group.claims.map((claim) => (
@@ -396,7 +425,7 @@ export default function JwtTool() {
               </Section>
 
               <Section title="扁平化路径" description="嵌套声明展开为 a.b[0] 形式，便于逐项核对">
-                <div className="max-h-72 overflow-auto rounded-md border scrollbar-thin">
+                <div className="max-h-72 overflow-auto rounded-sm border scrollbar-thin">
                   <table className="w-full text-left text-[11px]">
                     <thead className="sticky top-0 bg-muted/60">
                       <tr>
@@ -495,7 +524,7 @@ export default function JwtTool() {
               <Section title="逐段校验">
                 <div className="flex flex-col gap-1.5">
                   {structure.segments.map((segment) => (
-                    <div key={segment.name} className="rounded-md border px-2.5 py-2">
+                    <div key={segment.name} className="rounded-sm border px-2.5 py-2">
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-mono text-[11px]">{segment.name}</span>
                         <span className={`text-[10px] ${segment.valid ? 'text-success' : 'text-destructive'}`}>
@@ -523,88 +552,148 @@ export default function JwtTool() {
       {tab === 'verify' && (
         <div className="grid gap-3 md:grid-cols-2">
           <Section
-            title="HMAC 验签"
-            description="仅支持 HS256 / HS384 / HS512，密钥只在本地内存中参与计算"
+            title="验签"
+            description="校验签名有效性，并检查 exp / nbf / iat 时间语义；密钥只在本地内存参与计算"
             actions={
               <div className="flex items-center gap-1.5">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setShowSecret((prev) => !prev)}
-                  aria-label="切换密钥可见性"
-                >
-                  <KeyRound className="size-3.5" />
-                  {showSecret ? '隐藏' : '显示'}
-                </Button>
-                <ClearButton onClick={() => setSecret('')} disabled={!secret} />
+                {!isRsa && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setShowSecret((prev) => !prev)}
+                    aria-label="切换密钥可见性"
+                  >
+                    <KeyRound className="size-3.5" />
+                    {showSecret ? '隐藏' : '显示'}
+                  </Button>
+                )}
+                <ClearButton
+                  onClick={() => {
+                    setSecret('');
+                    setPublicKeyPem('');
+                    setVerifyResult(null);
+                    setVerifyError('');
+                    setHmacDetail(null);
+                  }}
+                  disabled={!secret && !publicKeyPem}
+                />
               </div>
             }
           >
-            <TextField
-              label="共享密钥（secret）"
-              value={secret}
-              onChange={setSecret}
-              type={showSecret ? 'text' : 'password'}
-              placeholder="至少 32 字节随机串"
-              hint={decoded.ok ? `当前 alg=${String(decoded.info.header.alg ?? '未知')}` : '粘贴 token 后自动识别算法'}
-            />
-            {decoded.ok && (
-              <Note
-                tone={assessSecretStrength(secret, String(decoded.info.header.alg ?? 'HS256')).ok ? 'info' : 'warn'}
-                title="密钥强度"
-              >
-                {assessSecretStrength(secret, String(decoded.info.header.alg ?? 'HS256')).text}
-              </Note>
-            )}
-            <Button
-              size="sm"
-              className="self-start"
-              disabled={busy || !token.trim() || !secret}
-              onClick={() => void runVerify()}
-            >
-              <CheckCircle2 className="size-3.5" />
-              {busy ? '计算中…' : '校验签名'}
-            </Button>
-            {hmacError && (
-              <Note tone="danger" title="验签出错">
-                {hmacError}
-              </Note>
-            )}
-            {hmac && (
+            {isRsa ? (
               <>
-                <Note tone={hmac.ok ? 'success' : 'danger'} title={hmac.ok ? '校验通过' : '校验失败'}>
-                  {hmac.message}
-                </Note>
-                <ResultBox
-                  label="待签名内容（header.payload）"
-                  value={hmac.signingInput}
-                  onCopy={() => copyText(hmac.signingInput)}
-                  rows="min-h-16"
+                <span className="text-[11px] font-medium text-muted-foreground">公钥（SPKI / PEM）</span>
+                <Textarea
+                  name="jwt-public-key-pem"
+                  aria-label="SPKI public key PEM"
+                  value={publicKeyPem}
+                  onChange={(event) => setPublicKeyPem(event.target.value)}
+                  placeholder={'-----BEGIN PUBLIC KEY-----\n…\n-----END PUBLIC KEY-----'}
+                  spellCheck={false}
+                  className="min-h-24 resize-none font-mono text-xs"
                 />
-                <div className="grid gap-2 md:grid-cols-2">
-                  <ResultBox
-                    label="期望签名（十六进制）"
-                    value={hmac.expectedHex}
-                    onCopy={() => copyText(hmac.expectedHex)}
-                    rows="min-h-10"
-                  />
-                  <ResultBox
-                    label="实际签名（十六进制）"
-                    value={hmac.actualHex}
-                    onCopy={() => copyText(hmac.actualHex)}
-                    rows="min-h-10"
-                  />
-                </div>
-                <Hint>
-                  签名不同常见原因：密钥不一致、alg 被篡改（例如把 RS256 换成 HS256 用公钥当密钥）、token
-                  传输中被截断或改了任意一个字符。
-                </Hint>
+                <Hint>当前 alg={currentAlg || '未知'}：RS* 需要对应的 SPKI 公钥（BEGIN PUBLIC KEY）。</Hint>
+              </>
+            ) : (
+              <>
+                <TextField
+                  label="共享密钥（secret）"
+                  value={secret}
+                  onChange={setSecret}
+                  type={showSecret ? 'text' : 'password'}
+                  placeholder="secret（至少 32 字节随机串）"
+                  hint={decoded.ok ? `当前 alg=${currentAlg || '未知'}` : '粘贴 token 后自动识别算法'}
+                />
+                {decoded.ok && (
+                  <Note
+                    tone={assessSecretStrength(secret, currentAlg || 'HS256').ok ? 'info' : 'warn'}
+                    title="密钥强度"
+                  >
+                    {assessSecretStrength(secret, currentAlg || 'HS256').text}
+                  </Note>
+                )}
               </>
             )}
-            {!hmac && !hmacError && <EmptyHint>填写密钥后点击「校验签名」</EmptyHint>}
+            <NumberField
+              label="允许的时钟偏移（秒）"
+              value={clockTolerance}
+              onChange={setClockTolerance}
+              min={0}
+              step={10}
+              hint="默认 0；对 exp / nbf / iat 的判定放宽该秒数，容忍校验方与签发方的时钟差"
+            />
+            <Button size="sm" className="self-start" disabled={busy || !token.trim()} onClick={() => void runVerify()}>
+              <CheckCircle2 className="size-3.5" />
+              {busy ? '校验中…' : '校验签名与时间'}
+            </Button>
+            {verifyError && (
+              <Note tone="danger" title="验签出错">
+                {verifyError}
+              </Note>
+            )}
+            {verifyResult && (
+              <>
+                <Note tone={verifyResult.ok ? 'success' : 'danger'} title={verifyResult.ok ? '校验通过' : '校验未通过'}>
+                  {verifyResult.message}
+                </Note>
+                <StatGrid className="grid-cols-3">
+                  <Stat
+                    label="签名"
+                    value={verifyResult.signatureValid ? '有效' : '无效'}
+                    tone={verifyResult.signatureValid ? 'success' : 'danger'}
+                  />
+                  <Stat label="算法" value={verifyResult.algorithm || '未知'} />
+                  <Stat
+                    label="时间声明"
+                    value={
+                      verifyResult.checks.length === 0
+                        ? '未设置'
+                        : `${verifyResult.checks.filter((check) => check.ok).length} / ${verifyResult.checks.length} 通过`
+                    }
+                    tone={verifyResult.checks.some((check) => !check.ok) ? 'danger' : 'info'}
+                  />
+                </StatGrid>
+                {verifyResult.checks.length > 0 && (
+                  <ul className="flex flex-col gap-1.5">
+                    {verifyResult.checks.map((check) => (
+                      <li key={check.claim} className="flex items-start gap-1.5 text-[11px] leading-relaxed">
+                        {check.ok ? (
+                          <CheckCircle2 className="mt-0.5 size-3 shrink-0 text-success" />
+                        ) : (
+                          <XCircle className="mt-0.5 size-3 shrink-0 text-danger" />
+                        )}
+                        <span>
+                          <span className={`font-mono font-medium ${check.ok ? 'text-success' : 'text-danger'}`}>
+                            {check.claim}
+                          </span>
+                          <span className="text-muted-foreground"> · {check.message}</span>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {hmacDetail && (
+                  <div className="grid gap-2 md:grid-cols-2">
+                    <ResultBox
+                      label="期望签名（十六进制）"
+                      value={hmacDetail.expectedHex}
+                      onCopy={() => copyText(hmacDetail.expectedHex)}
+                      rows="min-h-10"
+                    />
+                    <ResultBox
+                      label="实际签名（十六进制）"
+                      value={hmacDetail.actualHex}
+                      onCopy={() => copyText(hmacDetail.actualHex)}
+                      rows="min-h-10"
+                    />
+                  </div>
+                )}
+              </>
+            )}
+            {!verifyResult && !verifyError && <EmptyHint>填写密钥后点击「校验签名与时间」</EmptyHint>}
           </Section>
 
-          <Section title="服务端应做的完整校验" description="本工具只覆盖签名一项，顺序不能颠倒">
+          <Section title="服务端应做的完整校验" description="本工具覆盖签名与时间两项，顺序不能颠倒">
             <ol className="flex list-decimal flex-col gap-1.5 pl-4 text-[11px] leading-relaxed text-muted-foreground">
               <li>先按固定算法白名单验签（不要直接信任 header 里的 alg）</li>
               <li>检查 iss 是否为可信签发方</li>
@@ -658,19 +747,29 @@ export default function JwtTool() {
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
-            <Section title="签发参数">
-              <div className="grid gap-2 sm:grid-cols-3">
+            <Section
+              title="签发参数"
+              actions={
+                !buildAlg.startsWith('RS') && buildAlg !== 'none' ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setShowSecret((prev) => !prev)}
+                    aria-label="切换密钥可见性"
+                  >
+                    <KeyRound className="size-3.5" />
+                    {showSecret ? '隐藏' : '显示'}
+                  </Button>
+                ) : undefined
+              }
+            >
+              <div className="grid gap-2 sm:grid-cols-2">
                 <Select
                   label="算法"
                   ariaLabel="签名算法"
                   value={buildAlg}
-                  onChange={setBuildAlg}
-                  options={[
-                    { value: 'HS256', label: 'HS256' },
-                    { value: 'HS384', label: 'HS384' },
-                    { value: 'HS512', label: 'HS512' },
-                    { value: 'none', label: 'none（不签名）' },
-                  ]}
+                  onChange={(value) => setBuildAlg(value as BuildAlg)}
+                  options={SIGN_ALG_OPTIONS}
                 />
                 <NumberField
                   label="有效期（秒）"
@@ -680,26 +779,45 @@ export default function JwtTool() {
                   step={60}
                   hint="写入 exp"
                 />
-                <TextField
-                  label="共享密钥"
-                  value={secret}
-                  onChange={setSecret}
-                  type={showSecret ? 'text' : 'password'}
-                  placeholder={buildAlg === 'none' ? 'none 不需要密钥' : '至少 32 字节'}
-                  disabled={buildAlg === 'none'}
-                />
               </div>
-              <Checkbox label="自动补齐 iat / nbf / exp / jti" checked={addTimeClaims} onChange={setAddTimeClaims} />
-              {buildAlg !== 'none' && (
-                <Note tone={assessSecretStrength(secret, buildAlg).ok ? 'info' : 'warn'} title="密钥强度">
-                  {assessSecretStrength(secret, buildAlg).text}
-                </Note>
-              )}
               {buildAlg === 'none' && (
                 <Note tone="danger" title="alg=none 不安全">
                   签出的 token 没有任何签名，任何人都能改 payload。仅用于本地联调「无 token 服务」的场景。
                 </Note>
               )}
+              {buildAlg.startsWith('RS') && (
+                <>
+                  <span className="text-[11px] font-medium text-muted-foreground">PKCS#8 私钥（PEM）</span>
+                  <Textarea
+                    name="jwt-private-key-pem"
+                    aria-label="PKCS#8 private key PEM"
+                    value={privateKeyPem}
+                    onChange={(event) => setPrivateKeyPem(event.target.value)}
+                    placeholder={'-----BEGIN PRIVATE KEY-----\n…\n-----END PRIVATE KEY-----'}
+                    spellCheck={false}
+                    className="min-h-24 resize-none font-mono text-xs"
+                  />
+                  <Note tone="warn" title="私钥仅用于本次本地签名">
+                    私钥不会写入本地存储快照，也不会离开浏览器。请粘贴 PKCS#8（BEGIN PRIVATE KEY）格式； PKCS#1（BEGIN
+                    RSA PRIVATE KEY）需先用 openssl pkcs8 -topk8 -nocrypt 转换。
+                  </Note>
+                </>
+              )}
+              {buildAlg.startsWith('HS') && (
+                <>
+                  <TextField
+                    label="共享密钥"
+                    value={secret}
+                    onChange={setSecret}
+                    type={showSecret ? 'text' : 'password'}
+                    placeholder="secret（至少 32 字节随机串）"
+                  />
+                  <Note tone={assessSecretStrength(secret, buildAlg).ok ? 'info' : 'warn'} title="密钥强度">
+                    {assessSecretStrength(secret, buildAlg).text}
+                  </Note>
+                </>
+              )}
+              <Checkbox label="自动补齐 iat / nbf / exp / jti" checked={addTimeClaims} onChange={setAddTimeClaims} />
               <Button size="sm" className="self-start" disabled={busy} onClick={() => void runSign()}>
                 <KeyRound className="size-3.5" />
                 {busy ? '生成中…' : '生成 JWT'}
@@ -727,8 +845,9 @@ export default function JwtTool() {
                     className="self-start"
                     onClick={() => {
                       setToken(signed);
-                      setHmac(null);
-                      setHmacError('');
+                      setVerifyResult(null);
+                      setVerifyError('');
+                      setHmacDetail(null);
                       setTab('decode');
                     }}
                   >
@@ -757,8 +876,8 @@ export default function JwtTool() {
             </Section>
           </div>
           <Note tone="info" title="签发范围">
-            本工具只实现 HMAC 系列与 alg=none，用于本地联调与理解 token 结构；RS/ES/EdDSA 需要引入公钥库或 JWK 处理，
-            未在此实现。
+            支持 HS256 / HS384 / HS512（共享密钥）与 RS256 / RS384 / RS512（PKCS#8 PEM 私钥），全部由浏览器 Web Crypto
+            在本地完成；ES / EdDSA / PS 系列未实现。alg=none 仅用于本地联调。
           </Note>
         </>
       )}
@@ -767,7 +886,7 @@ export default function JwtTool() {
         <>
           <div className="grid gap-3 md:grid-cols-2">
             <Section title="签名算法对照" description="签名长度、密钥形式与风险等级">
-              <div className="overflow-auto rounded-md border scrollbar-thin">
+              <div className="overflow-auto rounded-sm border scrollbar-thin">
                 <table className="w-full text-left text-[11px]">
                   <thead className="bg-muted/60">
                     <tr>
@@ -811,7 +930,7 @@ export default function JwtTool() {
             </Section>
 
             <Section title="标准与常见声明" description="点击行不改变内容，仅作速查">
-              <div className="max-h-96 overflow-auto rounded-md border scrollbar-thin">
+              <div className="max-h-96 overflow-auto rounded-sm border scrollbar-thin">
                 <table className="w-full text-left text-[11px]">
                   <thead className="sticky top-0 bg-muted/60">
                     <tr>

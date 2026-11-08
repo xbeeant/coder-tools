@@ -1,12 +1,15 @@
-import { Copy, RefreshCw, Timer } from 'lucide-react';
+import { ClipboardPaste, Copy, RefreshCw, Timer } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { ToolPanel } from '../components/ui/panel';
-import { copyText } from '../components/ui/result';
+import { EmptyHint, ToolPanel } from '../components/ui/panel';
+import { ClearButton, copyText } from '../components/ui/result';
 import { cn } from '../components/ui/utils';
 
 const MS_THRESHOLD = 10_000_000_000;
+
+const SAMPLE_TIMESTAMP = '1700000000';
+const TYPICAL_VALUES = '0（Unix 纪元）、1700000000（秒）、1700000000000（毫秒，自动识别）';
 
 export function fromTimestamp(value: string): { date: Date; assumedMs: boolean } | null {
   const trimmed = value.trim();
@@ -43,7 +46,7 @@ export function TimestampRow({
       <span className="w-16 shrink-0 text-xs text-muted-foreground">{label}</span>
       <Input value={value} readOnly spellCheck={false} className="h-8 flex-1 font-mono text-xs" />
       {hint && <span className="shrink-0 text-[11px] text-muted-foreground">{hint}</span>}
-      <Button size="icon" variant="ghost" onClick={onCopy} disabled={!value}>
+      <Button size="icon" variant="ghost" onClick={onCopy} disabled={!value} aria-label={`复制${label}`}>
         <Copy className="size-3.5" />
       </Button>
     </div>
@@ -102,6 +105,19 @@ export default function TimestampTool() {
     setIso(date.toISOString());
   }, []);
 
+  const fillSample = () => {
+    const date = new Date(Number(SAMPLE_TIMESTAMP) * 1000);
+    setTimestamp(SAMPLE_TIMESTAMP);
+    setLocal(toLocalInput(date));
+    setIso(date.toISOString());
+  };
+
+  const clearAll = () => {
+    setTimestamp('');
+    setLocal('');
+    setIso('');
+  };
+
   return (
     <ToolPanel
       title={
@@ -112,12 +128,19 @@ export default function TimestampTool() {
       }
       description="Unix 时间戳与本地时间、ISO 8601 格式互相转换"
       actions={
-        <span className="flex items-center gap-2 text-xs text-muted-foreground">
-          当前 {Math.floor(now / 1000)}
-          <Button size="icon" variant="ghost" onClick={useNow}>
-            <RefreshCw className="size-3.5" />
+        <div className="flex flex-row items-center gap-1">
+          <Button size="sm" variant="ghost" onClick={fillSample}>
+            <ClipboardPaste className="size-3.5" />
+            示例
           </Button>
-        </span>
+          <ClearButton onClick={clearAll} disabled={!timestamp && !local && !iso} />
+          <span className="flex items-center gap-2 text-xs text-muted-foreground">
+            当前 {Math.floor(now / 1000)}
+            <Button size="icon" variant="ghost" onClick={useNow} aria-label="使用当前时间">
+              <RefreshCw className="size-3.5" />
+            </Button>
+          </span>
+        </div>
       }
     >
       <div className="flex flex-1 flex-col gap-4 overflow-auto scrollbar-thin">
@@ -140,6 +163,9 @@ export default function TimestampTool() {
           >
             {parsed ? `已按${parsed.assumedMs ? '毫秒' : '秒'}解析` : inputError}
           </div>
+          {!parsed && !timestamp.trim() && (
+            <EmptyHint>输入 Unix 时间戳（秒或毫秒）自动转换，或点击上方「示例」。典型值：{TYPICAL_VALUES}</EmptyHint>
+          )}
           <div className="grid grid-cols-1 gap-1.5">
             {formats.map((item) => (
               <TimestampRow
@@ -164,11 +190,19 @@ export default function TimestampTool() {
               spellCheck={false}
               className="h-8 flex-1 font-mono text-xs"
             />
-            <Button size="sm" variant="outline" disabled={!localToTimestamp} onClick={() => copyText(localToTimestamp)}>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={!localToTimestamp}
+              onClick={() => copyText(localToTimestamp)}
+              aria-label="复制本地时间对应的时间戳"
+            >
               <Copy className="size-3.5" />
             </Button>
           </div>
-          <div className="font-mono text-xs text-muted-foreground">{localToTimestamp || '无效日期'}</div>
+          <div className="font-mono text-xs text-muted-foreground">
+            {localToTimestamp || (local ? '无效日期' : '输入本地时间后显示时间戳')}
+          </div>
         </div>
 
         <div className="space-y-2">
@@ -183,11 +217,19 @@ export default function TimestampTool() {
               spellCheck={false}
               className="h-8 flex-1 font-mono text-xs"
             />
-            <Button size="sm" variant="outline" disabled={!isoToTimestamp} onClick={() => copyText(isoToTimestamp)}>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={!isoToTimestamp}
+              onClick={() => copyText(isoToTimestamp)}
+              aria-label="复制 ISO 时间对应的时间戳"
+            >
               <Copy className="size-3.5" />
             </Button>
           </div>
-          <div className="font-mono text-xs text-muted-foreground">{isoToTimestamp || '无效日期'}</div>
+          <div className="font-mono text-xs text-muted-foreground">
+            {isoToTimestamp || (iso ? '无效日期' : '输入 ISO 8601 时间后显示时间戳')}
+          </div>
         </div>
       </div>
     </ToolPanel>

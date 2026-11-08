@@ -33,6 +33,15 @@ export const CATEGORY_TONE: Record<Category, string> = {
   secret: 'border-destructive/40 bg-destructive/5',
 };
 
+/** 命中规则的来源：用于区分内置静态规则、离线快照与用户导入的数据。 */
+export type FindingSource = 'static-rule' | 'cve-snapshot' | 'imported-advisory';
+
+export const FINDING_SOURCE_LABEL: Record<FindingSource, string> = {
+  'static-rule': '内置静态规则',
+  'cve-snapshot': '离线 CVE 快照',
+  'imported-advisory': '用户导入的 advisory',
+};
+
 export interface ScanFile {
   name: string;
   content: string;
@@ -51,6 +60,8 @@ export interface Finding {
   advice: string;
   /** 依赖漏洞的附加信息。 */
   extra?: string;
+  /** 这条命中来自哪一类规则，结果里会标明。 */
+  source: FindingSource;
 }
 
 export interface ScanReport {
@@ -129,6 +140,32 @@ export function isBelow(version: [number, number, number], fixed: [number, numbe
 }
 
 /* -------------------------------------------------------------- 漏洞快照 */
+
+/**
+ * 离线 CVE 快照的截止日期（本地静态数据，不是权威数据库的同步时间）。
+ *
+ * 推断依据：ADVISORIES 里编号最新的是 CVE-2025-30208（vite，修复版本 5.4.12），
+ * 该公告于 2025 年 3 月底公开；再往前是 2024 年的若干条目（nanoid CVE-2024-55565、
+ * ws CVE-2024-37890 等），快照里没有 2025 年二季度及以后的 CVE 编号。
+ * 因此把这份快照的整理 / 冻结时点定在 2025 年一季度末，取 2025-03-31 作为对外标注的截止日期。
+ * 这是基于现有条目推断的保守下界，正式结论仍须以官方漏洞数据库为准。
+ */
+export const SNAPSHOT_DATE = '2025-03-31';
+
+export interface SnapshotFreshness {
+  days: number;
+  level: 'fresh' | 'aging' | 'stale';
+  label: string;
+}
+
+/** 计算快照距参照日期的天数，按 90 / 365 天分档给出时效性层级（纯函数）。 */
+export function snapshotFreshness(reference: Date): SnapshotFreshness {
+  const snapshotMs = Date.parse(`${SNAPSHOT_DATE}T00:00:00Z`);
+  const span = (reference.getTime() - snapshotMs) / 86_400_000;
+  const days = Number.isFinite(span) ? Math.max(0, Math.floor(span)) : 0;
+  const level: SnapshotFreshness['level'] = days < 90 ? 'fresh' : days < 365 ? 'aging' : 'stale';
+  return { days, level, label: days === 0 ? '今天' : `${days} 天前` };
+}
 
 export interface Advisory {
   ecosystem: string;
@@ -785,6 +822,145 @@ export const ADVISORIES: Advisory[] = [
   },
 ];
 
+/* ------------------------------------------------- 用户导入的 advisory */
+
+/** 用户导入 advisory 的体积上限：512 KiB，避免超大 JSON 拖垮本地解析。 */
+export const MAX_IMPORT_BYTES = 512 * 1024;
+/** 单次导入的条目数上限。 */
+export const MAX_IMPORT_ENTRIES = 2000;
+
+export type ImportAdvisoriesResult =
+  | { ok: true; advisories: Advisory[]; skipped: number; total: number }
+  | { ok: false; error: string };
+
+/** 宽松归一化：只要能识别出包名与修复版本就收下，其余字段用安全默认值补齐。 */
+function normalizeImportedAdvisory(raw: Record<string, unknown>): Advisory | null {
+  const pkg = firstString(raw, ['package', 'name', 'packageName', 'package_name']);
+  const fixed = firstString(raw, ['fixed', 'fixedVersion', 'fixed_version', 'patched_versions']);
+  if (!pkg || !fixed) return null;
+  if (!parseVersion(fixed)) return null;
+  const severityRaw = (firstString(raw, ['severity', 'level', 'risk']) ?? '').toLowerCase();
+  const severity: Severity = isSeverity(severityRaw) ? severityRaw : 'medium';
+  return {
+    ecosystem: firstString(raw, ['ecosystem', 'eco', 'package_ecosystem']) ?? 'npm',
+    package: pkg,
+    fixed,
+    severity,
+    cve: firstString(raw, ['cve', 'cveId', 'id', 'cve_id']) ?? 'USER-IMPORT',
+    cwe: firstString(raw, ['cwe', 'weakness']) ?? 'N/A',
+    summary: firstString(raw, ['summary', 'title', 'description']) ?? '用户导入的 advisory',
+    advice: firstString(raw, ['advice', 'recommendation', 'remediation']) ?? `升级到 ${fixed} 及以上`,
+  };
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/** 按候选键取第一个非空字符串，并截断到 300 字，避免把超大文本带进结果。 */
+function firstString(raw: Record<string, unknown>, keys: string[]): string | undefined {
+  for (const key of keys) {
+    const value = raw[key];
+    if (typeof value === 'string' && value.trim() !== '') return value.trim().slice(0, 300);
+  }
+  return undefined;
+}
+
+function isSeverity(value: string): value is Severity {
+  return SEVERITY_ORDER.some((item) => item === value.toLowerCase());
+}
+
+/**
+ * 解析用户粘贴 / 选择的 advisory JSON 文本，纯本地、不联网。
+ *
+ * 宽松：接受顶层数组，或含 advisories / vulnerabilities / data 等数组字段的对象；
+ *       条目支持 package/name、fixed/fixedVersion 等常见别名，非法条目跳过并计数。
+ * 安全：拒绝空内容、超体积 / 超条目数、非法 JSON、非数组非对象顶层、空数组、无有效条目。
+ * 错误原因一律用中文返回，不抛异常。
+ */
+export function parseImportedAdvisories(text: string): ImportAdvisoriesResult {
+  const trimmed = text.trim();
+  if (trimmed === '') return { ok: false, error: '内容为空，请粘贴 advisory JSON 或选择本地文件' };
+  if (new TextEncoder().encode(text).length > MAX_IMPORT_BYTES) {
+    return { ok: false, error: `文件超过 ${Math.floor(MAX_IMPORT_BYTES / 1024)} KB 上限，已拒绝导入` };
+  }
+  let data: unknown;
+  try {
+    data = JSON.parse(trimmed);
+  } catch (error) {
+    return { ok: false, error: `JSON 解析失败：${error instanceof Error ? error.message : String(error)}` };
+  }
+
+  let rawList: unknown[];
+  if (Array.isArray(data)) {
+    rawList = data;
+  } else if (isPlainObject(data)) {
+    const container = data;
+    const preferred = ['advisories', 'vulnerabilities', 'data', 'items', 'rules', 'list'].find((key) =>
+      Array.isArray(container[key]),
+    );
+    const fallback = Object.values(container).find((value) => Array.isArray(value));
+    const list = preferred ? container[preferred] : fallback;
+    if (!Array.isArray(list)) {
+      return { ok: false, error: '顶层对象里没有找到 advisory 数组（需要数组字段，如 advisories）' };
+    }
+    rawList = list;
+  } else {
+    return { ok: false, error: `顶层必须是数组或对象，当前是 ${data === null ? 'null' : typeof data}` };
+  }
+
+  if (rawList.length === 0) return { ok: false, error: 'advisory 数组为空，没有可导入的条目' };
+  if (rawList.length > MAX_IMPORT_ENTRIES) {
+    return { ok: false, error: `条目数超过 ${MAX_IMPORT_ENTRIES} 条上限，已拒绝导入` };
+  }
+
+  const advisories: Advisory[] = [];
+  let skipped = 0;
+  for (const item of rawList) {
+    if (!isPlainObject(item)) {
+      skipped += 1;
+      continue;
+    }
+    const normalized = normalizeImportedAdvisory(item);
+    if (!normalized) {
+      skipped += 1;
+      continue;
+    }
+    advisories.push(normalized);
+  }
+  if (advisories.length === 0) {
+    return { ok: false, error: '没有识别到有效条目：每条至少需要可解析的 package 与 fixed 字段' };
+  }
+  return { ok: true, advisories, skipped, total: rawList.length };
+}
+
+/** 带来源标记的 advisory：把内置快照与用户导入数据区分开。 */
+export interface SourcedAdvisory {
+  advisory: Advisory;
+  source: 'cve-snapshot' | 'imported-advisory';
+}
+
+function advisoryKey(item: Advisory): string {
+  return `${item.ecosystem.toLowerCase()}|${item.package.toLowerCase()}|${item.cve.toLowerCase()}|${item.fixed}`;
+}
+
+/** 合并内置快照与用户导入数据，按 生态/包/CVE/修复版本 去重（内置优先）。 */
+export function mergeAdvisories(imported: Advisory[] = []): SourcedAdvisory[] {
+  const seen = new Set<string>();
+  const result: SourcedAdvisory[] = [];
+  for (const advisory of ADVISORIES) {
+    seen.add(advisoryKey(advisory));
+    result.push({ advisory, source: 'cve-snapshot' });
+  }
+  for (const advisory of imported) {
+    const key = advisoryKey(advisory);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push({ advisory, source: 'imported-advisory' });
+  }
+  return result;
+}
+
 /* ------------------------------------------------------------ 依赖解析 */
 
 export interface Dependency {
@@ -798,7 +974,7 @@ function lineOf(content: string, index: number): number {
   return content.slice(0, index).split('\n').length;
 }
 
-function depFinding(dep: Dependency, advisory: Advisory): Finding {
+function depFinding(dep: Dependency, advisory: Advisory, source: FindingSource): Finding {
   return {
     rule: `DEP-${advisory.cve}`,
     title: `${dep.name} ${dep.version} 受 ${advisory.cve} 影响`,
@@ -809,16 +985,21 @@ function depFinding(dep: Dependency, advisory: Advisory): Finding {
     evidence: `${dep.name}@${dep.version} < ${advisory.fixed}`,
     advice: advisory.advice,
     extra: `${advisory.summary}（${advisory.cwe}）`,
+    source,
   };
 }
 
-/** 在依赖列表里比对漏洞快照，返回受影响条目与无法判定的条目。 */
-export function matchAdvisories(deps: Dependency[]): { hits: Finding[]; unknown: string[] } {
+/** 在依赖列表里比对一组带来源标记的 advisory，命中的 Finding 会带上来源。 */
+export function matchSourcedAdvisories(
+  deps: Dependency[],
+  sourced: SourcedAdvisory[],
+): { hits: Finding[]; unknown: string[] } {
   const hits: Finding[] = [];
   const unknown: string[] = [];
   for (const dep of deps) {
-    const advisories = ADVISORIES.filter(
-      (item) => item.ecosystem === dep.ecosystem && item.package.toLowerCase() === dep.name.toLowerCase(),
+    const advisories = sourced.filter(
+      (item) =>
+        item.advisory.ecosystem === dep.ecosystem && item.advisory.package.toLowerCase() === dep.name.toLowerCase(),
     );
     if (advisories.length === 0) continue;
     const version = parseVersion(dep.version);
@@ -826,14 +1007,22 @@ export function matchAdvisories(deps: Dependency[]): { hits: Finding[]; unknown:
       unknown.push(`${dep.name}@${dep.version}`);
       continue;
     }
-    for (const advisory of advisories) {
+    for (const { advisory, source } of advisories) {
       const fixed = parseVersion(advisory.fixed);
       if (fixed && isBelow(version, fixed)) {
-        hits.push({ ...depFinding(dep, advisory), extra: `${advisory.cve} · ${advisory.summary} · ${advisory.cwe}` });
+        hits.push({
+          ...depFinding(dep, advisory, source),
+          extra: `${advisory.cve} · ${advisory.summary} · ${advisory.cwe}`,
+        });
       }
     }
   }
   return { hits, unknown };
+}
+
+/** 兼容旧入口：只比对内置离线快照。 */
+export function matchAdvisories(deps: Dependency[]): { hits: Finding[]; unknown: string[] } {
+  return matchSourcedAdvisories(deps, mergeAdvisories());
 }
 
 const SKIP_VERSION = /^(latest|\*|x|-)/i;
@@ -1594,6 +1783,7 @@ export function scanCode(file: ScanFile): Finding[] {
         evidence: text.length > 160 ? `${text.slice(0, 160)}…` : text,
         advice: rule.advice,
         extra: `语言：${rule.lang}`,
+        source: 'static-rule',
       });
     }
     for (const rule of SECRET_RULES) {
@@ -1611,6 +1801,7 @@ export function scanCode(file: ScanFile): Finding[] {
         line,
         evidence: text.replace(raw, masked),
         advice: rule.note,
+        source: 'static-rule',
       });
     }
   });
@@ -1620,6 +1811,8 @@ export function scanCode(file: ScanFile): Finding[] {
 export interface ScanOptions {
   /** 门禁阈值：出现该级别及以上的问题即判定不通过。 */
   threshold: Severity;
+  /** 用户导入并已通过校验的 advisory，与内置快照合并后一起比对。 */
+  importedAdvisories?: Advisory[];
 }
 
 export const DEFAULT_SCAN_OPTIONS: ScanOptions = { threshold: 'high' };
@@ -1653,6 +1846,7 @@ export function scanProject(files: ScanFile[], options: ScanOptions = DEFAULT_SC
   const scanned: ScanReport['scanned'] = [];
   const unknownVersions: string[] = [];
   let totalLines = 0;
+  const sourced = mergeAdvisories(options.importedAdvisories ?? []);
 
   for (const file of files) {
     const base = file.name.split('/').pop() ?? file.name;
@@ -1661,7 +1855,7 @@ export function scanProject(files: ScanFile[], options: ScanOptions = DEFAULT_SC
     const parser = PARSERS[base];
     if (parser) {
       const deps = parser(file.content);
-      const matched = matchAdvisories(deps);
+      const matched = matchSourcedAdvisories(deps, sourced);
       unknownVersions.push(...matched.unknown);
       for (const hit of matched.hits) findings.push({ ...hit, file: file.name });
       scanned.push({ name: file.name, lines, kind: `${manifestKind(file.name)}，${deps.length} 个依赖` });
@@ -1714,6 +1908,7 @@ export function reportToText(report: ScanReport): string {
   for (const item of report.findings) {
     lines.push(`[${SEVERITY_LABEL[item.severity]}] ${item.rule} ${item.title}`);
     lines.push(`  位置：${item.file || '依赖清单'}${item.line ? `:${item.line}` : ''}`);
+    lines.push(`  来源：${item.source ? FINDING_SOURCE_LABEL[item.source] : '未标注'}`);
     lines.push(`  证据：${item.evidence}`);
     if (item.extra) lines.push(`  说明：${item.extra}`);
     lines.push(`  建议：${item.advice}`);
