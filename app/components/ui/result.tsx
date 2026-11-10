@@ -1,4 +1,6 @@
 import { Copy, Eraser } from 'lucide-react';
+import { useMemo } from 'react';
+import { LARGE_OUTPUT_PREVIEW_CHARS, previewText } from '../../lib/large-text';
 import { Button } from './button';
 import { Textarea } from './textarea';
 import { cn } from './utils';
@@ -17,6 +19,11 @@ interface ResultBoxProps {
   rows?: string;
   /** 让输出区填满剩余高度，用于输入/输出对照的工具。 */
   fill?: boolean;
+  /**
+   * 只渲染前 N 个字符，完整结果仍由调用方用于复制 / 下载。
+   * 默认对所有工具生效，避免几十 MB 的字符串进入受控 textarea；传 0 可关闭。
+   */
+  maxDisplayChars?: number;
 }
 
 /** 工具面板共用的只读输出区：错误优先展示，出错时不保留旧值以免误导。 */
@@ -28,7 +35,14 @@ export function ResultBox({
   className,
   rows = 'min-h-24',
   fill = false,
+  maxDisplayChars = LARGE_OUTPUT_PREVIEW_CHARS,
 }: ResultBoxProps) {
+  // 把超大字符串放进受控 textarea 会拖住主线程；这里只让 DOM 承载可见预览。
+  const display = useMemo(() => {
+    if (!maxDisplayChars) return value;
+    return previewText(value, maxDisplayChars);
+  }, [value, maxDisplayChars]);
+
   return (
     <div className={cn('flex min-h-0 flex-col gap-1.5', fill && 'flex-1')}>
       <div className="flex shrink-0 items-center justify-between gap-2">
@@ -44,7 +58,7 @@ export function ResultBox({
         )}
       </div>
       <Textarea
-        value={error ? '' : value}
+        value={error ? '' : display}
         readOnly
         spellCheck={false}
         aria-invalid={Boolean(error) || undefined}

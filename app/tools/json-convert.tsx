@@ -15,11 +15,13 @@ import {
 import { useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { Checkbox, NumberField, TextField } from '../components/ui/field';
+import { LargeTextNotice } from '../components/ui/large-text-notice';
 import { EmptyHint, Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
 import { Select } from '../components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Textarea } from '../components/ui/textarea';
+import { useLargeText } from '../hooks/use-large-text';
 import { formatBytes } from '../lib/bytes';
 import { downloadText, exportName, pickFiles, readAsText } from '../lib/file';
 import {
@@ -143,14 +145,18 @@ export default function JsonConvert() {
   const [xmlStripNamespace, setXmlStripNamespace] = useState(true);
   const [xmlParseScalars, setXmlParseScalars] = useState(true);
 
+  const guard = useLargeText(input, null);
+
   const jsonSource = useMemo(() => {
-    if (direction === 'fromJson') return input;
+    if (guard.isLarge) return '';
+    if (direction === 'fromJson') return guard.source;
     // 反向转换时，JSON 作为结果展示，这里不参与解析。
     return '';
-  }, [direction, input]);
+  }, [direction, guard.source, guard.isLarge]);
 
   const parsedJson = useMemo(() => {
-    if (direction !== 'fromJson' || jsonSource.trim() === '') return { value: null as unknown, ok: true, error: null };
+    if (guard.isLarge || direction !== 'fromJson' || jsonSource.trim() === '')
+      return { value: null as unknown, ok: true, error: null };
     try {
       return { value: JSON5.parse(jsonSource) as unknown, ok: true, error: null };
     } catch (error) {
@@ -160,11 +166,11 @@ export default function JsonConvert() {
         error: `JSON 解析失败：${error instanceof Error ? error.message : String(error)}`,
       };
     }
-  }, [direction, jsonSource]);
+  }, [guard.isLarge, direction, jsonSource]);
 
   const outcome = useMemo<ConvertOutcome>(() => {
     const empty: ConvertOutcome = { ok: true, output: '', error: null, target: 'json' };
-    if (input.trim() === '') return empty;
+    if (guard.isLarge || guard.source.trim() === '') return empty;
 
     try {
       if (direction === 'fromJson') {
@@ -208,12 +214,12 @@ export default function JsonConvert() {
       }
 
       if (tab === 'json')
-        return { ok: true, output: JSON.stringify(JSON5.parse(input), null, 2), error: null, target: 'json' };
+        return { ok: true, output: JSON.stringify(JSON5.parse(guard.source), null, 2), error: null, target: 'json' };
       if (tab === 'csv') {
         return {
           ok: true,
           output: JSON.stringify(
-            csvToJson(input, { delimiter: csvDelimiter, inferTypes: csvInfer, header: csvHasHeader }),
+            csvToJson(guard.source, { delimiter: csvDelimiter, inferTypes: csvInfer, header: csvHasHeader }),
             null,
             2,
           ),
@@ -225,7 +231,7 @@ export default function JsonConvert() {
         return {
           ok: true,
           output: JSON.stringify(
-            xmlToJson(input, { stripNamespace: xmlStripNamespace, parseScalars: xmlParseScalars }),
+            xmlToJson(guard.source, { stripNamespace: xmlStripNamespace, parseScalars: xmlParseScalars }),
             null,
             2,
           ),
@@ -234,8 +240,8 @@ export default function JsonConvert() {
         };
       }
       if (tab === 'yaml')
-        return { ok: true, output: JSON.stringify(yamlToJson(input), null, 2), error: null, target: 'json' };
-      return { ok: true, output: JSON.stringify(tomlToJson(input), null, 2), error: null, target: 'json' };
+        return { ok: true, output: JSON.stringify(yamlToJson(guard.source), null, 2), error: null, target: 'json' };
+      return { ok: true, output: JSON.stringify(tomlToJson(guard.source), null, 2), error: null, target: 'json' };
     } catch (error) {
       return { ok: false, output: '', error: error instanceof Error ? error.message : String(error), target: 'json' };
     }
@@ -247,7 +253,8 @@ export default function JsonConvert() {
     csvInfer,
     csvLineEnding,
     direction,
-    input,
+    guard.source,
+    guard.isLarge,
     parsedJson,
     tab,
     tomlNull,
@@ -264,28 +271,35 @@ export default function JsonConvert() {
 
   /** 反向转换时的结果对象，用于右侧统计。 */
   const resultValue = useMemo<unknown>(() => {
-    if (!outcome.ok || outcome.output === '') return null;
+    if (guard.isLarge || !outcome.ok || outcome.output === '') return null;
     try {
       return JSON.parse(outcome.output) as unknown;
     } catch {
       return null;
     }
-  }, [outcome]);
+  }, [guard.isLarge, outcome]);
 
   const summary = useMemo(() => {
+    if (guard.isLarge) return null;
     if (direction === 'fromJson')
       return parsedJson.ok && parsedJson.value !== null ? summarizeJson(parsedJson.value) : null;
     return resultValue === null ? null : summarizeJson(resultValue);
-  }, [direction, parsedJson, resultValue]);
+  }, [guard.isLarge, direction, parsedJson, resultValue]);
 
   const invalidTags = useMemo(() => {
-    if (direction !== 'fromJson' || tab !== 'xml' || !parsedJson.ok) return [];
+    if (guard.isLarge || direction !== 'fromJson' || tab !== 'xml' || !parsedJson.ok) return [];
     return findInvalidXmlTagKeys(parsedJson.value, xmlRootName.trim() || 'root');
-  }, [direction, parsedJson, tab, xmlRootName]);
+  }, [guard.isLarge, direction, parsedJson, tab, xmlRootName]);
 
-  const sniffed = useMemo(() => (input.trim() === '' ? 'unknown' : sniffFormat(input)), [input]);
+  const sniffed = useMemo(
+    () => (guard.isLarge || guard.source.trim() === '' ? 'unknown' : sniffFormat(guard.source)),
+    [guard.source, guard.isLarge],
+  );
 
-  const documents = useMemo(() => (input.trim() === '' ? [] : splitDocuments(input)), [input]);
+  const documents = useMemo(
+    () => (guard.isLarge || guard.source.trim() === '' ? [] : splitDocuments(guard.source)),
+    [guard.source, guard.isLarge],
+  );
 
   const handlePick = useCallback(async () => {
     setBusy(true);
@@ -329,6 +343,14 @@ export default function JsonConvert() {
         </div>
       }
     >
+      <LargeTextNotice guard={guard} reject>
+        大文件模式不做 JSON5 解析、格式互转、结构统计、格式嗅探与文档拆分，全部转换与导出均不生效；请拆分文件。
+      </LargeTextNotice>
+      {guard.isLarge && (
+        <Note tone="warn" title="大文件模式 · 已停止语义转换">
+          本工具依赖完整语法解析，超过 100 万字符不做降级转换；请拆分文件，或改用 JSON / SQL / XML 格式化的后台通道。
+        </Note>
+      )}
       <div className="flex flex-wrap items-center gap-2">
         <Tabs value={direction} onValueChange={(value) => setDirection(value as Direction)}>
           <TabsList>
@@ -385,21 +407,32 @@ export default function JsonConvert() {
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
             <span className="inline-flex items-center gap-1">
               <Info className="size-3.5" />
-              {input.trim() === '' ? '等待输入' : `嗅探为 ${sniffed === 'unknown' ? '未知' : sniffed.toUpperCase()}`}
+              {guard.isLarge
+                ? '大文件模式 · 已停止实时解析'
+                : input.trim() === ''
+                  ? '等待输入'
+                  : `嗅探为 ${sniffed === 'unknown' ? '未知' : sniffed.toUpperCase()}`}
             </span>
             {fileNote && <span className="truncate">{fileNote}</span>}
           </div>
         </div>
 
         <div className="flex flex-col gap-2">
-          <ResultBox
-            label={outputLabel}
-            value={outcome.output}
-            error={outcome.error}
-            onCopy={() => copyText(outcome.output)}
-            rows="min-h-48"
-            fill
-          />
+          {guard.isLarge ? (
+            <EmptyHint>
+              本工具依赖完整语法解析，超过 100 万字符不做降级转换；请拆分文件，或改用 JSON / SQL / XML
+              格式化的后台通道。
+            </EmptyHint>
+          ) : (
+            <ResultBox
+              label={outputLabel}
+              value={outcome.output}
+              error={outcome.error}
+              onCopy={() => copyText(outcome.output)}
+              rows="min-h-48"
+              fill
+            />
+          )}
           <div className="flex flex-wrap items-center gap-2">
             <Button
               size="sm"
@@ -411,9 +444,11 @@ export default function JsonConvert() {
               下载 {FORMAT_LABEL[outcome.target as FormatTab]}
             </Button>
             <Hint>
-              {outcome.output === ''
-                ? '输出为空时无法下载。'
-                : `输出 ${formatBytes(new TextEncoder().encode(outcome.output).length)}`}
+              {guard.isLarge
+                ? '大文件模式不做语义转换，没有可下载的内容。'
+                : outcome.output === ''
+                  ? '输出为空时无法下载。'
+                  : `输出 ${formatBytes(new TextEncoder().encode(outcome.output).length)}`}
             </Hint>
           </div>
         </div>
@@ -539,7 +574,9 @@ export default function JsonConvert() {
 
       <div className="grid gap-3 lg:grid-cols-2">
         <Section title="结果统计" description="转换后的结构概览">
-          {summary === null ? (
+          {guard.isLarge ? (
+            <EmptyHint>大文件模式不做结果统计。</EmptyHint>
+          ) : summary === null ? (
             <EmptyHint>转换成功后显示根类型、字段数与深度。</EmptyHint>
           ) : (
             <StatGrid>
@@ -547,7 +584,7 @@ export default function JsonConvert() {
               <Stat label="字段数" value={summary.keys} />
               <Stat label="元素个数" value={summary.items} />
               <Stat label="最大深度" value={summary.depth} />
-              <Stat label="输入体积" value={formatBytes(new TextEncoder().encode(input).length)} />
+              <Stat label="输入体积" value={formatBytes(new TextEncoder().encode(guard.source).length)} />
               <Stat
                 label="输出体积"
                 value={outcome.output === '' ? '0 B' : formatBytes(new TextEncoder().encode(outcome.output).length)}
@@ -587,7 +624,7 @@ export default function JsonConvert() {
               {invalidTags.length > 6 ? '；…' : ''}
             </Note>
           )}
-          {invalidTags.length === 0 && input.trim() !== '' && (
+          {!guard.isLarge && invalidTags.length === 0 && input.trim() !== '' && (
             <Note tone="success" title="标签名检查通过">
               所有键名都能直接作为 XML 元素名使用。
             </Note>

@@ -37,6 +37,28 @@ function collectContainers(value: unknown, path: string, depth: number, out: Con
   return 1;
 }
 
+/** 树形浏览的节点上限：超过后禁用 DOM 树，避免大 JSON 生成数十万节点。 */
+const MAX_TREE_NODES = 5000;
+
+/** 迭代计数并提前止损，避免递归栈溢出与全量遍历。 */
+function countNodes(value: unknown, limit: number): number {
+  const stack: unknown[] = [value];
+  let count = 0;
+  while (stack.length > 0 && count < limit) {
+    const node = stack.pop();
+    count += 1;
+    if (Array.isArray(node)) {
+      for (let i = node.length - 1; i >= 0; i -= 1) stack.push(node[i]);
+    } else if (node !== null && typeof node === 'object') {
+      const keys = Object.keys(node as Record<string, unknown>);
+      for (let i = keys.length - 1; i >= 0; i -= 1) {
+        stack.push((node as Record<string, unknown>)[keys[i] as string]);
+      }
+    }
+  }
+  return count;
+}
+
 /** 账号缩进箭头与键名的固定宽度插槽，非折叠节点用空白占用以保持同级对齐。 */
 function ArrowSlot({ collapsible, open }: { collapsible: boolean; open: boolean }) {
   if (!collapsible) return <span aria-hidden className="h-4 w-4 shrink-0" />;
@@ -215,7 +237,7 @@ interface Crumb {
 }
 
 /** 可折叠 / 展开的 JSON 树浏览器，支持全部展开与折叠，标量与容器分别着色。 */
-export function JsonTree({
+function JsonTreeBody({
   value,
   defaultExpandedDepth = 2,
   maxHeight = 'max-h-[26rem]',
@@ -390,4 +412,28 @@ export function JsonTree({
       </div>
     </div>
   );
+}
+
+/**
+ * 对外入口：节点数超过上限时直接停用树形浏览。
+ *
+ * 全量 DOM 是大文件卡顿的主要来源，且 `collectContainers` 会递归整棵树；
+ * 这里先做一次带上限的迭代计数，超限时连树体 hooks 都不进入。
+ */
+export function JsonTree(props: JsonTreeProps) {
+  const tooLarge = useMemo(() => countNodes(props.value, MAX_TREE_NODES + 1) > MAX_TREE_NODES, [props.value]);
+  if (tooLarge) {
+    return (
+      <div className={cn('flex min-h-0 min-w-0 flex-col gap-1.5', props.fill && 'flex-1', props.className)}>
+        <div className="flex min-h-0 flex-1 flex-col items-start justify-center gap-2 rounded-sm border border-warning bg-surface-2/40 p-4">
+          <span className="instrument-label text-warning">节点数超过上限</span>
+          <p className="text-xs leading-relaxed text-foreground">
+            当前 JSON 超过 {MAX_TREE_NODES.toLocaleString()} 个节点，已停用树形浏览以免页面卡顿。
+            请切换到「文本」视图查看，或用复制 / 下载导出完整结果。
+          </p>
+        </div>
+      </div>
+    );
+  }
+  return <JsonTreeBody {...props} />;
 }

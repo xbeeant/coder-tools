@@ -25,6 +25,7 @@ import { Textarea } from '../components/ui/textarea';
 import { cn } from '../components/ui/utils';
 import { formatBytes } from '../lib/bytes';
 import { downloadText, exportName, pickFiles, readAsText } from '../lib/file';
+import { formatLargeJson, type StreamFormatResult } from '../lib/format-stream';
 import { inferArrayItemType, type JsonType, summarizeJson } from '../lib/json-convert';
 
 /** 去转义功能：将被转义的 JSON 字符串还原为原始文本。 */
@@ -60,8 +61,15 @@ type TreeTab = 'text' | 'stats';
 type OutputMode = 'pretty' | 'minify';
 type OutputView = 'text' | 'tree';
 
-/** 超过该字符数后暂停自动解析，改由用户手动触发，避免大文件卡死浏览器。 */
+/**
+ * 超过该字符数后进入大文件模式：不再构建 JSON5 对象树，也不在主线程做任何
+ * 全量解析；改由 public/format-worker.js 在后台做字符串级流式格式化。
+ * 键排序、重复键扫描、结构统计与树形浏览在此模式下不可用。
+ */
 const AUTO_PARSE_LIMIT = 1_000_000;
+
+/** 大文件结果只渲染前 20 万字符，避免受控 textarea 承载数十 MB 文本。 */
+const LARGE_OUTPUT_PREVIEW_CHARS = 200_000;
 
 interface Parsed {
   value: unknown;
@@ -201,6 +209,8 @@ export default function JsonFormatter() {
   const [busy, setBusy] = useState(false);
   const [fileNote, setFileNote] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [stream, setStream] = useState<StreamFormatResult | null>(null);
+  const [streamBusy, setStreamBusy] = useState(false);
 
   // 超过阈值后不再自动解析；committed 落后于 input 时说明还有未处理的大文件内容。
   const isLarge = input.length > AUTO_PARSE_LIMIT;
@@ -212,7 +222,8 @@ export default function JsonFormatter() {
   }, [input, isLarge]);
 
   const analysis = useMemo<Analysis>(() => {
-    if (committed.trim() === '') return { parsed: null, error: null, warnings: [] };
+    // 大文件短路：绝不在主线程构建对象树，也不做二次全量扫描。
+    if (isLarge || committed.trim() === '') return { parsed: null, error: null, warnings: [] };
     // 去转义处理：在解析前去除转义字符。
     const processed = unescapeJson ? unescapeJsonString(committed) : committed;
     const small = processed.length <= AUTO_PARSE_LIMIT;
@@ -233,24 +244,51 @@ export default function JsonFormatter() {
       const message = error instanceof Error ? error.message : String(error);
       return { parsed: null, error: `JSON 解析失败：${message}`, warnings: [] };
     }
-  }, [committed, strict, unescapeJson]);
+  }, [committed, strict, unescapeJson, isLarge]);
 
   const indentValue = indent === '0' ? 0 : indent === '\t' ? '\t' : Number(indent);
+  /** Worker 的缩进参数：制表符用 -1 表示，其余为空格数。 */
+  const streamIndent = indent === '\t' ? -1 : Number(indent);
+
+  // 大文件：由后台 Worker 流式格式化，主线程只接收结果与状态。
+  // 参数变化会重新提交，客户端会自动取消上一次仍在排队的任务。
+  useEffect(() => {
+    // pending 时用旧 committed 跑后台没有意义，先清空结果等用户点「开始处理」。
+    if (!isLarge || pending || committed === '') {
+      setStream(null);
+      setStreamBusy(false);
+      return undefined;
+    }
+    let cancelled = false;
+    setStream(null);
+    setStreamBusy(true);
+    void formatLargeJson(committed, streamIndent, mode === 'minify').then((result) => {
+      if (cancelled || result.cancelled) return;
+      setStream(result);
+      setStreamBusy(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [committed, streamIndent, mode, isLarge, pending]);
 
   const sorted = useMemo<unknown>(() => {
     if (!sortKeys || analysis.parsed === null) return analysis.parsed?.value ?? null;
-    const walk = (node: unknown): unknown => {
-      if (Array.isArray(node)) return node.map(walk);
+    // 深度上限：超深嵌套不再递归，避免 RangeError 让整个工具白屏。
+    const MAX_SORT_DEPTH = 400;
+    const walk = (node: unknown, depth: number): unknown => {
+      if (depth > MAX_SORT_DEPTH) return node;
+      if (Array.isArray(node)) return node.map((item) => walk(item, depth + 1));
       if (node !== null && typeof node === 'object') {
         const out: Record<string, unknown> = {};
         for (const key of Object.keys(node as Record<string, unknown>).sort()) {
-          out[key] = walk((node as Record<string, unknown>)[key]);
+          out[key] = walk((node as Record<string, unknown>)[key], depth + 1);
         }
         return out;
       }
       return node;
     };
-    return walk(analysis.parsed?.value ?? null);
+    return walk(analysis.parsed?.value ?? null, 0);
   }, [analysis.parsed, sortKeys]);
 
   const formatted = useMemo(() => {
@@ -274,8 +312,22 @@ export default function JsonFormatter() {
     return inferArrayItemType(value);
   }, [analysis.parsed]);
 
-  const hasResult = analysis.parsed !== null && analysis.error === null;
-  const output = pending ? '' : mode === 'pretty' ? formatted : minified;
+  const streamReady = isLarge && !pending && !streamBusy && stream !== null && stream.error === null;
+  const hasResult = isLarge
+    ? streamReady && Boolean(stream?.output)
+    : analysis.parsed !== null && analysis.error === null;
+
+  let output = '';
+  let outputError: string | null = null;
+  if (isLarge) {
+    if (!pending && !streamBusy) {
+      output = stream?.output ?? '';
+      outputError = stream?.error ?? null;
+    }
+  } else if (!pending) {
+    output = mode === 'pretty' ? formatted : minified;
+    outputError = analysis.error;
+  }
   const outputLabel = mode === 'pretty' ? '美化输出' : '压缩输出';
 
   /** 读取用户选择的本地文件，大文件不立即解析。 */
@@ -306,14 +358,14 @@ export default function JsonFormatter() {
   }, [output]);
 
   const handleCopy = useCallback(() => {
-    if (mainTab === 'format') {
+    if (mainTab === 'format' || isLarge) {
       copyText(output);
     } else if (treeTab === 'text') {
       copyText(formatted);
     } else {
       copyText(JSON.stringify(summary, null, 2));
     }
-  }, [formatted, mainTab, output, summary, treeTab]);
+  }, [formatted, isLarge, mainTab, output, summary, treeTab]);
 
   /** 转义：将输入内容编码为 JSON 字符串字面量。 */
   const handleEscape = useCallback(() => {
@@ -328,7 +380,8 @@ export default function JsonFormatter() {
     if (unescaped !== input) setInput(unescaped);
   }, [input]);
 
-  const inputBytes = useMemo(() => new TextEncoder().encode(input).length, [input]);
+  // 只对已提交内容计算体积：大文件未处理时，每次按键不再全量编码整段文本。
+  const inputBytes = useMemo(() => new Blob([committed]).size, [committed]);
 
   const handleDrop = useCallback(
     (event: DragEvent<HTMLDivElement>) => {
@@ -428,13 +481,19 @@ export default function JsonFormatter() {
       </div>
 
       {isLarge && (
-        <Note tone="warn" title="大文件模式">
-          内容超过 100 万字符，已暂停自动解析以免卡顿。
-          <div className="mt-1.5">
-            <Button size="sm" variant="outline" onClick={() => setCommitted(input)} disabled={!pending}>
+        <Note tone="warn" title="大文件模式 · 后台流式处理">
+          内容超过 100 万字符：不再构建对象树，改由后台 Worker 做字符串级格式化。
+          键排序、重复键检查、严格模式、去转义、结构分析与树形浏览在此模式下均不生效，也不做语法校验。
+          <div className="mt-1.5 flex flex-wrap items-center gap-2">
+            <Button size="sm" variant="outline" onClick={() => setCommitted(input)} disabled={!pending || streamBusy}>
               <Play className="size-3.5" />
               {pending ? '开始处理' : '已是最新'}
             </Button>
+            {streamBusy && <span className="text-xs text-info">后台处理中…</span>}
+            {!streamBusy && stream?.degraded && <span className="text-xs text-danger">{stream.error}</span>}
+            {!streamBusy && stream !== null && !stream.error && (
+              <span className="text-xs text-success">后台完成 · {stream.elapsedMs} ms</span>
+            )}
           </div>
         </Note>
       )}
@@ -462,20 +521,25 @@ export default function JsonFormatter() {
             <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
               <span className="flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                 输入
-                {pending ? (
+                {streamBusy ? (
+                  <span className="inline-flex items-center gap-1 text-info">
+                    <Info className="size-3.5" />
+                    后台处理中…
+                  </span>
+                ) : pending ? (
                   <span className="inline-flex items-center gap-1 text-warning">
                     <Info className="size-3.5" />
-                    已暂停解析
+                    等待开始处理
                   </span>
-                ) : analysis.error !== null ? (
-                  <span className="inline-flex items-center gap-1 text-destructive">
+                ) : outputError !== null ? (
+                  <span className="inline-flex items-center gap-1 text-danger">
                     <XCircle className="size-3.5" />
-                    解析失败
+                    {isLarge ? '后台处理失败' : '解析失败'}
                   </span>
                 ) : hasResult ? (
                   <span className="inline-flex items-center gap-1 text-success">
                     <CheckCircle2 className="size-3.5" />
-                    {summary ? `${TYPE_LABEL[summary.type]} · ${formatBytes(inputBytes)}` : ''}
+                    {`${isLarge ? '后台流式处理' : TYPE_LABEL[summary?.type ?? 'unknown']} · ${formatBytes(inputBytes)}`}
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1">
@@ -529,7 +593,7 @@ export default function JsonFormatter() {
             <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
               <span className="flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                 {outputLabel}
-                {mode === 'pretty' && (
+                {mode === 'pretty' && !isLarge && (
                   <span className="inline-flex items-center">
                     <Tabs
                       value={outputView}
@@ -559,17 +623,25 @@ export default function JsonFormatter() {
                 </Button>
               </div>
             </div>
-            {mode === 'pretty' && outputView === 'tree' && hasResult && !pending ? (
+            {mode === 'pretty' && outputView === 'tree' && hasResult && !pending && !isLarge ? (
               <JsonTree value={sorted} defaultExpandedDepth={2} fill />
             ) : (
-              <ResultBox value={output} error={pending ? null : analysis.error} rows="min-h-40" fill />
+              <ResultBox
+                value={output}
+                error={outputError}
+                rows="min-h-40"
+                fill
+                maxDisplayChars={isLarge ? LARGE_OUTPUT_PREVIEW_CHARS : undefined}
+              />
             )}
           </div>
         </div>
       )}
 
       {mainTab === 'tree' &&
-        (pending ? (
+        (isLarge ? (
+          <EmptyHint>大文件模式不做结构分析，请切回「格式化」标签查看文本结果。</EmptyHint>
+        ) : pending ? (
           <EmptyHint>内容较大，请切回「格式化」标签点击「开始处理」。</EmptyHint>
         ) : (
           <>
@@ -606,7 +678,7 @@ export default function JsonFormatter() {
                       value={itemType === null ? '不适用' : TYPE_LABEL[itemType]}
                       hint={itemType === 'mixed' ? '数组内混有多种类型' : undefined}
                     />
-                    <Stat label="输入体积" value={formatBytes(inputBytes)} />
+                    <Stat label="已处理体积" value={formatBytes(inputBytes)} />
                     <Stat
                       label="语法"
                       value={analysis.parsed?.strict ? '标准 JSON' : 'JSON5'}

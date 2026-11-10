@@ -1,10 +1,12 @@
 import { ArrowLeftRight, ClipboardPaste } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
+import { LargeTextNotice } from '../components/ui/large-text-notice';
 import { Note, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Textarea } from '../components/ui/textarea';
+import { useLargeText } from '../hooks/use-large-text';
 
 type Mode = 'encode' | 'decode';
 
@@ -31,20 +33,35 @@ export default function Base64Tool() {
   const [mode, setMode] = useState<Mode>('encode');
   const [input, setInput] = useState('');
 
+  const guard = useLargeText(input, {
+    kind: 'codec',
+    options: { mode: mode === 'encode' ? 'base64-encode' : 'base64-decode' },
+  });
+
   const result = useMemo<{ ok: true; output: string } | { ok: false; error: string }>(() => {
-    if (input === '') return { ok: true, output: '' };
+    if (guard.isLarge) return { ok: true, output: '' };
+    if (guard.source === '') return { ok: true, output: '' };
     try {
-      return { ok: true, output: mode === 'encode' ? toBase64(input) : fromBase64(input) };
+      return { ok: true, output: mode === 'encode' ? toBase64(guard.source) : fromBase64(guard.source) };
     } catch (error) {
       return { ok: false, error: error instanceof Error ? error.message : String(error) };
     }
-  }, [input, mode]);
+  }, [guard.source, guard.isLarge, mode]);
+
+  const outputValue = guard.isLarge ? (guard.output ?? '') : result.ok ? result.output : '';
+  const outputError = guard.isLarge
+    ? guard.background?.error
+      ? `后台处理失败：${guard.background.error}`
+      : null
+    : result.ok
+      ? null
+      : result.error;
 
   const swap = useCallback(() => {
-    if (!result.ok || result.output === '') return;
-    setInput(result.output);
+    if (outputError || outputValue === '') return;
+    setInput(outputValue);
     setMode(mode === 'encode' ? 'decode' : 'encode');
-  }, [result, mode]);
+  }, [outputError, outputValue, mode]);
 
   return (
     <ToolPanel
@@ -52,7 +69,7 @@ export default function Base64Tool() {
       description="UTF-8 安全的 Base64 转换，解码兼容 URL-safe 变体"
       actions={
         <div className="flex flex-row gap-1">
-          <Button size="sm" variant="ghost" onClick={swap} disabled={!result.ok || result.output === ''}>
+          <Button size="sm" variant="ghost" onClick={swap} disabled={!outputValue}>
             <ArrowLeftRight className="size-3.5" />
             互换
           </Button>
@@ -60,6 +77,9 @@ export default function Base64Tool() {
         </div>
       }
     >
+      <LargeTextNotice guard={guard} background={true}>
+        大文件模式使用后台 UTF-8 编解码：不兼容 URL-safe 变体（- / _）与缺失 padding，也不做 fatal 严格 UTF-8 校验。
+      </LargeTextNotice>
       <Tabs value={mode} onValueChange={(value) => setMode(value as Mode)}>
         <TabsList>
           <TabsTrigger value="encode" active={mode === 'encode'}>
@@ -94,9 +114,9 @@ export default function Base64Tool() {
         />
         <ResultBox
           label="输出"
-          value={result.ok ? result.output : ''}
-          error={result.ok ? null : result.error}
-          onCopy={() => copyText(result.ok ? result.output : '')}
+          value={outputValue}
+          error={outputError}
+          onCopy={() => copyText(outputValue)}
           rows="min-h-32"
           fill
         />

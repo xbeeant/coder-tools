@@ -1,10 +1,12 @@
 import { ArrowLeftRight, ClipboardPaste, Link2 } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
+import { LargeTextNotice } from '../components/ui/large-text-notice';
 import { Hint, Section, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Textarea } from '../components/ui/textarea';
+import { useLargeText } from '../hooks/use-large-text';
 
 type Mode = 'encode' | 'decode';
 type Scope = 'component' | 'uri';
@@ -17,13 +19,25 @@ export default function UrlEncode() {
   const [scope, setScope] = useState<Scope>('component');
   const [input, setInput] = useState('');
 
+  const guard = useLargeText(input, {
+    kind: 'codec',
+    options: { mode: mode === 'encode' ? 'url-encode' : 'url-decode' },
+  });
+
   const result = useMemo<{ ok: true; output: string } | { ok: false; error: string }>(() => {
-    if (!input) return { ok: true, output: '' };
+    if (guard.isLarge) return { ok: true, output: '' };
+    if (!guard.source) return { ok: true, output: '' };
     try {
       if (mode === 'encode') {
-        return { ok: true, output: scope === 'component' ? encodeURIComponent(input) : encodeURI(input) };
+        return {
+          ok: true,
+          output: scope === 'component' ? encodeURIComponent(guard.source) : encodeURI(guard.source),
+        };
       }
-      return { ok: true, output: scope === 'component' ? decodeURIComponent(input) : decodeURI(input) };
+      return {
+        ok: true,
+        output: scope === 'component' ? decodeURIComponent(guard.source) : decodeURI(guard.source),
+      };
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
       const reason =
@@ -32,12 +46,12 @@ export default function UrlEncode() {
           : '编码失败：文本包含不完整的 Unicode 字符（孤立代理项），无法编码';
       return { ok: false, error: `${reason}（${detail}）` };
     }
-  }, [input, mode, scope]);
+  }, [guard.source, guard.isLarge, mode, scope]);
 
   const parsed = useMemo(() => {
-    if (mode !== 'encode' || !input) return null;
+    if (guard.isLarge || mode !== 'encode' || !guard.source) return null;
     try {
-      const url = new URL(input);
+      const url = new URL(guard.source);
       return {
         protocol: url.protocol,
         host: url.host,
@@ -47,13 +61,22 @@ export default function UrlEncode() {
     } catch {
       return null;
     }
-  }, [input, mode]);
+  }, [guard.source, guard.isLarge, mode]);
+
+  const outputValue = guard.isLarge ? (guard.output ?? '') : result.ok ? result.output : '';
+  const outputError = guard.isLarge
+    ? guard.background?.error
+      ? `后台处理失败：${guard.background.error}`
+      : null
+    : result.ok
+      ? null
+      : result.error;
 
   const swap = useCallback(() => {
-    if (!result.ok || !result.output) return;
-    setInput(result.output);
+    if (outputError || !outputValue) return;
+    setInput(outputValue);
     setMode(mode === 'encode' ? 'decode' : 'encode');
-  }, [result, mode]);
+  }, [outputError, outputValue, mode]);
 
   const fillSample = () => {
     setInput(mode === 'encode' ? SAMPLE_URL : SAMPLE_ENCODED);
@@ -82,7 +105,7 @@ export default function UrlEncode() {
               <TabsTrigger value="decode">解码</TabsTrigger>
             </TabsList>
           </Tabs>
-          <Button size="sm" variant="outline" onClick={swap} disabled={!result.ok || !result.output}>
+          <Button size="sm" variant="outline" onClick={swap} disabled={!outputValue}>
             <ArrowLeftRight className="size-3.5" />
             互换
           </Button>
@@ -90,6 +113,9 @@ export default function UrlEncode() {
         </div>
       }
     >
+      <LargeTextNotice guard={guard} background={true}>
+        大文件模式按 Component 口径做百分号编解码：URI 口径与 URL 解析面板不生效，也不做语义转换。
+      </LargeTextNotice>
       <div className="flex flex-1 flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <Button size="sm" variant="ghost" onClick={fillSample}>
@@ -132,9 +158,9 @@ export default function UrlEncode() {
         )}
         <ResultBox
           label="输出"
-          value={result.ok ? result.output : ''}
-          error={result.ok ? null : result.error}
-          onCopy={() => copyText(result.ok ? result.output : '')}
+          value={outputValue}
+          error={outputError}
+          onCopy={() => copyText(outputValue)}
           rows="min-h-20"
           fill
         />

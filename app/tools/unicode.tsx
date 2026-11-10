@@ -1,10 +1,13 @@
 import { ArrowLeftRight, ClipboardPaste, Code2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { Note, ToolPanel } from '../components/ui/panel';
+import { LargeTextNotice } from '../components/ui/large-text-notice';
+import { EmptyHint, Note, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Textarea } from '../components/ui/textarea';
+import { useLargeText } from '../hooks/use-large-text';
+import { LARGE_LIST_ROWS, limitRows } from '../lib/large-text';
 
 type Mode = 'encode' | 'decode';
 
@@ -73,9 +76,11 @@ export default function UnicodeTool() {
   const [style, setStyle] = useState<EscapeStyle>('js');
   const [input, setInput] = useState('');
 
+  const guard = useLargeText(input, null);
+
   const perChar = useMemo(() => {
-    if (mode === 'decode' || input.length === 0) return [];
-    return Array.from(input).map((char) => {
+    if (guard.isLarge || mode === 'decode' || guard.source.length === 0) return [];
+    return Array.from(guard.source).map((char) => {
       const code = char.codePointAt(0) as number;
       return {
         char,
@@ -99,7 +104,7 @@ export default function UnicodeTool() {
         category: describeCategory(code),
       };
     });
-  }, [input, mode, style]);
+  }, [guard.source, guard.isLarge, mode, style]);
 
   // 同一码点可能出现多次，用出现次数保证 key 唯一且稳定。
   const rows = useMemo(() => {
@@ -112,9 +117,11 @@ export default function UnicodeTool() {
   }, [perChar]);
 
   const joined = useMemo(() => {
-    if (mode === 'decode') return decodeEscapes(input);
+    if (guard.isLarge) return '';
+    if (mode === 'decode') return decodeEscapes(guard.source);
     return perChar.map((item) => item.escaped).join('');
-  }, [input, mode, perChar]);
+  }, [guard.source, guard.isLarge, mode, perChar]);
+  const displayValue = guard.isLarge ? (guard.output ?? '') : joined;
 
   return (
     <ToolPanel
@@ -152,11 +159,11 @@ export default function UnicodeTool() {
             size="sm"
             variant="outline"
             onClick={() => {
-              if (!joined) return;
-              setInput(joined);
+              if (!displayValue) return;
+              setInput(displayValue);
               setMode(mode === 'encode' ? 'decode' : 'encode');
             }}
-            disabled={!joined}
+            disabled={!displayValue}
           >
             <ArrowLeftRight className="size-3.5" />
             互换
@@ -165,6 +172,9 @@ export default function UnicodeTool() {
         </div>
       }
     >
+      <LargeTextNotice guard={guard} reject>
+        超过 100 万字符不做逐字符展开，转义结果、码点表与分类信息均不生效，请拆分文件。
+      </LargeTextNotice>
       <Note tone="info" title="说明">
         解码支持 JS 转义序列（\u、\u&#123;十六进制&#125;、\x、\c&#123;十进制&#125;、短转义、八进制）与 HTML
         实体（&amp;#x…; / &amp;#…;），未知序列原样保留；四种编码风格的产物都能被本工具还原。十六进制风格仅对 0xFF
@@ -179,16 +189,25 @@ export default function UnicodeTool() {
           aria-label="Unicode 输入"
           className="min-h-24 resize-none font-mono text-xs"
         />
-        <ResultBox
-          label={mode === 'encode' ? '转义结果' : '还原结果'}
-          value={joined}
-          onCopy={() => copyText(joined)}
-          rows="min-h-16"
-          fill
-        />
+        {guard.isLarge ? (
+          <EmptyHint>超过 100 万字符不做逐字符展开，转义结果、码点表与分类信息均不生效，请拆分文件后使用。</EmptyHint>
+        ) : (
+          <ResultBox
+            label={mode === 'encode' ? '转义结果' : '还原结果'}
+            value={displayValue}
+            onCopy={() => copyText(displayValue)}
+            rows="min-h-16"
+            fill
+          />
+        )}
 
         {mode === 'encode' && perChar.length > 0 && (
           <div className="flex-1 overflow-auto rounded-md border scrollbar-thin">
+            {rows.length > LARGE_LIST_ROWS && (
+              <p className="px-2 py-1 text-[11px] text-warning">
+                仅显示前 {LARGE_LIST_ROWS} 条，共 {rows.length} 个字符。
+              </p>
+            )}
             <table className="w-full text-xs">
               <thead className="sticky top-0 bg-muted/60">
                 <tr className="text-left">
@@ -200,7 +219,7 @@ export default function UnicodeTool() {
                 </tr>
               </thead>
               <tbody className="font-mono">
-                {rows.map(({ item, key }) => (
+                {limitRows(rows).map(({ item, key }) => (
                   <tr key={key} className="border-t">
                     <td className="px-2 py-1 text-base">{item.char === ' ' ? '␣' : item.char}</td>
                     <td className="px-2 py-1">{item.code.toString(16).toUpperCase().padStart(4, '0')}</td>

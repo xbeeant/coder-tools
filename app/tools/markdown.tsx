@@ -15,12 +15,15 @@ import {
 import { useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { Checkbox } from '../components/ui/field';
+import { LargeTextNotice } from '../components/ui/large-text-notice';
 import { EmptyHint, Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Textarea } from '../components/ui/textarea';
+import { useLargeText } from '../hooks/use-large-text';
 import { formatBytes } from '../lib/bytes';
 import { downloadText, exportName, pickFiles, readAsText } from '../lib/file';
+import { LARGE_LIST_ROWS, limitRows } from '../lib/large-text';
 import {
   analyzeMarkdown,
   type CleanOptions,
@@ -87,19 +90,22 @@ export default function Markdown() {
   const [lazyImages, setLazyImages] = useState(true);
   const [hardenExternalLinks, setHardenExternalLinks] = useState(true);
 
+  const guard = useLargeText(input, null);
+
+  // 大文件短路：绝不在主线程跑 marked / DOMPurify / DOMParser / 结构扫描 / 反向转换。
   const report = useMemo(() => {
-    if (input.trim() === '') return null;
+    if (guard.isLarge || guard.source.trim() === '') return null;
     try {
-      return renderMarkdownReport(input, { gfm, breaks, headingAnchors });
+      return renderMarkdownReport(guard.source, { gfm, breaks, headingAnchors });
     } catch (error) {
       return { error: error instanceof Error ? error.message : String(error) } as const;
     }
-  }, [input, gfm, breaks, headingAnchors]);
+  }, [guard.source, guard.isLarge, gfm, breaks, headingAnchors]);
 
   const html = report === null ? '' : 'error' in report ? '' : report.html;
 
   const cleaned = useMemo(() => {
-    if (html === '') return null;
+    if (guard.isLarge || html === '') return null;
     const options: CleanOptions = {
       stripImages,
       stripExternalLinks,
@@ -111,41 +117,52 @@ export default function Markdown() {
     } catch (error) {
       return { error: error instanceof Error ? error.message : String(error) } as const;
     }
-  }, [html, stripImages, stripExternalLinks, lazyImages, hardenExternalLinks]);
+  }, [guard.isLarge, html, stripImages, stripExternalLinks, lazyImages, hardenExternalLinks]);
 
-  const headings = useMemo(() => (input.trim() === '' ? [] : extractHeadings(input)), [input]);
-  const toc = useMemo(() => (input.trim() === '' ? '' : renderTocMarkdown(input)), [input]);
-  const stats = useMemo(() => (input.trim() === '' ? null : analyzeMarkdown(input)), [input]);
+  const headings = useMemo(
+    () => (guard.isLarge || guard.source.trim() === '' ? [] : extractHeadings(guard.source)),
+    [guard.source, guard.isLarge],
+  );
+  const toc = useMemo(
+    () => (guard.isLarge || guard.source.trim() === '' ? '' : renderTocMarkdown(guard.source)),
+    [guard.source, guard.isLarge],
+  );
+  const stats = useMemo(
+    () => (guard.isLarge || guard.source.trim() === '' ? null : analyzeMarkdown(guard.source)),
+    [guard.source, guard.isLarge],
+  );
 
   const rawRisky = useMemo(() => {
-    if (input.trim() === '') return [];
+    if (guard.isLarge || guard.source.trim() === '') return [];
     // 直接扫用户粘贴的原文，提示潜在 XSS 写法（不依赖渲染结果）。
-    return scanRiskyMarkup(input);
-  }, [input]);
+    return scanRiskyMarkup(guard.source);
+  }, [guard.source, guard.isLarge]);
 
   const backToMarkdown = useMemo(() => {
-    if (cleaned === null) return '';
+    if (guard.isLarge || cleaned === null) return '';
     if ('error' in cleaned) return '';
     try {
       return htmlToMarkdown(cleaned.html);
     } catch (error) {
       return `转换失败：${error instanceof Error ? error.message : String(error)}`;
     }
-  }, [cleaned]);
+  }, [guard.isLarge, cleaned]);
 
   // 清洗选项必须反映到 HTML 输出与预览上；清洗失败时退回净化结果。
   const finalHtml = useMemo(() => {
+    if (guard.isLarge) return '';
     if (cleaned === null) return html;
     if ('error' in cleaned) return html;
     return cleaned.html;
-  }, [cleaned, html]);
+  }, [guard.isLarge, cleaned, html]);
 
   const output = useMemo(() => {
+    if (guard.isLarge) return '';
     if (tab === 'preview') return finalHtml;
     if (tab === 'html') return finalHtml;
     if (tab === 'toc') return toc;
     return backToMarkdown;
-  }, [tab, finalHtml, toc, backToMarkdown]);
+  }, [guard.isLarge, tab, finalHtml, toc, backToMarkdown]);
 
   const handlePick = useCallback(async () => {
     setBusy(true);
@@ -191,6 +208,15 @@ export default function Markdown() {
         </div>
       }
     >
+      <LargeTextNotice guard={guard} reject>
+        大文件模式不做 Markdown 渲染（marked + DOMPurify）、HTML 清洗、目录生成、反向转换、文档统计与危险写法扫描，HTML
+        预览与全部导出均不生效；请拆分文件。
+      </LargeTextNotice>
+      {guard.isLarge && (
+        <Note tone="warn" title="大文件模式 · 已停止语义转换">
+          本工具依赖完整语法解析，超过 100 万字符不做降级转换；请拆分文件，或改用 JSON / SQL / XML 格式化的后台通道。
+        </Note>
+      )}
       <Tabs value={tab} onValueChange={(value) => setTab(value as MdTab)}>
         <TabsList>
           <TabsTrigger value="preview" active={tab === 'preview'}>
@@ -239,14 +265,23 @@ export default function Markdown() {
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
             <span className="inline-flex items-center gap-1">
               <Info className="size-3.5" />
-              {input.trim() === '' ? '等待输入' : `输入 ${formatBytes(new TextEncoder().encode(input).length)}`}
+              {guard.isLarge
+                ? '大文件模式 · 已停止实时解析'
+                : input.trim() === ''
+                  ? '等待输入'
+                  : `输入 ${formatBytes(new TextEncoder().encode(guard.source).length)}`}
             </span>
             {fileNote && <span className="truncate">{fileNote}</span>}
           </div>
         </div>
 
         <div className="flex flex-col gap-2">
-          {tab === 'preview' ? (
+          {guard.isLarge ? (
+            <EmptyHint>
+              本工具依赖完整语法解析，超过 100 万字符不做降级转换；请拆分文件，或改用 JSON / SQL / XML
+              格式化的后台通道。
+            </EmptyHint>
+          ) : tab === 'preview' ? (
             <div className="flex min-h-48 flex-1 flex-col gap-1.5">
               <span className="text-xs text-muted-foreground">渲染预览（已净化）</span>
               {html === '' ? (
@@ -318,7 +353,9 @@ export default function Markdown() {
 
       <div className="grid gap-3 lg:grid-cols-2">
         <Section title="文档统计" description="字数、行数与元素数量">
-          {stats === null ? (
+          {guard.isLarge ? (
+            <EmptyHint>大文件模式不做文档统计。</EmptyHint>
+          ) : stats === null ? (
             <EmptyHint>输入 Markdown 后显示统计信息。</EmptyHint>
           ) : (
             <StatGrid>
@@ -343,7 +380,9 @@ export default function Markdown() {
           }
           description="渲染前的危险写法扫描"
         >
-          {rawRisky.length === 0 ? (
+          {guard.isLarge ? (
+            <EmptyHint>大文件模式不做危险写法扫描。</EmptyHint>
+          ) : rawRisky.length === 0 ? (
             <Note tone="success" title="没有发现风险写法">
               原文里没有 script 标签、事件属性或 javascript: 链接。
             </Note>
@@ -383,8 +422,13 @@ export default function Markdown() {
           description="按出现顺序列出，锚点与目录链接一致"
         >
           <div className="max-h-48 overflow-auto rounded-md border scrollbar-thin">
+            {headings.length > LARGE_LIST_ROWS && (
+              <p className="px-2 py-1 text-[11px] text-warning">
+                仅显示前 {LARGE_LIST_ROWS} 条，共 {headings.length} 条。
+              </p>
+            )}
             <ul className="divide-y">
-              {headings.map((heading) => (
+              {limitRows(headings).map((heading) => (
                 <li
                   key={`${heading.level}:${heading.slug}`}
                   className="flex items-baseline gap-2 px-2.5 py-1.5 text-xs"

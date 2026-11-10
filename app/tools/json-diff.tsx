@@ -15,11 +15,13 @@ import {
 import { Fragment, useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { Checkbox, NumberField, TextField } from '../components/ui/field';
+import { LargeTextNotice } from '../components/ui/large-text-notice';
 import { EmptyHint, Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
 import { Select } from '../components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Textarea } from '../components/ui/textarea';
+import { type LargeTextGuard, useLargeText } from '../hooks/use-large-text';
 import { formatBytes } from '../lib/bytes';
 import {
   collapseRows,
@@ -41,6 +43,7 @@ import {
   compareJson,
   isPlainObject,
 } from '../lib/json-compare';
+import { LARGE_LIST_ROWS, limitRows } from '../lib/large-text';
 
 // ── 界面 ──────────────────────────────────────────────────
 
@@ -128,8 +131,31 @@ export default function JsonDiff() {
   const [busy, setBusy] = useState(false);
   const [fileNote, setFileNote] = useState<string | null>(null);
 
-  const left = useMemo(() => parseSide(leftInput), [leftInput]);
-  const right = useMemo(() => parseSide(rightInput), [rightInput]);
+  const leftGuard = useLargeText(leftInput, null);
+  const rightGuard = useLargeText(rightInput, null);
+  const isLarge = leftGuard.isLarge || rightGuard.isLarge;
+  // 单个 LargeTextNotice 需要一个合成 guard：任一侧是大文件即进入拒绝模式。
+  const noticeGuard: LargeTextGuard = {
+    source: '',
+    isLarge,
+    pending: leftGuard.pending || rightGuard.pending,
+    busy: false,
+    start: () => {
+      leftGuard.start();
+      rightGuard.start();
+    },
+    background: null,
+    output: null,
+  };
+
+  const left = useMemo(
+    () => (isLarge ? { value: null, error: null } : parseSide(leftGuard.source)),
+    [leftGuard.source, isLarge],
+  );
+  const right = useMemo(
+    () => (isLarge ? { value: null, error: null } : parseSide(rightGuard.source)),
+    [rightGuard.source, isLarge],
+  );
 
   const compareOptions = useMemo<CompareOptions>(
     () => ({
@@ -143,21 +169,27 @@ export default function JsonDiff() {
   // 任一侧解析失败时不给出差异结论，避免把错误当成「有差异」。
   const comparable = left.error === null && right.error === null;
   const result = useMemo<CompareResult | null>(
-    () => (comparable ? compareJson(left.value, right.value, compareOptions) : null),
-    [comparable, left.value, right.value, compareOptions],
+    () => (isLarge || !comparable ? null : compareJson(left.value, right.value, compareOptions)),
+    [isLarge, comparable, left.value, right.value, compareOptions],
   );
 
-  const leftText = useMemo(() => (comparable ? stringifyStable(left.value) : ''), [comparable, left.value]);
-  const rightText = useMemo(() => (comparable ? stringifyStable(right.value) : ''), [comparable, right.value]);
+  const leftText = useMemo(
+    () => (isLarge || !comparable ? '' : stringifyStable(left.value)),
+    [isLarge, comparable, left.value],
+  );
+  const rightText = useMemo(
+    () => (isLarge || !comparable ? '' : stringifyStable(right.value)),
+    [isLarge, comparable, right.value],
+  );
 
   const diff = useMemo<DiffResult | null>(() => {
-    if (!comparable) return null;
+    if (isLarge || !comparable) return null;
     return computeDiff(leftText, rightText, { ...diffOptions, mode });
-  }, [comparable, leftText, rightText, diffOptions, mode]);
+  }, [isLarge, comparable, leftText, rightText, diffOptions, mode]);
 
   const blocks = useMemo<DiffBlock[]>(
-    () => (diff === null ? [] : collapseRows(diff.rows, diffOptions.context)),
-    [diff, diffOptions.context],
+    () => (isLarge || diff === null ? [] : collapseRows(diff.rows, diffOptions.context)),
+    [isLarge, diff, diffOptions.context],
   );
 
   const pick = useCallback(async (side: 'left' | 'right') => {
@@ -184,7 +216,7 @@ export default function JsonDiff() {
 
   const changesText = useMemo(
     () =>
-      result === null || result.changes.length === 0
+      isLarge || result === null || result.changes.length === 0
         ? ''
         : result.changes
             .map(
@@ -192,20 +224,26 @@ export default function JsonDiff() {
                 `${KIND_SIGN[item.kind]} ${item.path}\n  ${KIND_LABEL[item.kind]}\n  - ${item.left}\n  + ${item.right}`,
             )
             .join('\n'),
-    [result],
+    [isLarge, result],
   );
 
   const handleDownload = useCallback(() => {
-    if (diff === null) return;
+    if (isLarge || diff === null) return;
     downloadText(
       exportName('json-diff', 'diff'),
       unifiedPatch(leftText, rightText, 'json', diffOptions.context),
       'text/plain;charset=utf-8',
     );
-  }, [diff, leftText, rightText, diffOptions.context]);
+  }, [isLarge, diff, leftText, rightText, diffOptions.context]);
 
-  const leftBytes = useMemo(() => new TextEncoder().encode(leftInput).length, [leftInput]);
-  const rightBytes = useMemo(() => new TextEncoder().encode(rightInput).length, [rightInput]);
+  const leftBytes = useMemo(
+    () => (isLarge ? leftGuard.source.length : new TextEncoder().encode(leftGuard.source).length),
+    [leftGuard.source, isLarge],
+  );
+  const rightBytes = useMemo(
+    () => (isLarge ? rightGuard.source.length : new TextEncoder().encode(rightGuard.source).length),
+    [rightGuard.source, isLarge],
+  );
 
   return (
     <ToolPanel
@@ -242,6 +280,15 @@ export default function JsonDiff() {
       }
     >
       <div className="flex flex-1 flex-col gap-2">
+        <LargeTextNotice guard={noticeGuard} reject>
+          大文件模式不做两侧 JSON5 解析、结构比对、递归规范化、LCS
+          文本差异、区块折叠与变更摘要，全部差异结论与导出均不生效；请拆分文件。
+        </LargeTextNotice>
+        {isLarge && (
+          <Note tone="warn" title="大文件模式 · 已停止语义转换">
+            本工具依赖完整语法解析，超过 100 万字符不做降级转换；请拆分文件，或改用 JSON / SQL / XML 格式化的后台通道。
+          </Note>
+        )}
         <div className="flex flex-wrap items-center gap-2">
           <Button
             size="sm"
@@ -295,6 +342,7 @@ export default function JsonDiff() {
             error={left.error}
             bytes={leftBytes}
             note={fileNote}
+            large={isLarge}
           />
           <SideBox
             label="右侧 JSON"
@@ -302,6 +350,7 @@ export default function JsonDiff() {
             onChange={setRightInput}
             error={right.error}
             bytes={rightBytes}
+            large={isLarge}
           />
         </div>
 
@@ -347,7 +396,11 @@ export default function JsonDiff() {
       </Tabs>
 
       {resultTab === 'changes' &&
-        (result === null ? (
+        (isLarge ? (
+          <EmptyHint>
+            本工具依赖完整语法解析，超过 100 万字符不做降级转换；请拆分文件，或改用 JSON / SQL / XML 格式化的后台通道。
+          </EmptyHint>
+        ) : result === null ? (
           <EmptyHint>两侧都是合法 JSON 后显示逐路径差异。</EmptyHint>
         ) : result.changes.length === 0 ? (
           <EmptyHint>
@@ -355,8 +408,13 @@ export default function JsonDiff() {
           </EmptyHint>
         ) : (
           <div className="flex flex-1 flex-col gap-2">
+            {result.changes.length > LARGE_LIST_ROWS && (
+              <p className="px-1.5 py-1 text-[11px] text-warning">
+                仅显示前 {LARGE_LIST_ROWS} 条，共 {result.changes.length} 处差异。
+              </p>
+            )}
             <div className="flex-1 overflow-auto rounded-md border bg-muted/20 p-1.5 scrollbar-thin">
-              {result.changes.map((item) => (
+              {limitRows(result.changes).map((item) => (
                 <div key={item.id} className="rounded px-1.5 py-1 font-mono text-xs leading-relaxed hover:bg-muted/40">
                   <div className="flex items-baseline gap-1.5">
                     <span className={`w-3 shrink-0 select-none text-center ${KIND_TONE[item.kind]}`}>
@@ -406,7 +464,12 @@ export default function JsonDiff() {
               下载 diff
             </Button>
           </div>
-          {diff === null ? (
+          {isLarge ? (
+            <EmptyHint>
+              本工具依赖完整语法解析，超过 100 万字符不做降级转换；请拆分文件，或改用 JSON / SQL / XML
+              格式化的后台通道。
+            </EmptyHint>
+          ) : diff === null ? (
             <EmptyHint>两侧都是合法 JSON 后显示文本差异。</EmptyHint>
           ) : (
             <>
@@ -449,6 +512,7 @@ function SideBox({
   error,
   bytes,
   note,
+  large = false,
 }: {
   label: string;
   value: string;
@@ -456,6 +520,7 @@ function SideBox({
   error: string | null;
   bytes: number;
   note?: string | null;
+  large?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -476,7 +541,13 @@ function SideBox({
           ) : (
             <CheckCircle2 className="size-3.5 text-success" />
           )}
-          {error !== null ? '解析失败' : value.trim() === '' ? '等待输入' : formatBytes(bytes)}
+          {large
+            ? '大文件模式 · 未解析'
+            : error !== null
+              ? '解析失败'
+              : value.trim() === ''
+                ? '等待输入'
+                : formatBytes(bytes)}
         </span>
         {note && <span className="truncate">{note}</span>}
       </div>
@@ -578,12 +649,18 @@ function SplitRow({ row }: { row: DiffRow }) {
 
 function RowList({ blocks, view }: { blocks: DiffBlock[]; view: DiffView }) {
   if (blocks.length === 0) return <EmptyHint>两侧内容完全一致</EmptyHint>;
+  const truncated = blocks.length > LARGE_LIST_ROWS;
   return (
     <div className="flex-1 overflow-auto rounded-md border bg-muted/20 p-1.5 scrollbar-thin">
-      {blocks.map((block) =>
+      {truncated && (
+        <p className="px-1.5 py-1 text-[11px] text-warning">
+          仅显示前 {LARGE_LIST_ROWS} 条，共 {blocks.length} 个区块。
+        </p>
+      )}
+      {limitRows(blocks).map((block) =>
         block.type === 'rows' ? (
           <Fragment key={block.key}>
-            {block.rows.map((row) => (
+            {limitRows(block.rows).map((row) => (
               <div key={row.rowId}>{view === 'split' ? <SplitRow row={row} /> : <InlineRow row={row} />}</div>
             ))}
           </Fragment>

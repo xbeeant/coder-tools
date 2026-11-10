@@ -6,7 +6,16 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!**/node_modules", "!**/.output", "!**/.output-verify", "!**/.wxt", "!**/dist", "!**/dist-web"]
+    "includes": [
+      "**",
+      "!**/node_modules",
+      "!**/.output",
+      "!**/.output-verify",
+      "!**/.wxt",
+      "!**/dist",
+      "!**/dist-web",
+      "!**/public/format-worker.js"
+    ]
   },
   "formatter": {
     "enabled": true,

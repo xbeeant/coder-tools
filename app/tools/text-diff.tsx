@@ -3,12 +3,14 @@ import { ArrowDown, ArrowUp, Download, FileDiff } from 'lucide-react';
 import { Fragment, useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { Checkbox, NumberField } from '../components/ui/field';
+import { LargeTextNotice } from '../components/ui/large-text-notice';
 import { EmptyHint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
 import { Select } from '../components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Textarea } from '../components/ui/textarea';
 import { cn } from '../components/ui/utils';
+import { type LargeTextGuard, useLargeText } from '../hooks/use-large-text';
 import {
   AUTO_COLLAPSE_LINES,
   buildSedScript,
@@ -18,6 +20,7 @@ import {
   type DiffBlock,
   type DiffMode,
   type DiffOptions,
+  type DiffResult,
   type DiffRow,
   type DiffSegment,
   type DiffView,
@@ -25,6 +28,7 @@ import {
   unifiedPatch,
 } from '../lib/diff';
 import { downloadText, exportName } from '../lib/file';
+import { LARGE_LIST_ROWS, limitRows } from '../lib/large-text';
 
 const MODE_OPTIONS = [
   { value: 'lines', label: '行级（LCS）' },
@@ -203,20 +207,26 @@ export function RowList({
   onToggle: (key: string) => void;
 }) {
   if (blocks.length === 0) return <EmptyHint>两侧内容完全一致</EmptyHint>;
+  const truncated = blocks.length > LARGE_LIST_ROWS;
   return (
     <div className="flex-1 overflow-auto rounded-md border bg-muted/20 p-1.5 scrollbar-thin">
-      {blocks.map((block) => {
+      {truncated && (
+        <p className="px-1.5 py-1 text-[11px] text-warning">
+          仅显示前 {LARGE_LIST_ROWS} 条，共 {blocks.length} 个区块。
+        </p>
+      )}
+      {limitRows(blocks).map((block) => {
         if (block.type === 'rows') {
           return (
             <Fragment key={block.key}>
-              {block.rows.map((row) => (
+              {limitRows(block.rows).map((row) => (
                 <div key={row.rowId}>{view === 'split' ? <SplitRow row={row} /> : <InlineRow row={row} />}</div>
               ))}
             </Fragment>
           );
         }
         const open = expanded.has(block.key);
-        const visible = open ? [...block.head, ...block.tail] : block.head;
+        const visible = limitRows(open ? [...block.head, ...block.tail] : block.head);
         return (
           <div key={block.key}>
             {visible.map((row) => (
@@ -238,9 +248,49 @@ export default function TextDiff() {
   const [ignoreText, setIgnoreText] = useState('');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
+  const leftGuard = useLargeText(left, null);
+  const rightGuard = useLargeText(right, null);
+  const isLargeFile = leftGuard.isLarge || rightGuard.isLarge;
+  const noticeGuard: LargeTextGuard = {
+    source: '',
+    isLarge: isLargeFile,
+    pending: leftGuard.pending || rightGuard.pending,
+    busy: false,
+    start: () => {
+      leftGuard.start();
+      rightGuard.start();
+    },
+    background: null,
+    output: null,
+  };
+
   const parsed = useMemo(() => parseIgnoreRules(ignoreText), [ignoreText]);
-  const result = useMemo(() => computeDiff(left, right, options, parsed.rules), [left, right, options, parsed.rules]);
-  const blocks = useMemo(() => collapseRows(result.rows, options.context), [result.rows, options.context]);
+  const result = useMemo<DiffResult>(
+    () =>
+      isLargeFile
+        ? {
+            rows: [],
+            stats: {
+              added: 0,
+              deleted: 0,
+              modified: 0,
+              unchanged: 0,
+              leftLines: 0,
+              rightLines: 0,
+              similarity: 0,
+              changeRatio: 0,
+            },
+            leftText: '',
+            rightText: '',
+            filteredLines: 0,
+          }
+        : computeDiff(leftGuard.source, rightGuard.source, options, parsed.rules),
+    [isLargeFile, leftGuard.source, rightGuard.source, options, parsed.rules],
+  );
+  const blocks = useMemo(
+    () => (isLargeFile ? [] : collapseRows(result.rows, options.context)),
+    [isLargeFile, result.rows, options.context],
+  );
 
   const toggleFold = useCallback(
     (key: string) =>
@@ -254,10 +304,13 @@ export default function TextDiff() {
   );
 
   const patch = useMemo(
-    () => unifiedPatch(result.leftText, result.rightText, 'file.txt', options.context),
-    [result.leftText, result.rightText, options.context],
+    () => (isLargeFile ? '' : unifiedPatch(result.leftText, result.rightText, 'file.txt', options.context)),
+    [isLargeFile, result.leftText, result.rightText, options.context],
   );
-  const sedScript = useMemo(() => buildSedScript(result.rows, 'file.txt'), [result.rows]);
+  const sedScript = useMemo(
+    () => (isLargeFile ? '' : buildSedScript(result.rows, 'file.txt')),
+    [isLargeFile, result.rows],
+  );
 
   const isLarge = result.stats.leftLines > AUTO_COLLAPSE_LINES || result.stats.rightLines > AUTO_COLLAPSE_LINES;
   const toggleOption = useCallback(
@@ -294,6 +347,16 @@ export default function TextDiff() {
         </div>
       }
     >
+      <LargeTextNotice guard={noticeGuard} reject>
+        大文件模式不做完整行级 LCS 差异、逐词/逐字符比对、区块折叠、unified patch 与 sed
+        脚本生成，全部差异结论与导出均不生效；请拆分文件。
+      </LargeTextNotice>
+      {isLargeFile && (
+        <Note tone="warn" title="大文件模式 · 已停止语义转换">
+          本工具依赖完整语法解析，超过 100 万字符不做降级转换；完整行级 LCS
+          差异需要完整解析器，大文件暂不提供；请拆分文件，或改用 JSON / SQL / XML 格式化的后台通道。
+        </Note>
+      )}
       <div className="grid gap-3 md:grid-cols-2">
         <div className="flex min-w-0 flex-col gap-1.5">
           <div className="flex items-center justify-between">
@@ -378,27 +441,37 @@ export default function TextDiff() {
         </Section>
 
         <Section title="统计" description="修改行按字符相似度 ≥ 50% 自动配对">
-          <StatGrid>
-            <Stat label="新增行" value={added} tone="success" />
-            <Stat label="删除行" value={deleted} tone="danger" />
-            <Stat label="修改行" value={modified} tone="warn" />
-            <Stat label="未变更行" value={unchanged} />
-            <Stat label="相似度" value={`${similarity}%`} tone={similarity >= 90 ? 'success' : 'warn'} />
-            <Stat label="改动比例" value={`${changeRatio}%`} hint="改动行 / 较大一侧行数" />
-            <Stat label="A 行数" value={leftLines} />
-            <Stat label="B 行数" value={rightLines} />
-          </StatGrid>
-          {isLarge && (
-            <Note tone="warn" title="大文件已自动折叠">
-              超过 {AUTO_COLLAPSE_LINES} 行时未变更区块默认折叠为「展开 N 行」，点击即可展开。
-            </Note>
+          {isLargeFile ? (
+            <EmptyHint>大文件模式不做差异统计与完整行级 LCS 计算。</EmptyHint>
+          ) : (
+            <>
+              <StatGrid>
+                <Stat label="新增行" value={added} tone="success" />
+                <Stat label="删除行" value={deleted} tone="danger" />
+                <Stat label="修改行" value={modified} tone="warn" />
+                <Stat label="未变更行" value={unchanged} />
+                <Stat label="相似度" value={`${similarity}%`} tone={similarity >= 90 ? 'success' : 'warn'} />
+                <Stat label="改动比例" value={`${changeRatio}%`} hint="改动行 / 较大一侧行数" />
+                <Stat label="A 行数" value={leftLines} />
+                <Stat label="B 行数" value={rightLines} />
+              </StatGrid>
+              {isLarge && (
+                <Note tone="warn" title="大文件已自动折叠">
+                  超过 {AUTO_COLLAPSE_LINES} 行时未变更区块默认折叠为「展开 N 行」，点击即可展开。
+                </Note>
+              )}
+            </>
           )}
         </Section>
       </div>
 
       <Section
         title="差异结果"
-        description={`共 ${result.rows.length} 行比对项${result.filteredLines > 0 ? `，忽略规则跳过 ${result.filteredLines} 行` : ''}`}
+        description={
+          isLargeFile
+            ? '大文件模式已停止差异计算'
+            : `共 ${result.rows.length} 行比对项${result.filteredLines > 0 ? `，忽略规则跳过 ${result.filteredLines} 行` : ''}`
+        }
         actions={
           <div className="flex flex-wrap items-center gap-1.5">
             <Button size="sm" variant="ghost" disabled={left !== right} onClick={() => setRight(left)}>
@@ -419,38 +492,51 @@ export default function TextDiff() {
           </div>
         }
       >
-        <RowList blocks={blocks} view={view} expanded={expanded} onToggle={toggleFold} />
+        {isLargeFile ? (
+          <EmptyHint>
+            本工具依赖完整语法解析，超过 100 万字符不做降级转换；完整行级 LCS
+            差异需要完整解析器，大文件暂不提供。请拆分文件，或改用 JSON / SQL / XML 格式化的后台通道。
+          </EmptyHint>
+        ) : (
+          <RowList blocks={blocks} view={view} expanded={expanded} onToggle={toggleFold} />
+        )}
       </Section>
 
       <Section title="导出" description="unified diff 可直接 git apply；sed 脚本用于快速替换">
-        <div className="grid gap-3 md:grid-cols-2">
-          <ResultBox label="unified diff" value={patch} rows="min-h-32" onCopy={() => copyText(patch)} />
-          <ResultBox label="sed 替换脚本" value={sedScript} rows="min-h-32" onCopy={() => copyText(sedScript)} />
-        </div>
-        <div className="flex flex-wrap items-center gap-1.5">
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={!patch}
-            onClick={() => downloadText(exportName('diff', 'patch'), patch, 'text/x-patch;charset=utf-8')}
-          >
-            <Download className="size-3.5" />
-            下载 .patch
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={!patch}
-            onClick={() => downloadText(exportName('diff', 'diff'), patch, 'text/plain;charset=utf-8')}
-          >
-            <Download className="size-3.5" />
-            下载 .diff
-          </Button>
-        </div>
-        <Note tone="warn" title="sed 脚本的局限">
-          脚本只处理「单行且成对」的替换，sed 无法安全完成插入与删除操作，这些位置会以注释形式提示，需手工确认。
-          复杂改动请使用 unified diff。
-        </Note>
+        {isLargeFile ? (
+          <EmptyHint>大文件模式不生成 unified diff 与 sed 脚本。</EmptyHint>
+        ) : (
+          <>
+            <div className="grid gap-3 md:grid-cols-2">
+              <ResultBox label="unified diff" value={patch} rows="min-h-32" onCopy={() => copyText(patch)} />
+              <ResultBox label="sed 替换脚本" value={sedScript} rows="min-h-32" onCopy={() => copyText(sedScript)} />
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!patch}
+                onClick={() => downloadText(exportName('diff', 'patch'), patch, 'text/x-patch;charset=utf-8')}
+              >
+                <Download className="size-3.5" />
+                下载 .patch
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!patch}
+                onClick={() => downloadText(exportName('diff', 'diff'), patch, 'text/plain;charset=utf-8')}
+              >
+                <Download className="size-3.5" />
+                下载 .diff
+              </Button>
+            </div>
+            <Note tone="warn" title="sed 脚本的局限">
+              脚本只处理「单行且成对」的替换，sed 无法安全完成插入与删除操作，这些位置会以注释形式提示，需手工确认。
+              复杂改动请使用 unified diff。
+            </Note>
+          </>
+        )}
       </Section>
     </ToolPanel>
   );

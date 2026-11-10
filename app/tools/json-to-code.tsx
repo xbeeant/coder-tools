@@ -17,10 +17,12 @@ import {
 import { useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { Checkbox, NumberField, TextField } from '../components/ui/field';
+import { LargeTextNotice } from '../components/ui/large-text-notice';
 import { EmptyHint, Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Textarea } from '../components/ui/textarea';
+import { useLargeText } from '../hooks/use-large-text';
 import { formatBytes } from '../lib/bytes';
 import { downloadText, exportName, pickFiles, readAsText } from '../lib/file';
 import {
@@ -39,6 +41,7 @@ import {
   type ShapeRow,
   shapeRows,
 } from '../lib/json-to-code';
+import { LARGE_LIST_ROWS, limitRows } from '../lib/large-text';
 
 const SAMPLE = JSON.stringify(
   {
@@ -95,10 +98,12 @@ export default function JsonToCode() {
   const [sampleArrayLength, setSampleArrayLength] = useState(2);
   const [nullAsSkip, setNullAsSkip] = useState(false);
 
+  const guard = useLargeText(input, null);
+
   const parsed = useMemo(() => {
-    if (input.trim() === '') return { value: null as unknown, ok: true, error: null };
+    if (guard.isLarge || guard.source.trim() === '') return { value: null as unknown, ok: true, error: null };
     try {
-      return { value: JSON5.parse(input) as unknown, ok: true, error: null };
+      return { value: JSON5.parse(guard.source) as unknown, ok: true, error: null };
     } catch (error) {
       return {
         value: null,
@@ -106,10 +111,12 @@ export default function JsonToCode() {
         error: `JSON 解析失败：${error instanceof Error ? error.message : String(error)}`,
       };
     }
-  }, [input]);
+  }, [guard.source, guard.isLarge]);
 
+  // 大文件短路：绝不在主线程跑 JSON5.parse / 递归建 shape / 全树改名 / 各生成器。
   const generated = useMemo<Generated>(() => {
-    if (input.trim() === '') return { output: '', error: null, rows: [], fixes: [], typeCount: 0, fieldCount: 0 };
+    if (guard.isLarge || guard.source.trim() === '')
+      return { output: '', error: null, rows: [], fixes: [], typeCount: 0, fieldCount: 0 };
     if (!parsed.ok) return { output: '', error: parsed.error, rows: [], fixes: [], typeCount: 0, fieldCount: 0 };
 
     const value = parsed.value;
@@ -164,7 +171,8 @@ export default function JsonToCode() {
       };
     }
   }, [
-    input,
+    guard.source,
+    guard.isLarge,
     javaAccessors,
     javaToString,
     goPointers,
@@ -221,6 +229,14 @@ export default function JsonToCode() {
         </div>
       }
     >
+      <LargeTextNotice guard={guard} reject>
+        大文件模式不做 JSON5 解析、结构推断与代码生成，类型推断树、键名改写与全部导出均不生效；请拆分文件。
+      </LargeTextNotice>
+      {guard.isLarge && (
+        <Note tone="warn" title="大文件模式 · 已停止语义转换">
+          本工具依赖完整语法解析，超过 100 万字符不做降级转换；请拆分文件，或改用 JSON / SQL / XML 格式化的后台通道。
+        </Note>
+      )}
       <Note tone="info" title="使用说明">
         <span className="inline-flex items-center gap-1">
           <FileJson className="size-3.5" />
@@ -282,25 +298,34 @@ export default function JsonToCode() {
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
             <span className="inline-flex items-center gap-1">
               <Info className="size-3.5" />
-              {input.trim() === ''
-                ? '等待输入'
-                : parsed.ok
-                  ? `已解析 ${formatBytes(new TextEncoder().encode(input).length)}`
-                  : '解析失败'}
+              {guard.isLarge
+                ? '大文件模式 · 已停止实时解析'
+                : input.trim() === ''
+                  ? '等待输入'
+                  : parsed.ok
+                    ? `已解析 ${formatBytes(new TextEncoder().encode(guard.source).length)}`
+                    : '解析失败'}
             </span>
             {fileNote && <span className="truncate">{fileNote}</span>}
           </div>
         </div>
 
         <div className="flex flex-col gap-2">
-          <ResultBox
-            label={`${CODE_TARGETS.find((item) => item.value === target)?.label ?? ''} 输出`}
-            value={generated.output}
-            error={generated.error}
-            onCopy={() => copyText(generated.output)}
-            rows="min-h-48"
-            fill
-          />
+          {guard.isLarge ? (
+            <EmptyHint>
+              本工具依赖完整语法解析，超过 100 万字符不做降级转换；请拆分文件，或改用 JSON / SQL / XML
+              格式化的后台通道。
+            </EmptyHint>
+          ) : (
+            <ResultBox
+              label={`${CODE_TARGETS.find((item) => item.value === target)?.label ?? ''} 输出`}
+              value={generated.output}
+              error={generated.error}
+              onCopy={() => copyText(generated.output)}
+              rows="min-h-48"
+              fill
+            />
+          )}
           <div className="flex flex-wrap items-center gap-2">
             <Button size="sm" variant="outline" onClick={handleDownload} disabled={generated.output === ''}>
               <Download className="size-3.5" />
@@ -392,12 +417,19 @@ export default function JsonToCode() {
           </span>
         }
       >
-        {generated.rows.length === 0 ? (
+        {guard.isLarge ? (
+          <EmptyHint>大文件模式不做类型推断。</EmptyHint>
+        ) : generated.rows.length === 0 ? (
           <EmptyHint>输入 JSON 样例后显示推断出的类型结构。</EmptyHint>
         ) : (
           <div className="max-h-64 overflow-auto rounded-md border p-2 scrollbar-thin">
+            {generated.rows.length > LARGE_LIST_ROWS && (
+              <p className="px-1 pb-1 text-[11px] text-warning">
+                仅显示前 {LARGE_LIST_ROWS} 条，共 {generated.rows.length} 个节点。
+              </p>
+            )}
             <ul className="space-y-0.5">
-              {generated.rows.map((row) => (
+              {limitRows(generated.rows).map((row) => (
                 <li
                   key={`${row.depth}:${row.name}:${row.type}`}
                   className="flex items-baseline gap-2 font-mono text-xs"
@@ -432,7 +464,10 @@ export default function JsonToCode() {
               value={generated.fixes.length}
               tone={generated.fixes.length === 0 ? 'success' : 'warn'}
             />
-            <Stat label="输出行数" value={generated.output === '' ? 0 : generated.output.split('\n').length} />
+            <Stat
+              label="输出行数"
+              value={guard.isLarge ? 0 : generated.output === '' ? 0 : generated.output.split('\n').length}
+            />
           </StatGrid>
         </Section>
 
@@ -445,7 +480,9 @@ export default function JsonToCode() {
           }
           description="JSON 键转成标识符时的调整"
         >
-          {generated.fixes.length === 0 ? (
+          {guard.isLarge ? (
+            <EmptyHint>大文件模式不做键名改写。</EmptyHint>
+          ) : generated.fixes.length === 0 ? (
             <Hint>所有键名都可以直接作为合法标识符，无需改写。</Hint>
           ) : (
             <ResultBox

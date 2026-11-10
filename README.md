@@ -92,6 +92,69 @@ npx serve dist-web
 - **范围**：编排的是「工具页的输入与输出」，不是通用工作流引擎；不联网、不执行脚本、
   不访问文件系统，也不读取扩展专属的页面上下文。
 
+### 大文件处理与部署路径（双端可用）
+
+代码格式化类工具对大文件做了三层保护，避免主线程长任务和几十万 DOM 节点拖垮页面：
+
+- **阈值分流**：输入超过 100 万字符进入「大文件模式」，暂停自动解析、由用户点「开始处理」。
+  此时**不再构建 JSON5 对象树**，也不做重复键扫描 / 类型统计 / 树形浏览；缩进与美化 /
+  压缩由后台 Worker 做字符串级流式扫描（单遍、不建 AST、不做语法校验）。
+- **计算移出主线程**：Worker 脚本是 `public/format-worker.js`，一个零依赖的 classic worker。
+  小文件仍走原来的完整语义链路（键排序、JSON5、严格模式、结构统计），功能不回退。
+- **渲染限量**：`JsonTree` 超过 5000 个节点自动停用树形浏览；`ResultBox` 在大文件模式下
+  只把前 20 万字符交给 DOM，复制 / 下载始终使用完整结果。
+
+**部署路径约定（重要）**：Worker 脚本不通过 `import.meta.url` 或打包器生成的 worker chunk
+引用，而是随包静态发布、运行时按页面基址解析：
+
+| 环境 | 解析方式 | 结果 |
+|---|---|---|
+| Web 根目录 | `new URL('format-worker.js', document.baseURI)` | `https://host/format-worker.js` |
+| Web 子目录 | 同上 | `https://host/mirror/coder-tools/format-worker.js` |
+| Web 子目录 + hash 路由 | 同上 | 仍落在 `.../coder-tools/format-worker.js`，不会被 `#/tool/x` 带偏 |
+| Chrome 扩展 | `runtime.getURL('format-worker.js')` | `chrome-extension://<id>/format-worker.js` |
+
+因此部署时只需保证 `format-worker.js` 与入口 `index.html` 位于同一目录，`base: './'`
+保持不变，**且不要给入口 HTML 添加 `<base href>`**（会改变 `document.baseURI` 导致子路径失效）。
+`tests/format-stream.test.ts` 对这些路径写了回归断言。
+
+为什么不用更常见的两种做法：Vite 生成的 worker chunk 地址在 `base: './'` + hash 路由下
+可能被写成 `/assets/...`，子目录部署会 404；而 Chrome 扩展 MV3 的 `worker-src` 只允许
+`self` / `none` / `wasm-unsafe-eval`，不允许 `blob:`，同时禁止把字符串当作代码执行，
+所以内联 Blob Worker 在扩展端会被 CSP 拒绝。同源静态 classic worker 是双端唯一都成立的形式，
+也无需放宽 manifest 的 CSP。
+
+Worker 加载失败或超时不会静默降级到主线程做全量计算（那反而会卡死），而是给出明确中文错误，
+提示检查部署目录是否包含 `format-worker.js`。
+
+### 多工具覆盖：同一套保护推广到其余 14 个工具
+
+第七批只保护了 JSON 格式化，其余工具仍会在每次按键时全量解析、并把几十 MB 文本塞进受控
+`textarea`。本批把保护抽成共享层，小文件行为完全不变：
+
+| 文件 | 职责 |
+|---|---|
+| `app/lib/large-text.ts` | 100 万字符阈值、20 万字符显示预览、500 行列表上限与纯函数 |
+| `app/hooks/use-large-text.ts` | `useLargeText(input, task)`：大文件停止实时提交，改为手动「开始处理」，并按任务调用后台内核 |
+| `app/components/ui/large-text-notice.tsx` | 统一提示条与提交入口，如实标注降级能力；不支持降级时改为明确拒绝提示 |
+| `app/components/ui/result.tsx` | `ResultBox` 默认对**所有工具**限量显示，复制 / 下载仍用完整结果 |
+| `public/format-worker.js` | 多任务 classic worker：`json` / `code` / `markup` / `lines` / `stats` / `codec` |
+
+**后台可降级（大文件仍有结果）**：`sql`（JS / CSS / SQL 结构重排，SQL 方言识别 `--` 注释）、
+`yaml-xml`（XML 标签缩进、YAML 行规整）、`text-clean`（行去重 / 排序 / 去空行）、
+`text-stats`（单遍统计）、`base64` / `html-entity` / `url-encode`（编解码往返）。
+这些都是字符串级单遍处理，不做语法校验、不建对象树，界面会写明哪些语义选项不生效。
+
+**只做阈值分流（大文件明确拒绝语义转换）**：`markdown` / `json-convert` / `json-to-code` /
+`json-diff` / `text-diff` / `unicode` / `case`。它们依赖 `marked`、`yaml`、`JSON5`、jsdiff 等完整
+解析器，零依赖 classic worker 无法等价复刻；给一个「看起来像但语义不对」的结果比拒绝更危险，
+因此大文件下短路全部主线程全量计算（含 LCS、递归建树、全量 HTML 注入），给出中文提示并建议
+拆分文件，或改用上面有后台通道的工具。这是当前明确的能力边界，不是遗漏。
+
+`regex-tester` 原本已有输入截断、防抖、结果限量与 ReDoS 拦截，不重复接入；
+`table-convert` / `text-diff` / `text-stats` 原有的预览行数上限继续保留。
+`tests/large-text.test.ts` 把这 14 个工具的接入与全部后台任务类型写成回归断言，删接入会让测试变红。
+
 ### 扩展专属能力（仅扩展版）
 
 Web 版与扩展版共用全部 85 个工具，但下面这些依赖浏览器扩展 API，**只在扩展版可用**，

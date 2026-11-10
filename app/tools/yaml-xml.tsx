@@ -13,12 +13,15 @@ import {
 import { useCallback, useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { Checkbox, NumberField, TextField } from '../components/ui/field';
+import { LargeTextNotice } from '../components/ui/large-text-notice';
 import { EmptyHint, Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Textarea } from '../components/ui/textarea';
+import { type LargeTextTask, useLargeText } from '../hooks/use-large-text';
 import { formatBytes } from '../lib/bytes';
 import { downloadText, exportName, pickFiles, readAsText } from '../lib/file';
+import { LARGE_LIST_ROWS, limitRows } from '../lib/large-text';
 import {
   type FormatResult,
   formatXml,
@@ -67,36 +70,65 @@ export default function YamlXml() {
   const [crossRootName, setCrossRootName] = useState('root');
   const [crossDeclaration, setCrossDeclaration] = useState(true);
 
+  // 大文件按当前格式分流到后台：XML 做标签级缩进（可压缩），YAML 只做行尾空白规整。
+  const largeTask: LargeTextTask =
+    kind === 'xml'
+      ? { kind: 'markup', options: { indent: 2, minify: xmlTab === 'minify' } }
+      : { kind: 'lines', options: { trim: true } };
+  const guard = useLargeText(input, largeTask);
+
+  // 大文件短路 + 非当前格式不计算：YAML 页不跑 XML 全套，XML 页不跑 YAML 全套。
   const formattedYaml = useMemo(
-    () => (input.trim() === '' ? null : formatYaml(input, yamlIndent, yamlLineWidth)),
-    [input, yamlIndent, yamlLineWidth],
+    () =>
+      guard.isLarge || kind !== 'yaml' || guard.source.trim() === ''
+        ? null
+        : formatYaml(guard.source, yamlIndent, yamlLineWidth),
+    [guard.source, guard.isLarge, kind, yamlIndent, yamlLineWidth],
   );
-  const minifiedYaml = useMemo(() => (input.trim() === '' ? null : minifyYaml(input)), [input]);
-  const yamlSummary = useMemo(() => (input.trim() === '' ? null : summarizeYaml(input)), [input]);
-  const yamlDocs = useMemo(() => (input.trim() === '' ? null : splitYamlDocuments(input)), [input]);
+  const minifiedYaml = useMemo(
+    () => (guard.isLarge || kind !== 'yaml' || guard.source.trim() === '' ? null : minifyYaml(guard.source)),
+    [guard.source, guard.isLarge, kind],
+  );
+  const yamlSummary = useMemo(
+    () => (guard.isLarge || kind !== 'yaml' || guard.source.trim() === '' ? null : summarizeYaml(guard.source)),
+    [guard.source, guard.isLarge, kind],
+  );
+  const yamlDocs = useMemo(
+    () => (guard.isLarge || kind !== 'yaml' || guard.source.trim() === '' ? null : splitYamlDocuments(guard.source)),
+    [guard.source, guard.isLarge, kind],
+  );
 
-  const formattedXml = useMemo(() => (input.trim() === '' ? null : formatXml(input, xmlIndent)), [input, xmlIndent]);
-  const minifiedXml = useMemo(() => (input.trim() === '' ? null : minifyXml(input)), [input]);
-  const xmlSummary = useMemo(() => (input.trim() === '' ? null : summarizeXml(input)), [input]);
+  const formattedXml = useMemo(
+    () => (guard.isLarge || kind !== 'xml' || guard.source.trim() === '' ? null : formatXml(guard.source, xmlIndent)),
+    [guard.source, guard.isLarge, kind, xmlIndent],
+  );
+  const minifiedXml = useMemo(
+    () => (guard.isLarge || kind !== 'xml' || guard.source.trim() === '' ? null : minifyXml(guard.source)),
+    [guard.source, guard.isLarge, kind],
+  );
+  const xmlSummary = useMemo(
+    () => (guard.isLarge || kind !== 'xml' || guard.source.trim() === '' ? null : summarizeXml(guard.source)),
+    [guard.source, guard.isLarge, kind],
+  );
 
-  // 互转只计算当前方向，另一方向留空以免给出无意义的报错。
+  // 互转只计算当前方向，另一方向留空以免给出无意义的报错；互转区仅在 XML 页出现。
   const xmlToYamlResult = useMemo(
     () =>
-      input.trim() === '' || crossDir !== 'toYaml'
+      guard.isLarge || kind !== 'xml' || crossDir !== 'toYaml' || guard.source.trim() === ''
         ? null
-        : xmlToYaml(input, { indent: yamlIndent, stripNamespace, parseScalars }),
-    [input, crossDir, yamlIndent, stripNamespace, parseScalars],
+        : xmlToYaml(guard.source, { indent: yamlIndent, stripNamespace, parseScalars }),
+    [guard.source, guard.isLarge, kind, crossDir, yamlIndent, stripNamespace, parseScalars],
   );
   const yamlToXmlResult = useMemo(
     () =>
-      input.trim() === '' || crossDir !== 'toXml'
+      guard.isLarge || kind !== 'xml' || crossDir !== 'toXml' || guard.source.trim() === ''
         ? null
-        : yamlToXml(input, {
+        : yamlToXml(guard.source, {
             rootName: crossRootName.trim() === '' ? 'root' : crossRootName.trim(),
             indent: xmlIndent,
             declaration: crossDeclaration,
           }),
-    [input, crossDir, crossRootName, xmlIndent, crossDeclaration],
+    [guard.source, guard.isLarge, kind, crossDir, crossRootName, xmlIndent, crossDeclaration],
   );
 
   // 互转页签下「XML」侧的输入语义由方向决定：转 XML 时左侧其实是 YAML。
@@ -122,6 +154,7 @@ export default function YamlXml() {
 
   const activeTab: YamlTab | XmlTab = kind === 'yaml' ? yamlTab : xmlTab;
   const currentOutput = useMemo(() => {
+    if (guard.isLarge) return guard.output ?? '';
     if (kind === 'yaml') {
       if (yamlTab === 'format') return formattedYaml?.ok === true ? formattedYaml.value : '';
       if (yamlTab === 'minify') return minifiedYaml?.ok === true ? minifiedYaml.value : '';
@@ -147,20 +180,23 @@ export default function YamlXml() {
     xmlSummary,
     xmlToYamlResult,
     yamlToXmlResult,
+    guard.isLarge,
+    guard.output,
   ]);
 
   const currentError = useMemo(() => {
+    if (guard.isLarge) return guard.background?.error ? `后台处理失败：${guard.background.error}` : null;
     if (kind === 'yaml') {
-      if (yamlTab === 'format') return issueText(formattedYaml ?? { ok: false, issues: [] });
-      if (yamlTab === 'minify') return issueText(minifiedYaml ?? { ok: false, issues: [] });
-      if (yamlTab === 'structure') return issueText(yamlSummary ?? { ok: false, issues: [] });
+      if (yamlTab === 'format') return formattedYaml?.ok === false ? issueText(formattedYaml) : null;
+      if (yamlTab === 'minify') return minifiedYaml?.ok === false ? issueText(minifiedYaml) : null;
+      if (yamlTab === 'structure') return yamlSummary?.ok === false ? issueText(yamlSummary) : null;
       return null;
     }
-    if (xmlTab === 'format') return issueText(formattedXml ?? { ok: false, issues: [] });
-    if (xmlTab === 'minify') return issueText(minifiedXml ?? { ok: false, issues: [] });
-    if (xmlTab === 'structure') return issueText(xmlSummary ?? { ok: false, issues: [] });
-    if (crossDir === 'toYaml') return issueText(xmlToYamlResult ?? { ok: false, issues: [] });
-    return issueText(yamlToXmlResult ?? { ok: false, issues: [] });
+    if (xmlTab === 'format') return formattedXml?.ok === false ? issueText(formattedXml) : null;
+    if (xmlTab === 'minify') return minifiedXml?.ok === false ? issueText(minifiedXml) : null;
+    if (xmlTab === 'structure') return xmlSummary?.ok === false ? issueText(xmlSummary) : null;
+    if (crossDir === 'toYaml') return xmlToYamlResult?.ok === false ? issueText(xmlToYamlResult) : null;
+    return yamlToXmlResult?.ok === false ? issueText(yamlToXmlResult) : null;
   }, [
     kind,
     crossDir,
@@ -174,6 +210,8 @@ export default function YamlXml() {
     xmlSummary,
     xmlToYamlResult,
     yamlToXmlResult,
+    guard.isLarge,
+    guard.background,
   ]);
 
   // 结构摘要页签导出 JSON，其余按实际输出格式决定扩展名。
@@ -211,6 +249,10 @@ export default function YamlXml() {
         </div>
       }
     >
+      <LargeTextNotice guard={guard} background={true}>
+        大文件模式：XML 由后台做标签级缩进（可压缩），YAML
+        只做行尾空白规整；结构校验、多文档拆分、格式互转、首行预览与完整语法解析均不生效，也不做语法校验。
+      </LargeTextNotice>
       <div className="flex flex-wrap items-center gap-2">
         <Tabs value={kind} onValueChange={(value) => setKind(value as Kind)}>
           <TabsList>
@@ -277,11 +319,13 @@ export default function YamlXml() {
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
             <span className="inline-flex items-center gap-1">
               <Info className="size-3.5" />
-              {input.trim() === ''
-                ? '等待输入'
-                : currentError !== null
-                  ? '解析失败'
-                  : `输入 ${formatBytes(new TextEncoder().encode(input).length)}`}
+              {guard.isLarge
+                ? '大文件模式 · 已停止实时解析'
+                : input.trim() === ''
+                  ? '等待输入'
+                  : currentError !== null
+                    ? '解析失败'
+                    : `输入 ${formatBytes(new TextEncoder().encode(guard.source).length)}`}
             </span>
             {fileNote && <span className="truncate">{fileNote}</span>}
           </div>
@@ -304,7 +348,9 @@ export default function YamlXml() {
             <Hint>
               {currentOutput === ''
                 ? '没有可下载的内容。'
-                : `输出 ${formatBytes(new TextEncoder().encode(currentOutput).length)}`}
+                : guard.isLarge
+                  ? '后台输出已就绪，可在上方结果区复制或下载。'
+                  : `输出 ${formatBytes(new TextEncoder().encode(currentOutput).length)}`}
             </Hint>
           </div>
         </div>
@@ -373,7 +419,12 @@ export default function YamlXml() {
                   tone={yamlDocs.ok ? 'success' : 'danger'}
                 />
               </StatGrid>
-              {yamlDocs.documents.map((doc) => (
+              {yamlDocs.documents.length > LARGE_LIST_ROWS && (
+                <p className="text-[11px] text-warning">
+                  仅显示前 {LARGE_LIST_ROWS} 条，共 {yamlDocs.documents.length} 段文档。
+                </p>
+              )}
+              {limitRows(yamlDocs.documents).map((doc) => (
                 <Note key={doc.index} tone={doc.error === null ? 'success' : 'danger'} title={`文档 ${doc.index}`}>
                   {doc.error ?? `${doc.text.split('\n').length} 行`}
                 </Note>
@@ -495,12 +546,12 @@ export default function YamlXml() {
         </Section>
       </div>
 
-      {input.trim() !== '' && sourceLine(input, 1) !== undefined && (
+      {!guard.isLarge && guard.source.trim() !== '' && sourceLine(guard.source, 1) !== undefined && (
         <Section title="首行预览" description="用于确认是否存在不可见字符或 BOM">
           <Hint>
             <span className="inline-flex items-center gap-1">
               <ListTree className="size-3.5" />
-              {JSON.stringify(sourceLine(input, 1) ?? '')}
+              {JSON.stringify(sourceLine(guard.source, 1) ?? '')}
             </span>
           </Hint>
         </Section>

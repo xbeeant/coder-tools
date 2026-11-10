@@ -3,12 +3,15 @@ import { ArrowDown, ArrowUp, Copy, Download, Eraser, FolderOpen, Save, Trash2, X
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { Checkbox, NumberField, TextField } from '../components/ui/field';
+import { LargeTextNotice } from '../components/ui/large-text-notice';
 import { EmptyHint, Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
 import { Select } from '../components/ui/select';
 import { Textarea } from '../components/ui/textarea';
+import { useLargeText } from '../hooks/use-large-text';
 import { visualizeInvisible } from '../lib/bytes';
 import { downloadText, exportName } from '../lib/file';
+import { limitRows } from '../lib/large-text';
 
 type RuleGroup = 'dedupe' | 'sort' | 'clean' | 'merge';
 type DedupeMode = 'first' | 'last' | 'count';
@@ -402,16 +405,39 @@ export default function TextClean() {
   }, []);
 
   const effectiveParams = useMemo(() => ({ ...params, seed: params.seed + seedTick }), [params, seedTick]);
-  const result = useMemo(() => runPipeline(input, enabled, effectiveParams), [input, enabled, effectiveParams]);
 
-  const duplicates = useMemo(() => {
+  const linesOptions = useMemo(
+    () => ({
+      trimAll: enabled.includes('trimLines'),
+      removeEmpty:
+        enabled.includes('dropEmptyLines') || enabled.includes('collapseEmptyLines') || enabled.includes('trimDoc'),
+      dedupe: enabled.includes('dedupe') && effectiveParams.dedupeMode !== 'count',
+      sort: enabled.includes('sort'),
+      reverse: enabled.includes('sort') && effectiveParams.sortMode === 'desc',
+    }),
+    [enabled, effectiveParams],
+  );
+  const guard = useLargeText(input, { kind: 'lines', options: linesOptions });
+
+  const result = useMemo<ReturnType<typeof runPipeline>>(
+    () =>
+      guard.isLarge
+        ? { text: '', removedEmpty: 0, removedDup: 0, elapsedMs: 0, removed: 0 }
+        : runPipeline(guard.source, enabled, effectiveParams),
+    [guard.source, guard.isLarge, enabled, effectiveParams],
+  );
+  const outputText = guard.isLarge ? (guard.output ?? '') : result.text;
+  const outputError = guard.background?.error ? `后台处理失败：${guard.background.error}` : null;
+
+  const duplicates = useMemo<{ key: string; count: number; sample: string }[]>(() => {
+    if (guard.isLarge) return [];
     const counts = new Map<string, { count: number; sample: string }>();
     const key = (line: string) => {
       let value = line;
       if (params.dedupeIgnoreTrim) value = value.trim();
       return params.dedupeIgnoreCase ? value.toLowerCase() : value;
     };
-    for (const line of splitLines(input)) {
+    for (const line of splitLines(guard.source)) {
       const k = key(line);
       const entry = counts.get(k);
       if (entry) entry.count += 1;
@@ -421,9 +447,12 @@ export default function TextClean() {
       .filter(([, value]) => value.count > 1)
       .map(([key_, value]) => ({ key: key_, ...value }))
       .sort((a, b) => b.count - a.count);
-  }, [input, params.dedupeIgnoreCase, params.dedupeIgnoreTrim]);
+  }, [guard.source, guard.isLarge, params.dedupeIgnoreCase, params.dedupeIgnoreTrim]);
 
-  const whitespaceCount = useMemo(() => (input.match(/[ \t]/gu) ?? []).length, [input]);
+  const whitespaceCount = useMemo(
+    () => (guard.isLarge ? 0 : (guard.source.match(/[ \t]/gu) ?? []).length),
+    [guard.source, guard.isLarge],
+  );
 
   const move = useCallback(
     (id: string, delta: number) =>
@@ -478,15 +507,15 @@ export default function TextClean() {
       description="按可调整顺序的规则链执行去重、排序、清洗与合并"
       actions={
         <div className="flex flex-wrap items-center gap-1.5">
-          <Button size="sm" variant="outline" disabled={!result.text} onClick={() => copyText(result.text)}>
+          <Button size="sm" variant="outline" disabled={!outputText} onClick={() => copyText(outputText)}>
             <Copy className="size-3.5" />
             复制结果
           </Button>
           <Button
             size="sm"
             variant="outline"
-            disabled={!result.text}
-            onClick={() => downloadText(exportName('text-clean', 'txt'), result.text)}
+            disabled={!outputText}
+            onClick={() => downloadText(exportName('text-clean', 'txt'), outputText)}
           >
             <Download className="size-3.5" />
             下载 .txt
@@ -495,6 +524,9 @@ export default function TextClean() {
         </div>
       }
     >
+      <LargeTextNotice guard={guard} background={true}>
+        大文件模式仅支持行尾空白、去空行、去重、排序、反转：BOM、统一换行、压缩空格、不可见字符、脱敏、转置、自然/数值/随机排序、去重忽略规则与规则链顺序编排均不生效。
+      </LargeTextNotice>
       <div className="grid gap-3 md:grid-cols-2">
         <div className="flex min-w-0 flex-col gap-1.5">
           <span className="text-xs text-muted-foreground">输入文本</span>
@@ -509,7 +541,13 @@ export default function TextClean() {
           <Hint>规则按下方链的顺序依次执行，上移/下移即可改变顺序。</Hint>
         </div>
 
-        <ResultBox label="实时预览" value={result.text} rows="min-h-48" onCopy={() => copyText(result.text)} />
+        <ResultBox
+          label="实时预览"
+          value={outputText}
+          error={outputError}
+          rows="min-h-48"
+          onCopy={() => copyText(outputText)}
+        />
       </div>
 
       <Section title="处理规则链" description="顺序即执行顺序，用箭头按钮调整">
@@ -670,8 +708,8 @@ export default function TextClean() {
 
         <Section title="统计与重复项" description="重复内容按当前去重的忽略规则归并">
           <StatGrid>
-            <Stat label="原始行数" value={splitLines(input).length} />
-            <Stat label="结果行数" value={splitLines(result.text).length} />
+            <Stat label="原始行数" value={guard.isLarge ? '—' : splitLines(guard.source).length} />
+            <Stat label="结果行数" value={guard.isLarge ? '—' : splitLines(outputText).length} />
             <Stat label="删除空行" value={result.removedEmpty} tone={result.removedEmpty > 0 ? 'warn' : 'info'} />
             <Stat label="空白字符数" value={whitespaceCount} hint="输入中的空格与 Tab" />
             <Stat label="去重删除" value={result.removedDup} tone={result.removedDup > 0 ? 'warn' : 'info'} />
@@ -696,7 +734,7 @@ export default function TextClean() {
             ) : (
               <div className="max-h-48 overflow-auto rounded-md border scrollbar-thin">
                 <ul>
-                  {duplicates.slice(0, 200).map((item) => (
+                  {limitRows(duplicates, 200).map((item) => (
                     <li
                       key={item.key}
                       className="flex items-center gap-2 border-b px-2 py-1 font-mono text-[11px] last:border-b-0"

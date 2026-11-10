@@ -3,12 +3,15 @@ import { Copy, Download, Layers } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { Checkbox, TextField } from '../components/ui/field';
+import { LargeTextNotice } from '../components/ui/large-text-notice';
 import { EmptyHint, Hint, Note, Section, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
 import { Select } from '../components/ui/select';
 import { Textarea } from '../components/ui/textarea';
+import { useLargeText } from '../hooks/use-large-text';
 import { CASE_STYLES, type CaseStyle, convertCase, splitWords } from '../lib/case';
 import { downloadText, exportName } from '../lib/file';
+import { LARGE_LIST_ROWS, limitRows } from '../lib/large-text';
 
 const SAMPLE = `XMLHttpRequest getHTTPResponse user_name UserName foo2Bar 3DModel
 订单 状态 流转记录 id`;
@@ -76,9 +79,15 @@ export default function CaseConverter() {
   const [wordForm, setWordForm] = useState<WordForm>('lower');
   const [focusStyle, setFocusStyle] = useState<CaseStyle>('camel');
 
-  const words = useMemo(() => splitWithExtra(input, extraSeparator), [input, extraSeparator]);
+  const guard = useLargeText(input, null);
+
+  const words = useMemo(
+    () => splitWithExtra(guard.isLarge ? '' : guard.source, extraSeparator),
+    [guard.source, guard.isLarge, extraSeparator],
+  );
 
   const rows = useMemo(() => {
+    if (guard.isLarge) return [];
     const apply = (style: CaseStyle, text: string): string => {
       if (!keepAcronym) return convertCase(text, style);
       const localWords = splitWithExtra(text, extraSeparator);
@@ -102,21 +111,22 @@ export default function CaseConverter() {
       }
     };
 
-    const rows = input.split('\n');
+    const rows = guard.source.split('\n');
     return CASE_STYLES.filter((style) => selected.includes(style.value)).map((style) => {
-      const value = perLine ? rows.map((row) => apply(style.value, row)).join('\n') : apply(style.value, input);
+      const value = perLine ? rows.map((row) => apply(style.value, row)).join('\n') : apply(style.value, guard.source);
       return { style: style.value, label: style.label, example: style.example, value };
     });
-  }, [input, selected, perLine, keepAcronym, extraSeparator]);
+  }, [guard.source, guard.isLarge, selected, perLine, keepAcronym, extraSeparator]);
 
   const customValue = useMemo(() => {
-    const localWords = splitWithExtra(input, extraSeparator);
+    const source = guard.isLarge ? '' : guard.source;
+    const localWords = splitWithExtra(source, extraSeparator);
     if (!perLine) return joinWithSeparator(localWords, customSeparator, wordForm, keepAcronym);
-    return input
+    return source
       .split('\n')
       .map((row) => joinWithSeparator(splitWithExtra(row, extraSeparator), customSeparator, wordForm, keepAcronym))
       .join('\n');
-  }, [input, extraSeparator, customSeparator, wordForm, keepAcronym, perLine]);
+  }, [guard.source, guard.isLarge, extraSeparator, customSeparator, wordForm, keepAcronym, perLine]);
 
   const focusValue = useMemo(() => {
     const found = rows.find((row) => row.style === focusStyle);
@@ -126,17 +136,23 @@ export default function CaseConverter() {
   const toggleStyle = (style: CaseStyle) =>
     setSelected((prev) => (prev.includes(style) ? prev.filter((item) => item !== style) : [...prev, style]));
 
-  const allOutput = [...rows.map((row) => `${row.label}: ${row.value}`), `自定义: ${customValue}`].join('\n');
-  const jsonOutput = JSON.stringify(
-    {
-      source: input,
-      tokens: words,
-      results: Object.fromEntries(rows.map((row) => [row.style, row.value])),
-      custom: customValue,
-    },
-    null,
-    2,
-  );
+  const allOutput = guard.isLarge
+    ? ''
+    : [...rows.map((row) => `${row.label}: ${row.value}`), `自定义: ${customValue}`].join('\n');
+  const jsonOutput = guard.isLarge
+    ? ''
+    : JSON.stringify(
+        {
+          source: guard.source,
+          tokens: words,
+          results: Object.fromEntries(rows.map((row) => [row.style, row.value])),
+          custom: customValue,
+        },
+        null,
+        2,
+      );
+  const focusOutput = guard.isLarge ? (guard.output ?? '') : focusValue;
+  const allResultOutput = guard.isLarge ? (guard.output ?? '') : allOutput;
 
   const selectAll = (flag: boolean) => setSelected(flag ? CASE_STYLES.map((style) => style.value) : []);
 
@@ -172,6 +188,9 @@ export default function CaseConverter() {
         </div>
       }
     >
+      <LargeTextNotice guard={guard} reject>
+        大文件模式不做智能分词、不做各风格的全量转换，也不生成「全部复制」内容与 JSON 导出，请拆分文件。
+      </LargeTextNotice>
       <div className="grid gap-3 md:grid-cols-2">
         <div className="flex min-w-0 flex-col gap-1.5">
           <span className="text-xs text-muted-foreground">输入文本</span>
@@ -256,20 +275,26 @@ export default function CaseConverter() {
         </Section>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
-        <ResultBox
-          label={`单风格速查 · ${CASE_STYLES.find((style) => style.value === focusStyle)?.label ?? ''}`}
-          value={focusValue}
-          rows="min-h-24"
-          onCopy={() => copyText(focusValue)}
-        />
-        <ResultBox
-          label={`全部复制内容（${rows.length + 1} 行：风格: 结果）`}
-          value={allOutput}
-          rows="min-h-24"
-          onCopy={() => copyText(allOutput)}
-        />
-      </div>
+      {guard.isLarge ? (
+        <EmptyHint>
+          超过 100 万字符不做智能分词与多风格转换，也不生成「全部复制」内容与 JSON 导出，请拆分文件后使用。
+        </EmptyHint>
+      ) : (
+        <div className="grid gap-3 md:grid-cols-2">
+          <ResultBox
+            label={`单风格速查 · ${CASE_STYLES.find((style) => style.value === focusStyle)?.label ?? ''}`}
+            value={focusOutput}
+            rows="min-h-24"
+            onCopy={() => copyText(focusOutput)}
+          />
+          <ResultBox
+            label={`全部复制内容（${rows.length + 1} 行：风格: 结果）`}
+            value={allResultOutput}
+            rows="min-h-24"
+            onCopy={() => copyText(allResultOutput)}
+          />
+        </div>
+      )}
 
       <Section
         title="风格对照"
@@ -297,11 +322,16 @@ export default function CaseConverter() {
           ))}
         </div>
 
+        {rows.length > LARGE_LIST_ROWS && (
+          <p className="text-[11px] text-warning">
+            仅显示前 {LARGE_LIST_ROWS} 条，共 {rows.length} 种风格。
+          </p>
+        )}
         {rows.length === 0 ? (
           <EmptyHint>请至少选择一种目标风格</EmptyHint>
         ) : (
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-            {rows.map((row) => (
+            {limitRows(rows).map((row) => (
               <div key={row.style} className="flex min-w-0 flex-col gap-1 rounded-md border bg-muted/20 p-2">
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-mono text-[11px] font-medium">{row.label}</span>

@@ -20,6 +20,9 @@ import { defineConfig } from 'vite';
  */
 export default defineConfig({
   // 相对路径产物：既可放在域名根目录，也可部署到 GitHub Pages 之类子路径。
+  // public/format-worker.js 会原样复制到产物根目录；大文件格式化 Worker 以
+  // document.baseURI 解析它（见 app/lib/format-stream.ts）。因此这里必须保持
+  // 相对 base，且不要给入口 HTML 添加 <base href>，否则子路径下会加载不到。
   base: './',
   plugins: [react(), tailwindcss()],
   server: {

@@ -2,12 +2,15 @@ import { AlertTriangle, ArrowLeftRight, ArrowUpFromLine, Copy, Download, Sigma, 
 import { useMemo, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { Checkbox } from '../components/ui/field';
+import { LargeTextNotice } from '../components/ui/large-text-notice';
 import { EmptyHint, Hint, Note, Section, Stat, StatGrid, ToolPanel } from '../components/ui/panel';
 import { ClearButton, copyText, ResultBox } from '../components/ui/result';
 import { Select } from '../components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Textarea } from '../components/ui/textarea';
+import { useLargeText } from '../hooks/use-large-text';
 import { downloadText, exportName } from '../lib/file';
+import { LARGE_LIST_ROWS, limitRows } from '../lib/large-text';
 import {
   analyzeSql,
   type ColumnDictionary,
@@ -74,14 +77,21 @@ const EXAMPLES: { label: string; sql: string }[] = [
 function HighlightedSql({ tokens }: { tokens: SqlToken[] }) {
   if (tokens.length === 0) return <EmptyHint>输入 SQL 后这里显示语法高亮</EmptyHint>;
   return (
-    <pre className="min-h-48 flex-1 overflow-auto whitespace-pre-wrap break-words rounded-md border bg-muted/20 p-3 font-mono text-xs leading-relaxed scrollbar-thin">
-      {tokens.map((token, index) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: token 无稳定标识，用下标即可
-        <span key={index} className={TOKEN_CLASS[token.kind]}>
-          {token.text}
-        </span>
-      ))}
-    </pre>
+    <>
+      {tokens.length > LARGE_LIST_ROWS && (
+        <p className="pb-1 text-[11px] text-warning">
+          仅显示前 {LARGE_LIST_ROWS} 个 token，共 {tokens.length} 个。
+        </p>
+      )}
+      <pre className="min-h-48 flex-1 overflow-auto whitespace-pre-wrap break-words rounded-md border bg-muted/20 p-3 font-mono text-xs leading-relaxed scrollbar-thin">
+        {limitRows(tokens).map((token, index) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: token 无稳定标识，用下标即可
+          <span key={index} className={TOKEN_CLASS[token.kind]}>
+            {token.text}
+          </span>
+        ))}
+      </pre>
+    </>
   );
 }
 
@@ -111,6 +121,11 @@ export default function SqlFormatter() {
   const [placeholderStyle, setPlaceholderStyle] = useState<PlaceholderStyle>('question');
   const [alsoNumbers, setAlsoNumbers] = useState(false);
 
+  // SQL 没有「美化 / 压缩」常驻开关，后台固定按结构化重排（不压缩）产出；
+  // dialect='sql' 让后台 code 任务识别 -- 行注释。
+  const sqlTaskOptions = { dialect: 'sql', indent: 2, minify: false };
+  const guard = useLargeText(input, { kind: 'code', options: sqlTaskOptions });
+
   const formatOptions = useMemo(
     () => ({
       indent,
@@ -121,35 +136,51 @@ export default function SqlFormatter() {
     [indent, keywordCase],
   );
 
-  const formatted = useMemo(() => (input.trim() === '' ? '' : formatSql(input, formatOptions)), [input, formatOptions]);
+  // 大文件短路：绝不在主线程跑 formatSql / 方言改写 / 结构分析 / 递归建字典。
+  const formatted = useMemo(
+    () => (guard.isLarge || guard.source.trim() === '' ? '' : formatSql(guard.source, formatOptions)),
+    [guard.source, guard.isLarge, formatOptions],
+  );
 
-  const converted = useMemo(() => convertSqlDialect(input, dialect), [input, dialect]);
+  const converted = useMemo(
+    () =>
+      guard.isLarge
+        ? { sql: '', notes: [] as string[], warnings: [] as string[] }
+        : convertSqlDialect(guard.source, dialect),
+    [guard.source, guard.isLarge, dialect],
+  );
 
-  const analysis = useMemo(() => analyzeSql(input), [input]);
+  const analysis = useMemo(
+    () => (guard.isLarge ? analyzeSql('') : analyzeSql(guard.source)),
+    [guard.source, guard.isLarge],
+  );
 
   const dictionary = useMemo<ColumnDictionary>(() => {
     const result: ColumnDictionary = {};
-    for (const table of parseCreateTableDefinitions(input)) {
+    if (guard.isLarge) return result;
+    for (const table of parseCreateTableDefinitions(guard.source)) {
       result[table.name] = table.columns.map((column) => column.name);
     }
     return result;
-  }, [input]);
+  }, [guard.source, guard.isLarge]);
 
   const starExpansion = useMemo(
-    () => (expandStar ? expandStarSelect(formatted, dictionary) : null),
-    [expandStar, formatted, dictionary],
+    () => (guard.isLarge || !expandStar ? null : expandStarSelect(formatted, dictionary)),
+    [guard.isLarge, expandStar, formatted, dictionary],
   );
 
   const parameterized = useMemo(
     () =>
-      useParameters
-        ? parameterizeSql(starExpansion?.sql ?? formatted, { style: placeholderStyle, numbers: alsoNumbers })
-        : null,
-    [useParameters, starExpansion, formatted, placeholderStyle, alsoNumbers],
+      guard.isLarge || !useParameters
+        ? null
+        : parameterizeSql(starExpansion?.sql ?? formatted, { style: placeholderStyle, numbers: alsoNumbers }),
+    [guard.isLarge, useParameters, starExpansion, formatted, placeholderStyle, alsoNumbers],
   );
 
   const output = parameterized?.sql ?? starExpansion?.sql ?? formatted;
-  const tokens = useMemo(() => highlightSql(output), [output]);
+  const displayOutput = guard.isLarge ? (guard.output ?? '') : output;
+  const outputError = guard.isLarge && guard.background?.error ? `后台处理失败：${guard.background.error}` : null;
+  const tokens = useMemo(() => (guard.isLarge ? [] : highlightSql(output)), [output, guard.isLarge]);
 
   const safeActions = (
     <div className="flex flex-wrap items-center gap-2">
@@ -160,12 +191,12 @@ export default function SqlFormatter() {
       <Button
         size="sm"
         onClick={() => setInput(parameterizeSql(input, { style: placeholderStyle, numbers: alsoNumbers }).sql)}
-        disabled={input.trim() === ''}
+        disabled={guard.isLarge || input.trim() === ''}
       >
         <Sigma className="size-3.5" />
         写回参数化结果
       </Button>
-      <Button size="sm" onClick={() => setInput(converted.sql)} disabled={input.trim() === ''}>
+      <Button size="sm" onClick={() => setInput(converted.sql)} disabled={guard.isLarge || input.trim() === ''}>
         <ArrowLeftRight className="size-3.5" />
         写回方言改写
       </Button>
@@ -195,6 +226,10 @@ export default function SqlFormatter() {
         </div>
       }
     >
+      <LargeTextNotice guard={guard} background={true}>
+        大文件模式只做字符串级结构重排（后台 code 任务，识别 -- 注释）：关键字大小写、方言改写、SELECT *
+        展开、参数化、语法高亮、结构分析与风险检测均不生效，也不做语法校验。
+      </LargeTextNotice>
       <Note tone="info" title="自研轻量解析器">
         词法与格式化基于自研扫描器实现，覆盖常见 DDL/DML。存储过程、动态 SQL、特定方言扩展语法可能无法完全识别，
         结果仅供参考，重要脚本请在真实数据库中验证。
@@ -203,7 +238,7 @@ export default function SqlFormatter() {
       <div className="grid gap-3 md:grid-cols-2">
         <Section title="输入 SQL" description={`${input.length} 字符`} actions={safeActions}>
           <div className="flex flex-wrap gap-1.5">
-            <Button size="sm" onClick={() => setInput(formatted)} disabled={input.trim() === ''}>
+            <Button size="sm" onClick={() => setInput(formatted)} disabled={guard.isLarge || input.trim() === ''}>
               <Sparkles className="size-3.5" />
               格式化
             </Button>
@@ -211,7 +246,7 @@ export default function SqlFormatter() {
               size="sm"
               variant="outline"
               onClick={() => setInput(minifySql(input))}
-              disabled={input.trim() === ''}
+              disabled={guard.isLarge || input.trim() === ''}
             >
               <ArrowUpFromLine className="size-3.5" />
               压缩为单行
@@ -222,7 +257,7 @@ export default function SqlFormatter() {
               onClick={() =>
                 setInput(formatSql(input, { ...formatOptions, uppercaseKeywords: true, lowercaseKeywords: false }))
               }
-              disabled={input.trim() === ''}
+              disabled={guard.isLarge || input.trim() === ''}
             >
               关键字大写
             </Button>
@@ -232,11 +267,16 @@ export default function SqlFormatter() {
               onClick={() =>
                 setInput(formatSql(input, { ...formatOptions, uppercaseKeywords: false, lowercaseKeywords: true }))
               }
-              disabled={input.trim() === ''}
+              disabled={guard.isLarge || input.trim() === ''}
             >
               关键字小写
             </Button>
-            <Button size="sm" variant="outline" onClick={() => setInput(converted.sql)} disabled={input.trim() === ''}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setInput(converted.sql)}
+              disabled={guard.isLarge || input.trim() === ''}
+            >
               <ArrowLeftRight className="size-3.5" />
               转换为 {SQL_DIALECTS.find((item) => item.value === dialect)?.label}
             </Button>
@@ -274,8 +314,8 @@ export default function SqlFormatter() {
                 size="sm"
                 variant="ghost"
                 aria-label="复制结果"
-                disabled={output === ''}
-                onClick={() => copyText(output)}
+                disabled={displayOutput === ''}
+                onClick={() => copyText(displayOutput)}
               >
                 <Copy className="size-3.5" />
                 复制
@@ -284,8 +324,8 @@ export default function SqlFormatter() {
                 size="sm"
                 variant="ghost"
                 aria-label="下载 SQL 文件"
-                disabled={output === ''}
-                onClick={() => downloadText(exportName('query', 'sql'), output, 'application/sql;charset=utf-8')}
+                disabled={displayOutput === ''}
+                onClick={() => downloadText(exportName('query', 'sql'), displayOutput, 'application/sql;charset=utf-8')}
               >
                 <Download className="size-3.5" />
                 下载 .sql
@@ -293,19 +333,21 @@ export default function SqlFormatter() {
             </div>
           }
         >
-          {resultTab === 'formatted' ? (
-            <ResultBox label="格式化结果" value={output} rows="min-h-64" />
-          ) : (
+          {resultTab === 'highlight' && !guard.isLarge ? (
             <div className="flex flex-1 flex-col">
               <HighlightedSql tokens={tokens} />
               <Hint>关键字、函数、字符串、数字、注释、运算符分别着色；token 拼接与原文一致。</Hint>
             </div>
+          ) : (
+            <ResultBox label="格式化结果" value={displayOutput} error={outputError} rows="min-h-64" />
           )}
         </Section>
       </div>
 
       <Section title="结构分析" description="识别语句类型、涉及表、字段、条件列、JOIN、函数与子查询层数">
-        {input.trim() === '' ? (
+        {guard.isLarge ? (
+          <EmptyHint>大文件模式不做结构分析与风险检测，请查看上方后台结构重排结果。</EmptyHint>
+        ) : input.trim() === '' ? (
           <EmptyHint>输入 SQL 后显示分析结果</EmptyHint>
         ) : (
           <>

@@ -487,4 +487,133 @@ meta 还停留在「83 项工具」。设计目标定为「工业精密 · 仪�
 按约定不重启等价服务；`db-client` / `api-debug` 的文件选择、点击执行等交互也仅由
 `tsc` 与纯函数单测覆盖，未在真实浏览器手工点验。这是下一批最该补的验证项。
 
+## 第七批完善（2026-11-09 · 大文件格式化不卡顿与子路径部署的 Worker 路径）
+
+**动机**：用户要求落实上一轮提出的 A（消除主线程热点）与 B（后台 Worker），并特别指出
+Web 版可能部署在 `/mirror/coder-tools/` 之类的非根路径，构建后不能出现 Worker 路径引用错误。
+
+### A · 消除 JSON 格式化的主线程热点
+
+- `app/tools/json-formatter.tsx`：
+  - `inputBytes` 从「每次按键 `TextEncoder().encode(input)`」改为只在 `committed` 变化时
+    `new Blob([committed]).size`，标签改为「已处理体积」。
+  - 超过 100 万字符时 `analysis` 直接短路，**不再执行 `JSON5.parse` / 两次 `JSON.stringify` /
+    重复键扫描 / 类型统计**；键排序的小文件链路加 `MAX_SORT_DEPTH = 400` 防递归栈溢出。
+  - 大文件模式隐藏树形切换、强制文本视图，并在 Note 中如实说明哪些语义选项不生效。
+- `app/components/ui/json-tree.tsx`：新增带上限的迭代 `countNodes()`；超过 5000 节点直接
+  停用树形浏览（包装组件 `JsonTree` → `JsonTreeBody`，连树体 hooks 都不进入），避免生成
+  数十万 DOM 节点。
+- `app/components/ui/result.tsx`：新增可选 `maxDisplayChars`，大文件模式只把前 20 万字符
+  交给受控 textarea，复制 / 下载仍使用完整结果。其他工具不传该参数，行为不变。
+
+### B · 零路径依赖的后台 Worker
+
+- 新建 `public/format-worker.js`：自包含 classic worker，字符串级流式格式化（单遍扫描、
+  只维护缩进深度、不建对象树），支持严格 JSON 与 JSON5 的注释 / 单引号 / 无引号键，
+  消息协议 `{ id, text, indent, minify }` → `{ id, ok, output | error, elapsedMs }`。
+- 新建 `app/lib/format-stream.ts`：Worker 客户端，含 id 匹配、30 秒超时、新任务取消旧任务、
+  加载失败 / 超时给明确中文错误（**绝不静默回退到主线程做全量计算**）。
+- **路径方案（本批核心）**：不使用 `import.meta.url`，也不使用 Vite/WXT 生成的 worker chunk
+  地址。Worker 脚本作为 `public/` 静态资源随包发布到产物根目录，运行时：
+  - 扩展端 `runtime.getURL('format-worker.js')`（动态探测，不静态 import WXT / chrome）；
+  - Web 端 `new URL('format-worker.js', document.baseURI)`，相对入口 HTML 解析。
+  - 因此 `/`、`/mirror/coder-tools/`、`/mirror/coder-tools/#/tool/x`、`chrome-extension://<id>/`
+    全部指向同一份随包资源，产物里不存在 `/assets/...` 绝对路径 worker 引用。
+- **为什么排除另外两种常见做法**（已查 Chrome 官方 CSP 文档确认）：MV3 的 `worker-src`
+  只允许 `self` / `none` / `wasm-unsafe-eval`，不允许 `blob:`，且禁止把字符串当作代码执行，
+  所以内联 Blob Worker 在扩展端会被 CSP 拒绝；而打包器生成的 worker chunk 地址在
+  `base: './'` + hash 路由下有被写成绝对路径、子目录部署 404 的风险。
+  同源静态 classic worker 是双端唯一都成立的形式，**无需放宽 manifest CSP**。
+- `vite.web.config.ts` 在 `base: './'` 旁加约定注释（保持相对 base、不要加 `<base href>`）；
+  `biome.json` 排除该独立静态资源（不经 TS / 模块管线，需保留 classic worker 全局写法）。
+
+### 新增测试
+
+- `tests/format-stream.test.ts`：6 个路径解析用例（根 / 子路径 / 子路径+hash / 扩展同源 /
+  runtime.getURL 注入 / 无 `/assets/` 回归）、两个入口 HTML 无 `<base>` 断言、
+  `base: './'` 与 manifest 未放宽 CSP 断言、Worker 源码静态约束（无路径依赖与动态执行）、
+  以及 9 个 Worker 执行用例（美化 / 压缩 / 中文与转义 / 制表符 / 零缩进 / JSON5 注释 /
+  输出仍是合法 JSON / 非字符串输入降级 / 2 万元素大数组不爆栈）。
+
+### 验证边界（重要）
+
+本批执行期间命令通道出现持续性沙箱基础设施故障（`0xFFFFF826`，fail-closed），
+主会话与独立执行上下文均无法启动任何进程。**因此以下验证尚未实跑**：
+`bun run check`、`bun test`、`bunx tsc --noEmit`、`bun run build:web`、
+`WXT_OUT_DIR=... bun run build`、以及双端产物中 `format-worker.js` 是否确实落在根目录、
+大文件在真实浏览器里的 Worker 加载与耗时。代码与测试已按静态审查写完，
+环境恢复后应优先复跑上述命令，并在子路径 `/mirror/coder-tools/` 下用浏览器点验一次大文件格式化。
+
+**状态**：本批改动未提交；上一批 `0936a91` 已 push，本地工作区另有第六批与第七批改动。
+
 **状态**：本批改动尚未提交；上一提交 `0936a91` 已 push，本地工作区有新改动。
+
+## 第八批完善（2026-11-09 · C：把大文件保护推广到其余格式化工具）
+
+**动机**：第七批的 A / B 只落地在 `json-formatter`。用户确认 C 的范围是「统一阈值分流 +
+Worker + 限量输出，覆盖 HTML / CSS / JS / SQL / XML / YAML / Markdown / 文本对比等，补齐只有
+JSON 被保护的缺口」。静态盘点发现 16 个文本工具里 15 个都是「受控 input → 每次按键全量
+`useMemo` → 无限量 ResultBox」的同一模式，`regex-tester` 是唯一已有完整保护的一个。
+
+### 共享能力层
+
+- `app/lib/large-text.ts`：阈值 `1_000_000`、显示预览 `200_000`、列表上限 `500`，
+  `isLargeText` / `limitRows` / `previewText` 三个纯函数。
+- `app/hooks/use-large-text.ts`：`useLargeText(input, task | null)`。小文件 `source === input`；
+  大文件 `source` 停在用户手动提交的快照上，配 task 时由后台内核产出完整 `output`，
+  含 busy / error / 取消排队。参数用 `JSON.stringify(options)` 作 key 去重，避免调用方每次
+  渲染新建对象导致任务反复提交。
+- `app/components/ui/large-text-notice.tsx`：统一提示条。`reject` 模式（无后台任务）不渲染
+  「开始处理」按钮，避免点了没有任何结果的误导。
+- `app/components/ui/result.tsx`：`ResultBox` 的 `maxDisplayChars` 改为默认值，
+  **一次改动覆盖所有工具的输出渲染**，复制 / 下载仍用完整 `value`。
+- `app/lib/format-stream.ts`：`formatLargeJson` 保持原签名，内部改走新增的
+  `runFormatTask(kind, text, options)`；`resolveFormatWorkerUrl`、30 秒超时、新任务取消旧任务、
+  中文错误与子路径解析全部沿用第七批，路径方案零改动。
+- `public/format-worker.js`：从单一 JSON 内核扩成 6 任务 classic worker，仍零依赖、零外部脚本、
+  无路径依赖，消息里不带 `task` 时按 `json` 处理以兼容旧载荷：
+  `json` / `code`（JS·CSS·SQL 结构重排，压缩时保留标识符间必要空格，SQL 识别 `--` 注释） /
+  `markup`（HTML·XML 标签缩进，处理注释与 CDATA）/ `lines` / `stats` / `codec`（Base64、
+  HTML 实体、URL，UTF-8 安全）。缩进深度限 200 层、词表限 5000 个不同词，防畸形输入吃满内存。
+
+### 接入清单
+
+| 分类 | 工具 | 大文件行为 |
+|---|---|---|
+| 后台有结果 | `sql`、`yaml-xml`、`text-clean`、`text-stats`、`base64`、`html-entity`、`url-encode` | 短路主线程全量解析，后台字符串级处理，如实标注不生效的语义选项 |
+| 明确拒绝语义转换 | `markdown`、`json-convert`、`json-to-code`、`json-diff`、`text-diff`、`unicode`、`case` | 短路全量解析 / LCS / 递归建树 / 全量 HTML 注入，中文提示拆分文件 |
+| 已有保护，不重复接入 | `regex-tester`、`table-convert` | 保留原有截断、防抖、结果限量与预览行数上限 |
+
+实现要点：14 个工具的 `useMemo` 依赖统一从 `input` 换成 `guard.source` 并在 `isLarge` 短路；
+`sql` / `yaml-xml` 顺带修掉「YAML 页也跑 XML 全套」「每次按键两次 `TextEncoder` 全量编码」；
+所有按字符 / 按行生成 DOM 的列表改 `limitRows`；`markdown` 大文件不再进入
+`dangerouslySetInnerHTML`；`json-diff` / `text-diff` 用合成 guard 表示「任一侧大文件即拒绝」。
+
+### 顺带修出的既有缺陷
+
+- `yaml-xml` 空输入时 `currentError` 会把伪造的失败对象交给 `issueText`，显示「处理失败」；
+  改为只在结果确为失败分支时返回错误。
+- `case` / `unicode` 大文件下原本会渲染空结果框与误导的「1 行」统计，改显示 `EmptyHint`。
+- `formatCode` 初版压缩会把 `SELECT a FROM b` 粘成 `SELECTaFROMb`、美化会吞掉注释标记
+  （行注释进而吞掉后续代码），已在静态审查中推演并修正。
+
+### 测试
+
+- `tests/format-stream.test.ts` 扩到多任务：路径解析 8 例、静态约束 3 例保持不变；
+  新增 code / markup / lines / stats / codec 共 16 个执行用例，覆盖中文往返、注释保留、
+  压缩空格、数字实体、空文本统计、未知任务失败与超深嵌套。
+- 新建 `tests/large-text.test.ts`：共享纯函数 4 例 + 14 个工具接入回归 + `ResultBox` 默认限量、
+  6 种后台任务、旧签名兼容、Worker 零路径依赖与子路径约定共 10 类断言。
+
+### 能力边界与验证状态
+
+- 依赖 `marked` / `DOMPurify` / `yaml` / `JSON5` / jsdiff 的工具**没有**大文件等价后台实现：
+  零依赖 classic worker 不能加载这些第三方解析器，若要把它们也搬进后台，需要额外生成一份随包
+  UMD bundle 并让 worker 以同源相对路径加载，属于独立一批工作。当前选择明确拒绝而非给不可靠结果。
+- 命令通道持续 `SandboxError(0xFFFFF826)`（fail-closed），本轮与第七批一样**未实跑**
+  `bun run check`、`bun test`、`tsc --noEmit`、双端构建、产物中 `format-worker.js` 落位核对、
+  子路径浏览器点验。全部改动只做了逐文件静态审查（含类型推断、未使用导入、hooks 依赖、
+  worker JS 语法与测试期望推演）。环境恢复后应优先复跑并在 `/mirror/coder-tools/` 下点验一次
+  大文件 SQL / XML / Base64 的后台处理。
+
+**状态**：第八批改动未提交；第六、七、八批均仍在工作区。
